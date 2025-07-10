@@ -1,0 +1,18 @@
+справочники
++ data07&14 и для res доп. столбец правильное/_14Производитель_заполнен с нижним регистром
++ mass offers & base price add low column
+обработка
+загрузка логов в консоль только при старте
+обнуление таблиц в БД по кнопке
+commit только в конце обновления
+ошибка sql
+SELECT * FROM pg_indexes where schemaname = 'public'
+
+add notice:
+delete
+uuid (+ replace in to_sql)
+
+
+table:
+создавать авторестарт каждый вечер
+mass offers and prive b
