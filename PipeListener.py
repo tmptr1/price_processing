@@ -43,5 +43,5 @@ class PipeListener(QThread):
                 # print(_)
                 self.log.add(id_console_log, log_text, _ if _ else None)
             elif action_type == "error":
-                id_console_log, ex_for_log, error_text, ex_text = other
-                self.log.error(id_console_log, ex_for_log, error_text, ex_text)
+                id_console_log, error_text, ex_text = other
+                self.log.error(id_console_log, error_text, ex_text)

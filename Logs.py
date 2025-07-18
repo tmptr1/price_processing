@@ -1,44 +1,83 @@
 import multiprocessing as mp
 import logging
+import time
 from logging.handlers import RotatingFileHandler
-from PySide6.QtCore import Signal, QObject
+from PySide6.QtCore import Signal, QThread
 import datetime
+import shutil
 
-logger = mp.get_logger()
-logger.setLevel(21)
+import setting
+settings_data = setting.get_vars()
 
-formater = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+log_file_names = ["logs_mail_parser_molule.log", "logs_price_reader_molule.log", "logs_catalog_update_molule.log"]
+log_files = []
+for l in log_file_names:
+    log_files.append(fr"{settings_data['local_logs_dir']}/{l}")
 
-f_handler = RotatingFileHandler('logs_calculate_molule.log', maxBytes=10 * 1024 * 1024, backupCount=2, errors='ignore',)
-f_handler.setFormatter(formater)
-s_handler = logging.StreamHandler()
-s_handler.setFormatter(formater)
+loggers = []
 
-logger.addHandler(f_handler)
-logger.addHandler(s_handler)
+for log_file in log_files:
+    # logger = mp.get_logger()
+    logger = logging.getLogger(log_file)
+    logger.setLevel(21)
 
-class LogClass(QObject):
+    formater = logging.Formatter("[%(asctime)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+    f_handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=2, errors='ignore',)
+    f_handler.setFormatter(formater)
+    # s_handler = logging.StreamHandler()
+    # s_handler.setFormatter(formater)
+
+    logger.addHandler(f_handler)
+    # logger.addHandler(s_handler)
+    loggers.append(logger)
+
+
+class LogClass(QThread):
     AddLogToTableSignal = Signal(int, str)
     def __init__(self, parent=None):
-        QObject.__init__(self)
-        self.loggers = [logger]
+        self.loggers = loggers
+        QThread.__init__(self, parent)
+
+    def run(self):
+        '''Перенос логов с локальной директории на серверную папку, где расположено приложение'''
+        while True:
+            time.sleep(120)
+            try:
+                for i, l in enumerate(log_files):
+                    shutil.copy(l, fr"logs/{log_file_names[i]}")
+                # print('logs ok')
+            except Exception as ex:
+                print(ex)
 
     def add(self, id_console_log, text:str, color_text=None):
-        self.loggers[id_console_log].log(21, f"{text}")
-        self.AddLogToTableSignal.emit(id_console_log, f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {color_text or text}")
+        try:
+            self.loggers[id_console_log].log(21, f"{text}")
+        except Exception as log_ex:
+            print("log add error:", log_ex)
+        self.AddLogToTableSignal.emit(id_console_log, f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {color_text or text}  ")
 
-    def error(self, id_console_log, exc, er_text, ex_text):
-        self.loggers[id_console_log].error(f"{er_text}", exc_info=exc)
+    def error(self, id_console_log, er_custom_message, ex_text):
+        try:
+            self.loggers[id_console_log].error(f"{er_custom_message}: {ex_text}")
+        except Exception as log_ex:
+            print("log er error:", log_ex)
         self.AddLogToTableSignal.emit(id_console_log, f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] <span style='color:red;font-weight:bold;'>"
-                                      f"{er_text}</span>:<br> <span style='color:#cc2f2f'>{ex_text}</span>")
+                                      f"{er_custom_message}</span>:<br> <span style='color:#cc2f2f'>{ex_text}</span><br>")
 
 
 
-def add_log_cf(id_console_log, log_main_text, sender, price_code, cur_time, color):
+def add_log_cf(id_console_log, log_main_text, sender, price_code, color, cur_time=None):
     '''Custom Format'''
-    log_text = "{}{price}{} {log_main_text} [{time_spent}]"
-    sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text,
-                                        time_spent=str(datetime.datetime.now() - cur_time)[:7]),
-                 log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>", '</span>',
-                                 price=price_code, log_main_text=log_main_text,
-                                 time_spent=str(datetime.datetime.now() - cur_time)[:7])])
+    if cur_time:
+        log_text = "{}{price}{} {log_main_text} [{time_spent}]"
+        sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text,
+                                            time_spent=str(datetime.datetime.now() - cur_time)[:7]),
+                     log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>", '</span>',
+                                     price=price_code, log_main_text=log_main_text,
+                                     time_spent=str(datetime.datetime.now() - cur_time)[:7])])
+    else:
+        log_text = "{}{price}{} {log_main_text}"
+        sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text),
+                     log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>",
+                                     '</span>', price=price_code, log_main_text=log_main_text)])

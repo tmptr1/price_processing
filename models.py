@@ -2,215 +2,568 @@ import uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import REAL, NUMERIC, String, Uuid, text, Integer, Numeric, Index
 import datetime
+from typing import Annotated
 
 class Base(DeclarativeBase):
     pass
 
-class Price(Base):
-    __tablename__ = "price"
-    __table_args__ = (Index("price_file_name_index", "file_name"),
-                      Index("price_1_14_low_index", "_01article", "_14brand_filled_in_low"),
-                      Index("price_1_7_14_low_index", "_01article", "_07supplier_code", "_14brand_filled_in_low"),
-                      Index("price_7_14_low_index", "_07supplier_code", "_14brand_filled_in_low"),
-                      Index("price_07_index", "_07supplier_code"),
-                      Index("price_09_index", "_09code_supl_goods"),
-                      Index("price_14_low_index", "_14brand_filled_in_low"),
-                      Index("price_15_index", "_15code_optt"),
-                      )
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
-    # Ключ1_поставщика varchar(256),
-    key_s: Mapped[str] = mapped_column(String(256), nullable=True)
-    # Артикул_поставщика varchar(256),
-    article_s: Mapped[str] = mapped_column(String(256), nullable=True)
-    # Производитель_поставщика varchar(256),
-    brnd_s: Mapped[str] = mapped_column(String(256), nullable=True)
-    # Наименование_поставщика varchar(256),
-    name_s: Mapped[str] = mapped_column(String(256), nullable=True)
-    # Количество_поставщика REAL,
-    count_s: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Цена_поставщика NUMERIC(12,2),
-    price_s: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # Кратность_поставщика REAL,
-    mult_s: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # Примечание_поставщика varchar(1000),
-    notice_s: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _01Артикул varchar(256),
-    _01article: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _02Производитель varchar(256),
-    _02brand: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _03Наименование varchar(500),
-    _03name: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _04Количество REAL,
-    _04count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # _05Цена NUMERIC(12,2),
-    _05price: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # _06Кратность_ REAL,
-    _06milt_: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # _07Код_поставщика varchar(150),
-    _07supplier_code: Mapped[str] = mapped_column(String(20), nullable=True)
-    # _09Код_Поставщик_Товар varchar(500),
-    _09code_supl_goods: Mapped[str] = mapped_column(String(300), nullable=True)
-    # _10Оригинал varchar(30),
-    _10original: Mapped[str] = mapped_column(String(30), nullable=True)
-    # _13Градация REAL,
-    _13grad: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # _14Производитель_заполнен varchar(1000),
-    _14brand_filled_in: Mapped[str] = mapped_column(String(256), nullable=True)
-    _14brand_filled_in_low: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _15КодТутОптТорг varchar(256),
-    _15code_optt: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _17КодУникальности varchar(500),
-    _17code_unique: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str] = mapped_column(String(256), nullable=True)
-    # _19МинЦенаПоПрайсу varchar(50),
-    _19min_price: Mapped[str] = mapped_column(String(50), nullable=True)
-    # _20ИслючитьИзПрайса varchar(50),
-    _20exclude: Mapped[str] = mapped_column(String(50), nullable=True)
-    # Название_файла varchar(50),
-    file_name: Mapped[str] = mapped_column(String(50), nullable=True)
-    # Отсрочка REAL,
-    delay: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Продаём_для_ОС varchar(20),
-    sell_for_OS: Mapped[str] = mapped_column(String(20), nullable=True)
-    # Наценка_для_ОС REAL,
-    markup_os: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Наценка_на_праздники_1_02 REAL,
-    markup_holidays: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Наценка_Р REAL,
-    markup_R: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Мин_наценка REAL,
-    min_markup: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Шаг_градаци REAL,
-    grad_step: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Шаг_опт REAL,
-    wholesale_step: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Разрешения_ПП varchar(3000),
-    access_pp: Mapped[str] = mapped_column(String(500), nullable=True)
-    # Процент_Отгрузки REAL,
-    unload_percent: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str] = mapped_column(String(500), nullable=True)
-    # Предложений_опт REAL,
-    offers_wholesale: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # ЦенаБ NUMERIC(12,2),
-    price_b: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # Низкая_цена NUMERIC(12,2),
-    low_price: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # Кол_во REAL,
-    count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # Наценка_ПБ REAL,
-    markup_pb: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Код_ПБ_П varchar,
-    code_pb_p: Mapped[str] = mapped_column(String(500), nullable=True)
-    # _06Кратность REAL,
-    _06milt: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # Кратность_меньше varchar(25),
-    mult_less: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # _05Цена_плюс NUMERIC(12,2),
-    _05price_plus: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # ШтР integer DEFAULT 0,
-    reserve_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # Количество_закупок REAL,
-    buy_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # ЦенаМин numeric(12,2),
-    min_price: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
-    # ЦенаМинПоставщик varchar(20)
-    min_supplier: Mapped[str] = mapped_column(String(20), nullable=True)
+intpk = Annotated[int, mapped_column(primary_key=True)]
+uuidpk = Annotated[uuid.UUID, mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))]
+str_x = lambda x:Annotated[String, mapped_column(String(x), nullable=True)]
+intgr = Annotated[int, mapped_column(Integer, nullable=True)]
+real = Annotated[REAL, mapped_column(REAL, nullable=True)]
+numeric = Annotated[Numeric, mapped_column(Numeric(12,2), nullable=True)]
 
-class Data07(Base):
-    __tablename__ = "data07"
-    id: Mapped[int] = mapped_column(primary_key=True)
+class SupplierPriceSettings(Base):
+    __tablename__ = "supplier_price_settings"
+    id: Mapped[intpk]
+    # Издержки real,
+    costs: Mapped[real]
+    # Код_поставщика varchar(10),
+    supplier_code: Mapped[str_x(10)]
+    # Можем_купить varchar(20),
+    buy: Mapped[str_x(20)]
     # Работаем varchar(20),
-    works: Mapped[str] = mapped_column(String(20), nullable=True)
-    # Период_обновления_не_более REAL,
-    update_time: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Настройка varchar(50),
-    setting: Mapped[str] = mapped_column(String(50), nullable=True)#primary_key=True)
-    # Отсрочка REAL,
-    delay: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Продаём_для_ОС varchar(20) DEFAULT null,
-    sell_os: Mapped[str] = mapped_column(String(20), nullable=True)
-    # Наценка_для_ОС REAL,
-    markup_os: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Наценка_на_праздники_1_02 REAL,
-    markup_holidays: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Наценка_Р REAL,
-    markup_R: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Мин_наценка REAL,
-    min_markup: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Наценка_на_оптовые_товары REAL,
-    markup_wholesale: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Шаг_градаци REAL,
-    grad_step: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Шаг_опт REAL DEFAULT 0,
-    wholesale_step: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Разрешения_ПП varchar(3000),
-    access_pp: Mapped[str] = mapped_column(String(500), nullable=True)
-    # Процент_Отгрузки REAL
-    unload_percent: Mapped[REAL] = mapped_column(REAL, nullable=True)
+    works: Mapped[str_x(20)]
+    # Почта varchar(256),
+    email: Mapped[str_x(256)]
+    # Условие_имени_файла varchar(20),
+    file_name_cond: Mapped[str_x(20)]
+    # Срок_обновление_не_более real,
+    update_time: Mapped[real]
+    # Имя_файла varchar(256),
+    file_name: Mapped[str_x(256)]
+    # Прайс_оптовый varchar(20),
+    wholesale: Mapped[str_x(20)]
+    # Цену_считать_базовой varchar(20),
+    is_base_price: Mapped[str_x(20)]
+    # В_прайс real,
+    in_price: Mapped[real]
+    # Краткое_наименование integer,
+    short_name: Mapped[intgr]
+    # Закупка_для_оборотных_средств varchar(20),
+    buy_for_working_capital: Mapped[real]
+    # Разрешения_ПП varchar,
+    access_pp: Mapped[str_x(500)]
+    # Лот_поставщика real,
+    supplier_lot: Mapped[real]
+    # К_Превышения_базовой_цены real,
+    over_base_price: Mapped[real]
+    # Лот_удобный_нам real,
+    convenient_lot: Mapped[real]
+    # Обрабатываем varchar(20),
+    calculate: Mapped[str_x(20)]
+    # Стандартизируем varchar(20),
+    standard: Mapped[str_x(20)]
+    # Код_прайса varchar(10),
+    price_code: Mapped[str_x(20)]
+    # Сохраняем varchar(20),
+    save: Mapped[str_x(20)]
+    # Наценка_мин real,
+    min_markup: Mapped[real]
+    # Наценка_опт real,
+    markup_wholesale: Mapped[real]
+    # Наценка_макс real,
+    max_markup: Mapped[real]
+    # Процент_отгрузки real,
+    unload_percent: Mapped[real]
+    # Отсрочка real,
+    delay: Mapped[real]
+    # Наценка_для_ОС real,
+    markup_os: Mapped[real]
+    # Процент_изменения_строк real,
+    row_change_percent: Mapped[real]
+    # Процент_изменения_цены real,
+    price_change_percent: Mapped[real]
+    # Рейтинг_поставщика real
+    supplier_rating: Mapped[real]
 
-class Data07_14(Base):
-    __tablename__ = "data07_14"
+class MailReport(Base):
+    __tablename__ = "mail_report"
+    id: Mapped[uuidpk]
+    # sender varchar(256),
+    sender: Mapped[str_x(256)]
+    # file_name varchar(256),
+    file_name: Mapped[str_x(256)]
+    # date varchar(256)
+    date: Mapped[str_x(256)]
+
+class Price_1(Base):
+    __tablename__ = "price_1"
+    __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),)
+    # __table_args__ = (Index("price_file_name_index", "file_name"),
+    #                   Index("price_1_14_low_index", "_01article", "_14brand_filled_in_low"),
+    #                   Index("price_1_7_14_low_index", "_01article", "_07supplier_code", "_14brand_filled_in_low"),
+    #                   Index("price_7_14_low_index", "_07supplier_code", "_14brand_filled_in_low"),
+    #                   Index("price_07_index", "_07supplier_code"),
+    #                   Index("price_09_index", "_09code_supl_goods"),
+    #                   Index("price_14_low_index", "_14brand_filled_in_low"),
+    #                   Index("price_15_index", "_15code_optt"),
+    #                   )
     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # Работаем varchar(20),
-    works: Mapped[str] = mapped_column(String(20), nullable=True)
-    # Период_обновления_не_более REAL,
-    update_time: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Настройка varchar(100),
-    setting: Mapped[str] = mapped_column(String(50), nullable=True) # primary_key=True)
-    # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Правильное varchar(256),
-    correct: Mapped[str] = mapped_column(String(256), nullable=True) #primary_key=True)
-    correct_low: Mapped[str] = mapped_column(String(256), nullable=True)
-    # Наценка_ПБ REAL,
-    markup_pb: Mapped[REAL] = mapped_column(REAL, nullable=True)
-    # Код_ПБ_П varchar)
-    code_pb_p: Mapped[str] = mapped_column(String(500), nullable=True)
+    id: Mapped[uuidpk]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
+    brand_s_low: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[real]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _02Производитель varchar(256),
+    _02brand: Mapped[str_x(256)]
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
+    _12sum: Mapped[numeric]
+    # _06Кратность_ REAL,
+    _06mult: Mapped[intgr]
+    _15code_optt: Mapped[str_x(256)]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    # _20ИслючитьИзПрайса varchar(50),
+    _20exclude: Mapped[str_x(50)]
+    # _13Градация REAL,
+    _13grad: Mapped[intgr]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    # _18КороткоеНаименование varchar(256),
+    _18short_name: Mapped[str_x(256)]
 
-class Data15(Base):
-    __tablename__ = "data15"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # _15 varchar(300),
-    code_15: Mapped[str] = mapped_column(String(500), nullable=True)
-    # Предложений_опт REAL,
-    offers_wholesale: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # ЦенаБ REAL
-    price_b: Mapped[Numeric] = mapped_column(Numeric(12,2), nullable=True)
+    # # _09Код_Поставщик_Товар varchar(500),
+    # _09code_supl_goods: Mapped[str_x(300)]
+    # # _10Оригинал varchar(30),
+    # _10original: Mapped[str_x(30)]
+    # # _13Градация REAL,
+    # _13grad: Mapped[real]
+    # # _14Производитель_заполнен varchar(1000),
+    # _14brand_filled_in: Mapped[str_x(256)]
+    # _14brand_filled_in_low: Mapped[str_x(256)]
+    # # _15КодТутОптТорг varchar(256),
+    # _15code_optt: Mapped[str_x(256)]
+    # # _17КодУникальности varchar(500),
+    # _17code_unique: Mapped[str_x(256)]
+    # # _19МинЦенаПоПрайсу varchar(50),
+    # _19min_price: Mapped[str_x(50)]
+    # # _20ИслючитьИзПрайса varchar(50),
+    # _20exclude: Mapped[str_x(50)]
+    # # Название_файла varchar(50),
+    # file_name: Mapped[str_x(50)]
+    # # Отсрочка REAL,
+    # delay: Mapped[real]
+    # # Продаём_для_ОС varchar(20),
+    # sell_for_OS: Mapped[str_x(20)]
+    # # Наценка_для_ОС REAL,
+    # markup_os: Mapped[real]
+    # # Макс_снижение_от_базовой_цены REAL,
+    # max_decline: Mapped[real]
+    # # Наценка_на_праздники_1_02 REAL,
+    # markup_holidays: Mapped[real]
+    # # Наценка_Р REAL,
+    # markup_R: Mapped[real]
+    # # Мин_наценка REAL,
+    # min_markup: Mapped[real]
+    # # Шаг_градаци REAL,
+    # grad_step: Mapped[real]
+    # # Шаг_опт REAL,
+    # wholesale_step: Mapped[real]
+    # # Разрешения_ПП varchar(3000),
+    # access_pp: Mapped[str_x(500)]
+    # # Процент_Отгрузки REAL,
+    # unload_percent: Mapped[real]
+    # # УбратьЗП varchar(3000),
+    # put_away_zp: Mapped[str_x(500)]
+    # # Предложений_опт REAL,
+    # offers_wholesale: Mapped[intgr]
+    # # ЦенаБ NUMERIC(12,2),
+    # price_b: Mapped[numeric]
+    # # Низкая_цена NUMERIC(12,2),
+    # low_price: Mapped[numeric]
+    # # Кол_во REAL,
+    # count: Mapped[intgr]
+    # # Наценка_ПБ REAL,
+    # markup_pb: Mapped[real]
+    # # Код_ПБ_П varchar,
+    # code_pb_p: Mapped[str_x(500)]
+    # # _06Кратность REAL,
+    # _06milt: Mapped[intgr]
+    # # Кратность_меньше varchar(25),
+    # mult_less: Mapped[intgr]
+    # # _05Цена_плюс NUMERIC(12,2),
+    # _05price_plus: Mapped[numeric]
+    # # ШтР integer DEFAULT 0,
+    # reserve_count: Mapped[intgr]
+    # # Количество_закупок REAL,
+    # buy_count: Mapped[real]
+    # # ЦенаМин numeric(12,2),
+    # min_price: Mapped[numeric]
+    # # ЦенаМинПоставщик varchar(20)
+    # min_supplier: Mapped[str] = mapped_column(String(20), nullable=True)
 
-class Data09(Base):
-    __tablename__ = "data09"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str] = mapped_column(String(500), nullable=True)
-    # ШтР REAL DEFAULT NULL,
-    reserve_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # _09 varchar(300)
-    code_09: Mapped[str] = mapped_column(String(300), nullable=True)
+# class Price(Base):
+#     __tablename__ = "price"
+#     __table_args__ = (Index("price_file_name_index", "file_name"),
+#                       Index("price_1_14_low_index", "_01article", "_14brand_filled_in_low"),
+#                       Index("price_1_7_14_low_index", "_01article", "_07supplier_code", "_14brand_filled_in_low"),
+#                       Index("price_7_14_low_index", "_07supplier_code", "_14brand_filled_in_low"),
+#                       Index("price_07_index", "_07supplier_code"),
+#                       Index("price_09_index", "_09code_supl_goods"),
+#                       Index("price_14_low_index", "_14brand_filled_in_low"),
+#                       Index("price_15_index", "_15code_optt"),
+#                       )
+#     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+#     id: Mapped[uuidpk]
+#     # Ключ1_поставщика varchar(256),
+#     key_s: Mapped[str_x(256)]
+#     # Артикул_поставщика varchar(256),
+#     article_s: Mapped[str_x(256)]
+#     # Производитель_поставщика varchar(256),
+#     brand_s: Mapped[str_x(256)]
+#     # Наименование_поставщика varchar(256),
+#     name_s: Mapped[str_x(256)]
+#     # Количество_поставщика REAL,
+#     count_s: Mapped[real]
+#     # Цена_поставщика NUMERIC(12,2),
+#     price_s: Mapped[numeric]
+#     # Кратность_поставщика REAL,
+#     mult_s: Mapped[intgr]
+#     # Примечание_поставщика varchar(1000),
+#     notice_s: Mapped[str_x(256)]
+#     # _01Артикул varchar(256),
+#     _01article: Mapped[str_x(256)]
+#     # _02Производитель varchar(256),
+#     _02brand: Mapped[str_x(256)]
+#     # _03Наименование varchar(500),
+#     _03name: Mapped[str_x(256)]
+#     # _04Количество REAL,
+#     _04count: Mapped[intgr]
+#     # _05Цена NUMERIC(12,2),
+#     _05price: Mapped[numeric]
+#     # _06Кратность_ REAL,
+#     _06milt_: Mapped[intgr]
+#     # _07Код_поставщика varchar(150),
+#     _07supplier_code: Mapped[str_x(20)]
+#     # _09Код_Поставщик_Товар varchar(500),
+#     _09code_supl_goods: Mapped[str_x(300)]
+#     # _10Оригинал varchar(30),
+#     _10original: Mapped[str_x(30)]
+#     # _13Градация REAL,
+#     _13grad: Mapped[real]
+#     # _14Производитель_заполнен varchar(1000),
+#     _14brand_filled_in: Mapped[str_x(256)]
+#     _14brand_filled_in_low: Mapped[str_x(256)]
+#     # _15КодТутОптТорг varchar(256),
+#     _15code_optt: Mapped[str_x(256)]
+#     # _17КодУникальности varchar(500),
+#     _17code_unique: Mapped[str_x(256)]
+#     # _18КороткоеНаименование varchar(256),
+#     _18short_name: Mapped[str_x(256)]
+#     # _19МинЦенаПоПрайсу varchar(50),
+#     _19min_price: Mapped[str_x(50)]
+#     # _20ИслючитьИзПрайса varchar(50),
+#     _20exclude: Mapped[str_x(50)]
+#     # Название_файла varchar(50),
+#     file_name: Mapped[str_x(50)]
+#     # Отсрочка REAL,
+#     delay: Mapped[real]
+#     # Продаём_для_ОС varchar(20),
+#     sell_for_OS: Mapped[str_x(20)]
+#     # Наценка_для_ОС REAL,
+#     markup_os: Mapped[real]
+#     # Макс_снижение_от_базовой_цены REAL,
+#     max_decline: Mapped[real]
+#     # Наценка_на_праздники_1_02 REAL,
+#     markup_holidays: Mapped[real]
+#     # Наценка_Р REAL,
+#     markup_R: Mapped[real]
+#     # Мин_наценка REAL,
+#     min_markup: Mapped[real]
+#     # Шаг_градаци REAL,
+#     grad_step: Mapped[real]
+#     # Шаг_опт REAL,
+#     wholesale_step: Mapped[real]
+#     # Разрешения_ПП varchar(3000),
+#     access_pp: Mapped[str_x(500)]
+#     # Процент_Отгрузки REAL,
+#     unload_percent: Mapped[real]
+#     # УбратьЗП varchar(3000),
+#     put_away_zp: Mapped[str_x(500)]
+#     # Предложений_опт REAL,
+#     offers_wholesale: Mapped[intgr]
+#     # ЦенаБ NUMERIC(12,2),
+#     price_b: Mapped[numeric]
+#     # Низкая_цена NUMERIC(12,2),
+#     low_price: Mapped[numeric]
+#     # Кол_во REAL,
+#     count: Mapped[intgr]
+#     # Наценка_ПБ REAL,
+#     markup_pb: Mapped[real]
+#     # Код_ПБ_П varchar,
+#     code_pb_p: Mapped[str_x(500)]
+#     # _06Кратность REAL,
+#     _06milt: Mapped[intgr]
+#     # Кратность_меньше varchar(25),
+#     mult_less: Mapped[intgr]
+#     # _05Цена_плюс NUMERIC(12,2),
+#     _05price_plus: Mapped[numeric]
+#     # ШтР integer DEFAULT 0,
+#     reserve_count: Mapped[intgr]
+#     # Количество_закупок REAL,
+#     buy_count: Mapped[real]
+#     # ЦенаМин numeric(12,2),
+#     min_price: Mapped[numeric]
+#     # ЦенаМинПоставщик varchar(20)
+#     min_supplier: Mapped[str] = mapped_column(String(20), nullable=True)
+#
+# class Data07(Base):
+#     __tablename__ = "data07"
+#     id: Mapped[intpk]
+#     # Работаем varchar(20),
+#     works: Mapped[str_x(20)]
+#     # Период_обновления_не_более REAL,
+#     update_time: Mapped[real]
+#     # Настройка varchar(50),
+#     setting: Mapped[str_x(50)]
+#     # Отсрочка REAL,
+#     delay: Mapped[real]
+#     # Продаём_для_ОС varchar(20) DEFAULT null,
+#     sell_os: Mapped[str_x(20)]
+#     # Наценка_для_ОС REAL,
+#     markup_os: Mapped[real]
+#     # Макс_снижение_от_базовой_цены REAL,
+#     max_decline: Mapped[real]
+#     # Наценка_на_праздники_1_02 REAL,
+#     markup_holidays: Mapped[real]
+#     # Наценка_Р REAL,
+#     markup_R: Mapped[real]
+#     # Мин_наценка REAL,
+#     min_markup: Mapped[real]
+#     # Наценка_на_оптовые_товары REAL,
+#     markup_wholesale: Mapped[real]
+#     # Шаг_градаци REAL,
+#     grad_step: Mapped[real]
+#     # Шаг_опт REAL DEFAULT 0,
+#     wholesale_step: Mapped[real]
+#     # Разрешения_ПП varchar(3000),
+#     access_pp: Mapped[str_x(500)]
+#     # Процент_Отгрузки REAL
+#     unload_percent: Mapped[real]
+#
+# class Data07_14(Base):
+#     __tablename__ = "data07_14"
+#     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
+#     id: Mapped[intpk]
+#     # Работаем varchar(20),
+#     works: Mapped[str_x(20)]
+#     # Период_обновления_не_более REAL,
+#     update_time: Mapped[real]
+#     # Настройка varchar(100),
+#     setting: Mapped[str_x(50)]
+#     # Макс_снижение_от_базовой_цены REAL,
+#     max_decline: Mapped[real]
+#     # Правильное varchar(256),
+#     correct: Mapped[str_x(256)]
+#     correct_low: Mapped[str_x(256)]
+#     # Наценка_ПБ REAL,
+#     markup_pb: Mapped[real]
+#     # Код_ПБ_П varchar)
+#     code_pb_p: Mapped[str_x(500)]
+#
+# class Data15(Base):
+#     __tablename__ = "data15"
+#     id: Mapped[intpk]
+#     # _15 varchar(300),
+#     code_15: Mapped[str_x(500)]
+#     # Предложений_опт REAL,
+#     offers_wholesale: Mapped[intgr]
+#     # ЦенаБ REAL
+#     price_b: Mapped[numeric]
+#
+# class Data09(Base):
+#     __tablename__ = "data09"
+#     id: Mapped[intpk]
+#     # УбратьЗП varchar(3000),
+#     put_away_zp: Mapped[str_x(500)]
+#     # ШтР REAL DEFAULT NULL,
+#     reserve_count: Mapped[intgr]
+#     # _09 varchar(300)
+#     code_09: Mapped[str_x(300)]
+#
+# class Buy_for_OS(Base):
+#     __tablename__ = "buy_for_os"
+#     id: Mapped[intpk]
+#     # Количество_закупок REAL,
+#     buy_count: Mapped[intgr]
+#     # АртикулПроизводитель varchar(300)
+#     article_producer: Mapped[str_x(300)]
+#
 
-class Buy_for_OS(Base):
-    __tablename__ = "buy_for_OS"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # Количество_закупок REAL,
-    buy_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # АртикулПроизводитель varchar(300)
-    article_producer: Mapped[str] = mapped_column(String(300), nullable=True)
+class FileSettings(Base):
+    __tablename__ = "file_settings"
+    # 	id UUID default gen_random_uuid(),
+    id: Mapped[intpk]
+    # 	Прайс varchar(20),
+    price_code: Mapped[str_x(20)]
+    # 	Пропуск_сверху integer default 0,
+    pass_up: Mapped[Integer] = mapped_column(Integer, nullable=True, default=0)
+    # 	Пропуск_снизу integer default 0,
+    pass_down: Mapped[Integer] = mapped_column(Integer, nullable=True, default=0)
+    # Сопоставление_по varchar(100),
+    compare: Mapped[str_x(100)]
+    # 	Строка_КлючП integer,
+    r_key_s: Mapped[intgr]
+    # 	Столбец_КлючП integer,
+    c_key_s: Mapped[intgr]
+    # 	rc_КлючП varchar(50),
+    rc_key_s: Mapped[str_x(50)]
+    # 	Название_КлючП varchar(256),
+    name_key_s: Mapped[str_x(256)]
+    # 	Строка_АртикулП integer,
+    r_article_s: Mapped[intgr]
+    # 	Столбец_АртикулП integer,
+    c_article_s: Mapped[intgr]
+    # 	rc_АртикулП varchar(50),
+    rc_article_s: Mapped[str_x(50)]
+    # 	Название_АртикулП varchar(256),
+    name_article_s: Mapped[str_x(256)]
+    # 	Строка_БрендП integer,
+    r_brand_s: Mapped[intgr]
+    # 	Столбец_БрендП integer,
+    c_brand_s: Mapped[intgr]
+    # 	rc_БрендП varchar(50),
+    rc_brand_s: Mapped[str_x(50)]
+    # 	Название_БрендП varchar(256),
+    name_brand_s: Mapped[str_x(256)]
+    # 	Строка_НаименованиеП integer,
+    r_name_s: Mapped[intgr]
+    # 	Столбец_НаименованиеП integer,
+    c_name_s: Mapped[intgr]
+    # 	rc_НаименованиеП varchar(50),
+    rc_name_s: Mapped[str_x(50)]
+    # 	Название_НаименованиеП varchar(256),
+    name_name_s: Mapped[str_x(256)]
+    # 	Строка_КоличествоП integer,
+    r_count_s: Mapped[intgr]
+    # 	Столбец_КоличествоП integer,
+    c_count_s: Mapped[intgr]
+    # 	rc_КоличествоП varchar(50),
+    rc_count_s: Mapped[str_x(50)]
+    # 	Название_КоличествоП varchar(256),
+    name_count_s: Mapped[str_x(256)]
+    # 	Строка_ЦенаП integer,
+    r_price_s: Mapped[intgr]
+    # 	Столбец_ЦенаП integer,
+    c_price_s: Mapped[intgr]
+    # 	rc_ЦенаП varchar(50),
+    rc_price_s: Mapped[str_x(50)]
+    # 	Название_ЦенаП varchar(256),
+    name_price_s: Mapped[str_x(256)]
+    # 	Строка_КратностьП integer,
+    r_mult_s: Mapped[intgr]
+    # 	Столбец_КратностьП integer,
+    c_mult_s: Mapped[intgr]
+    # 	rc_КратностьП varchar(50),
+    rc_mult_s: Mapped[str_x(50)]
+    # 	Название_КратностьП varchar(256),
+    name_mult_s: Mapped[str_x(256)]
+    # 	Строка_ПримечаниеП integer,
+    r_notice_s: Mapped[intgr]
+    # 	Столбец_ПримечаниеП integer,
+    c_notice_s: Mapped[intgr]
+    # 	rc_ПримечаниеП varchar(50),
+    rc_notice_s: Mapped[str_x(50)]
+    # 	Название_ПримечаниеП varchar(256),
+    name_notice_s: Mapped[str_x(256)]
+    # 	Строка_Валюта integer,
+    r_currency_s: Mapped[intgr]
+    # 	Столбец_Валюта integer,
+    c_currency_s: Mapped[intgr]
+    # 	rc_Валюта varchar(50),
+    rc_currency_s: Mapped[str_x(50)]
+    # 	Название_Валюта varchar(256)
+    name_currency_s: Mapped[str_x(256)]
+    change_price_type: Mapped[str_x(50)]
+    change_price_val: Mapped[str_x(50)]
 
-class Reserve(Base):
-    __tablename__ = "reserve"
+
+class ArticleFix(Base):
+    __tablename__ = "article_fix"
     id: Mapped[int] = mapped_column(primary_key=True)
-    # _09Код varchar(300),
-    code_09: Mapped[str] = mapped_column(String(300), nullable=True)
-    # ШтР REAL DEFAULT NULL,
-    reserve_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
-    # _07Код varchar(30)
-    code_07: Mapped[str] = mapped_column(String(30), nullable=True)
+    price_code: Mapped[str_x(20)]
+    change_type: Mapped[str_x(50)]
+    find: Mapped[str_x(500)]
+    change: Mapped[str_x(500)]
+
+class Brands(Base):
+    __tablename__ = "brands"
+    __table_args__ = (Index("brands_brand_low_index", "brand_low"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    correct_brand: Mapped[str_x(500)]
+    brand: Mapped[str_x(500)]
+    brand_low: Mapped[str_x(500)]
+
+class PriceChange(Base):
+    __tablename__ = "price_change"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    price_code: Mapped[str_x(20)]
+    brand: Mapped[str_x(256)]
+    discount: Mapped[real]
+
+class WordsOfException(Base):
+    __tablename__ = "words_of_exception"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    price_code: Mapped[str_x(20)]
+    colunm_name: Mapped[str_x(256)]
+    condition: Mapped[str_x(50)]
+    text: Mapped[str_x(500)]
+
+class SupplierGoodsFix(Base):
+    __tablename__ = "supplie_goods_fix"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier: Mapped[str_x(500)]
+    import_setting: Mapped[str_x(20)]
+    key1: Mapped[str_x(256)]
+    article_s: Mapped[str_x(256)]
+    brand_s: Mapped[str_x(256)]
+    name: Mapped[str_x(500)]
+    brand: Mapped[str_x(256)]
+    article: Mapped[str_x(256)]
+    price_s: Mapped[numeric]
+    sales_ban: Mapped[str_x(50)]
+    original: Mapped[str_x(50)]
+    marketable_appearance: Mapped[str_x(50)]
+    put_away_percent: Mapped[real]
+    put_away_count: Mapped[intgr]
+    nomenclature: Mapped[str_x(500)]
+    mult_s: Mapped[intgr]
+
+class ExchangeRate(Base):
+    __tablename__ = "exchange_rate"
+    id: Mapped[uuidpk]
+    code: Mapped[str_x(20)]
+    rate: Mapped[real]
+
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+    id: Mapped[uuidpk]
+    param: Mapped[str_x(100)]
+    var: Mapped[str_x(100)]
 
 class BasePrice(Base):
     __tablename__ = "base_price"
@@ -240,12 +593,26 @@ class MassOffers(Base):
     # Предложений_в_опте integer
     offers_count: Mapped[Integer] = mapped_column(Integer, nullable=True)
 
+class PriceReport(Base):
+    __tablename__ = "price_report"
+    # Полное_название varchar(256),
+    file_name: Mapped[str] = mapped_column(String(256), primary_key=True)
+    # Название_файла varchar(256),
+    price_code: Mapped[str_x(256)]
+    # Время_изменения varchar(256)
+    info_message: Mapped[str_x(100)]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
-class PriceUpdateTime(Base):
-    __tablename__ = "price_update_time"
-    price_name: Mapped[str] = mapped_column(String(100), primary_key=True)
-    info_message: Mapped[str] = mapped_column(String(100), nullable=True)
-    updated_at: Mapped[datetime.datetime]
+# class PriceUpdateTime(Base):
+#     __tablename__ = "price_update_time"
+#     price_name: Mapped[str] = mapped_column(String(100), primary_key=True)
+#     info_message: Mapped[str] = mapped_column(String(100), nullable=True)
+#     updated_at: Mapped[datetime.datetime]
+# class PriceReport(Base):
+#     __tablename__ = "price_report"
+#     price_name: Mapped[str] = mapped_column(String(100), primary_key=True)
+#     info_message: Mapped[str] = mapped_column(String(100), nullable=True)
+#     updated_at: Mapped[datetime.datetime]
 
 class CatalogUpdateTime(Base):
     __tablename__ = "catalog_update_time"
