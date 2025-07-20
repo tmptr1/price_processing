@@ -88,14 +88,27 @@ class MailReport(Base):
     # date varchar(256)
     date: Mapped[str_x(256)]
 
+class SumTable(Base):
+    __tablename__ = "sum_table"
+    # __table_args__ = (Index("sum_table_id_compare_index", "id_compare"),
+                      # Index("price_1_id_index", "id"),
+                      # )
+    # id: Mapped[uuidpk]
+    id: Mapped[intpk]
+    # id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=True)
+    price_code: Mapped[str_x(20)]
+    prev_sum: Mapped[real]
+
 class Price_1(Base):
     __tablename__ = "price_1"
     __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
-                      Index("price_1_id_index", "id"),
+                      # Index("price_1_id_index", "id"),
                       Index("price_1_key1_index", "key1_s"),
+                      Index("price_1_05_price_index", "_05price"),
                       Index("price_1_07_index", "_07supplier_code"),
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
-                      Index("price_1_article_name_index", "article_s", "name_s"),)
+                      Index("price_1_article_name_index", "article_s", "name_s"),
+                      )
     # __table_args__ = (Index("price_file_name_index", "file_name"),
     #                   Index("price_1_14_low_index", "_01article", "_14brand_filled_in_low"),
     #                   Index("price_1_7_14_low_index", "_01article", "_07supplier_code", "_14brand_filled_in_low"),
@@ -106,7 +119,8 @@ class Price_1(Base):
     #                   Index("price_15_index", "_15code_optt"),
     #                   )
     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
-    id: Mapped[uuidpk]
+    # id: Mapped[uuidpk]
+    id: Mapped[intpk]
     # Ключ1_поставщика varchar(256),
     key1_s: Mapped[str_x(256)]
     # Артикул_поставщика varchar(256),
