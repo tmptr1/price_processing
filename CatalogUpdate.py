@@ -268,7 +268,7 @@ def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=
     pk = []
     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
     # with engine.connect() as sess:
-    print(table_name)
+    # print(table_name)
     req = delete(table_class)
     con.execute(req)
     con.execute(text(f"ALTER SEQUENCE {table_name}_id_seq restart 1"))

@@ -161,7 +161,8 @@ class MailParserClass(QThread):
             if not db_data:
                 # logger.info('Не подходит')
                 # logger.info('=' * 20)
-                self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span><br>{'*'*35}")
+                self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span><br>"
+                                                               f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]{'*'*35}")
                 return
 
             # print(data)
@@ -195,6 +196,7 @@ class MailParserClass(QThread):
 
                     with session() as sess:
                         # обработка архивов
+                        is_loaded = False
                         if file_format in ('zip', 'rar'):
                             path_to_archieve = f'{tmp_archive_dir}/{name}'
                             open(path_to_archieve, 'wb').write(part.get_payload(decode=True))
@@ -209,7 +211,6 @@ class MailParserClass(QThread):
                             os.remove(path_to_archieve)
 
                             for f in os.listdir(tmp_dir):
-                                is_loaded = False
                                 for d_name in db_data:
                                     if self.check_file_name(f, d_name[0], d_name[1]):
                                         price_code = str(d_name[2])
@@ -223,9 +224,6 @@ class MailParserClass(QThread):
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {f}")
                                         is_loaded = True
                                         break
-                                if not is_loaded:
-                                    sess.query(MailReport).filter(and_(MailReport.sender == sender, MailReport.file_name == f)).delete()
-                                    sess.add(MailReport(sender=sender, file_name=f, date=received_time))
                                     # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{f}'")
                                     # cur.execute(f"insert into mail_report_tab values('{sender}', '{f}', '{received_time}')")
 
@@ -233,7 +231,6 @@ class MailParserClass(QThread):
                             continue
 
                         # обработка других файлов
-                        is_loaded = False
                         for d_name in db_data:
                             if self.check_file_name(name, d_name[0], d_name[1]):
                                 price_code = str(d_name[2])
@@ -247,6 +244,7 @@ class MailParserClass(QThread):
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {name}")
                                 is_loaded = True
                                 break
+
                         if not is_loaded:
                             sess.query(MailReport).filter(and_(MailReport.sender == sender, MailReport.file_name == name)).delete()
                             sess.add(MailReport(sender=sender, file_name=name, date=received_time))
