@@ -539,7 +539,7 @@ class WordsOfException(Base):
     text: Mapped[str_x(500)]
 
 class SupplierGoodsFix(Base):
-    __tablename__ = "supplie_goods_fix"
+    __tablename__ = "supplier_goods_fix"
     __table_args__ = (Index("supplier_goods_fix_key1_index", "key1"),
                       Index("supplier_goods_fix_article_brand_index", "article_s", "brand_s"),
                       Index("supplier_goods_fix_article_name_index", "article_s", "name"),)

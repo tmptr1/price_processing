@@ -204,7 +204,7 @@ class CatalogUpdate(QThread):
                 sheet_name = "Слова_исключения"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
-                table_name = 'supplie_goods_fix'
+                table_name = 'supplier_goods_fix'
                 table_class = SupplierGoodsFix
                 cols = {"supplier": ["Поставщик"], "import_setting": ["Настройка импорта прайса"], "key1": ["Ключ1"],
                         "article_s": ["Артикул поставщика"], "brand_s": ["Производитель поставщика"],
