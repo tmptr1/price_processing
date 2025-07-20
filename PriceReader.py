@@ -62,50 +62,53 @@ class MainWorker(QThread):
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
 
 
-                files = os.listdir(settings_data["mail_files_dir"])
-                new_files = []
-                # engine.echo=True
-                with session() as sess:
-                    for file in files:
-                        file_name = '.'.join(file.split('.')[:-1])
-                        if len(file_name) < 4:
-                            continue
-                        price_code = file_name[:4]
-                        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
-                                                                          ).strftime("%Y-%m-%d %H:%M:%S")
-
-                        req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
-                        standard = sess.execute(req).scalar()
-                        if not standard:
-                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
-                                                 updated_at=new_update_time))
-                            self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
-                                                                                 f"font-weight:bold;'>{price_code}</span> Нет в условиях")
-                            continue
-                        elif str(standard).upper() != 'ДА':
-                            req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указано сохранение",
-                                                                                                  updated_at=new_update_time)
-                            sess.execute(req)
-                            self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
-                                         f"<span style='color:{colors.orange_log_color};"
-                                         f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
-                            continue
-
-                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
-                        last_update_tile = sess.execute(req).scalar()
-                        # print(price_code, in_cond, last_update_tile)
-                        if not last_update_tile:
-                            new_files.append(file)
-                            continue
-                        if str(last_update_tile) < new_update_time:
-                            new_files.append(file)
-                    sess.commit()
+                # files = os.listdir(settings_data["mail_files_dir"])
+                # new_files = []
+                # # engine.echo=True
+                # with session() as sess:
+                #     for file in files:
+                #         file_name = '.'.join(file.split('.')[:-1])
+                #         if len(file_name) < 4:
+                #             continue
+                #         price_code = file_name[:4]
+                #         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
+                #                                                           ).strftime("%Y-%m-%d %H:%M:%S")
+                #
+                #         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
+                #         standard = sess.execute(req).scalar()
+                #         if not standard:
+                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
+                #                                  updated_at=new_update_time))
+                #             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
+                #                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
+                #             continue
+                #         elif str(standard).upper() != 'ДА':
+                #             req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указано сохранение",
+                #                                                                                   updated_at=new_update_time)
+                #             sess.execute(req)
+                #             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
+                #                          f"<span style='color:{colors.orange_log_color};"
+                #                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
+                #             continue
+                #
+                #         req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
+                #         last_update_tile = sess.execute(req).scalar()
+                #         # print(price_code, in_cond, last_update_tile)
+                #         if not last_update_tile:
+                #             new_files.append(file)
+                #             continue
+                #         if str(last_update_tile) < new_update_time:
+                #             new_files.append(file)
+                #     sess.commit()
 
                 # print(f"{new_files=}")
                 # return
 
                 # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']#'1MTK Остатки оригинал Bobcat Doosan.xlsx'] #'1AVX AVEX.xlsx']
                 # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
+                # new_files = ['1ROS 155889.xlsx']
+                # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
+                new_files = ['3МСК rostov_.xlsx']
 
                 if new_files:
                     self.log.add(LOG_ID, "Начало обработки")
@@ -162,7 +165,7 @@ def multi_calculate(args):
 
         start_calc_price_time = datetime.datetime.now()
         cur_time = datetime.datetime.now()
-        with (session() as sess):
+        with session() as sess:
             req = select(PriceReport).where(PriceReport.file_name == file_name)
             is_report_exists = sess.execute(req).scalar()
             if not is_report_exists:
@@ -205,11 +208,10 @@ def multi_calculate(args):
             add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
 
             cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1-6, 12, 14, 15 ..."])
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Исправление товаров поставщиков и артикула ..."])
 
             # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
             suppliers_goods_compare(price_code, sett, sess)
-
 
             req = select(ArticleFix).where(ArticleFix.price_code == price_code)
             article_settings = sess.execute(req).scalars().all()
@@ -225,6 +227,11 @@ def multi_calculate(args):
                                                 ).values(_01article=Price_1.article_s.regexp_replace(
                                                         change_type[1].format(a.find), "" if not a.change else a.change))
                     sess.execute(req)
+
+            add_log_cf(LOG_ID, "Исправление товаров поставщиков и артикула завершено", sender, price_code, color, cur_time)
+
+            cur_time = datetime.datetime.now()
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
 
             # 01Артикул
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._01article == None)
@@ -248,9 +255,15 @@ def multi_calculate(args):
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._04count == None))
                          .values(_04count=Price_1.count_s))
 
+            add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
+
+            cur_time = datetime.datetime.now()
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15 ..."])
+
             # 05Цена
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._05price == None))
                          .values(_05price=Price_1.price_s))
+
             # 12Сумма
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(
                 _12sum=Price_1.count_s * Price_1.price_s))
@@ -284,10 +297,12 @@ def multi_calculate(args):
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
                          .values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W", "", 'g')))
 
-            add_log_cf(LOG_ID, "Обработка 1-6, 12, 14, 15 завершена", sender, price_code, color, cur_time)
+            # add_log_cf(LOG_ID, "Обработка 1-6, 12, 14, 15 завершена", sender, price_code, color, cur_time)
+            add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15 завершена", sender, price_code, color, cur_time)
 
             cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13, 17, 18, 20 ..."])
+            # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13, 17, 18, 20 ..."])
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 17, 18, 20 ..."])
 
             # 20ИслючитьИзПрайса
             cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s, "Производитель поставщика": Price_1.brand_s,
@@ -309,23 +324,6 @@ def multi_calculate(args):
                     sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, check(col, w.text)))
                              .values(_20exclude=w.text))
 
-            # 13Градация
-            # with sum_table as (select id, _04count, _05price, sum(_05price) over (ORDER BY _05price, id) as prev_sum from price_1
-            # where _07supplier_code = price_code and _20exclude is NULL and _05price > 0)
-            # update price_1 set _13grad = FLOOR((total_sum-prev_sum)/(total_sum/100)) from sum_table where _07supplier_code = price_code and price_1.id = sum_table.id
-            total_sum = sess.execute(
-                select(func.sum(Price_1._05price)).where(Price_1._07supplier_code == price_code)).scalar()
-
-            subq = select(Price_1.id,
-                          func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id)).label(
-                              'prev_sum')
-                          ).where(
-                and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0))
-            cte = update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.id == subq.c.id)
-                                        ).values(
-                _13grad=func.floor((total_sum - subq.c.prev_sum) / (total_sum / 100)))
-            sess.execute(cte)
-
             # 17КодУникальности
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
                          .values(_17code_unique=func.upper(Price_1._07supplier_code + Price_1._15code_optt + "ДАSS")))
@@ -334,7 +332,38 @@ def multi_calculate(args):
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
                          .values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
-            add_log_cf(LOG_ID, "Обработка 13, 17, 18, 20 завершена", sender, price_code, color, cur_time)
+            add_log_cf(LOG_ID, "Обработка 17, 18, 20 завершена", sender, price_code, color, cur_time)
+
+            cur_time = datetime.datetime.now()
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
+
+            # 13Градация
+            # with sum_table as (select id, _04count, _05price, sum(_05price) over
+            # (ORDER BY _05price, id) as prev_sum from price_1
+            # where _07supplier_code = '3МСК' and _20exclude is NULL and _05price > 0
+            # offset 90000 limit 10000)
+            # update price_1 set _13grad = FLOOR((227769830.28-prev_sum)/(227769830.28/100))
+            # from sum_table where _07supplier_code = '3МСК' and price_1.id = sum_table.id
+            total_sum = sess.execute(
+                select(func.sum(Price_1._05price)).where(Price_1._07supplier_code == price_code)).scalar()
+
+            subq_limit = 10_000
+            cnt = sess.query(Price_1.id).where(Price_1._07supplier_code == price_code).count()
+
+            for i in range(math.ceil(cnt/subq_limit)):
+                # print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] offset: {i*subq_limit} limit: {subq_limit}")
+                subq = select(Price_1.id,
+                              func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id)).label(
+                                  'prev_sum')
+                              ).where(
+                    and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0)
+                ).offset(i*subq_limit).limit(subq_limit)
+                cte = update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.id == subq.c.id)
+                                            ).values(
+                    _13grad=func.floor((total_sum - subq.c.prev_sum) / (total_sum / 100)))
+                sess.execute(cte)
+
+            add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
 
             cur_time = datetime.datetime.now()
             sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
@@ -399,7 +428,7 @@ def multi_calculate(args):
 
     except Exception as ex:
         ex_text = traceback.format_exc()
-        sender.send(["error", LOG_ID, "M ERROR", ex_text])
+        sender.send(["error", LOG_ID, f"M ERROR ({file_name})", ex_text])
     finally:
         sender.send(["end", mp.current_process().name])
 
@@ -480,8 +509,13 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
             del rc_dict[d]
         # print(f"{rc_dict=}")
 
-        max_col = max(cols)
-        max_row = max(rows)
+        if not cols or not rows:
+            continue
+
+        max_col = int(max(cols))
+        max_row = int(max(rows))
+        # print(f"{max_row=} {max_col=}")
+
 
         if frmt in ('xls', 'xlsx'):
             pandas_monkeypatch()
@@ -515,7 +549,9 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
     loaded_rows = sett.pass_up  # пропускаются указанное кол-во строк
     r_limit = CHUNKSIZE
     method = None
-    cols = [i[1] - 1 for i in rc_dict.values()]
+    # print(f"{rc_dict}")
+    cols = [int(i[1] - 1) for i in rc_dict.values()]
+    # print(f"{cols}")
     # print(f"{rc_dict=}")
     new_cols_name = {rc_dict[k][1] - 1: k for k in rc_dict}
 

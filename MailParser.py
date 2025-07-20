@@ -161,7 +161,7 @@ class MailParserClass(QThread):
             if not db_data:
                 # logger.info('Не подходит')
                 # logger.info('=' * 20)
-                self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span>\n{'*'*35}")
+                self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span><br>{'*'*35}")
                 return
 
             # print(data)

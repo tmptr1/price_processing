@@ -90,7 +90,12 @@ class MailReport(Base):
 
 class Price_1(Base):
     __tablename__ = "price_1"
-    __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),)
+    __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
+                      Index("price_1_id_index", "id"),
+                      Index("price_1_key1_index", "key1_s"),
+                      Index("price_1_07_index", "_07supplier_code"),
+                      Index("price_1_article_brand_index", "article_s", "brand_s"),
+                      Index("price_1_article_name_index", "article_s", "name_s"),)
     # __table_args__ = (Index("price_file_name_index", "file_name"),
     #                   Index("price_1_14_low_index", "_01article", "_14brand_filled_in_low"),
     #                   Index("price_1_7_14_low_index", "_01article", "_07supplier_code", "_14brand_filled_in_low"),
@@ -535,6 +540,9 @@ class WordsOfException(Base):
 
 class SupplierGoodsFix(Base):
     __tablename__ = "supplie_goods_fix"
+    __table_args__ = (Index("supplier_goods_fix_key1_index", "key1"),
+                      Index("supplier_goods_fix_article_brand_index", "article_s", "brand_s"),
+                      Index("supplier_goods_fix_article_name_index", "article_s", "name"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     supplier: Mapped[str_x(500)]
     import_setting: Mapped[str_x(20)]
