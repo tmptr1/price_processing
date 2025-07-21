@@ -112,12 +112,12 @@ class MainWorker(QThread):
                 # new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
 
                 if new_files:
-                    with session() as sess:
-                        sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
-                        sess.execute(text(f"ALTER SEQUENCE price_1_id_seq restart 1"))
-                        sess.commit()
                     self.log.add(LOG_ID, "Начало обработки")
                     cur_time = datetime.datetime.now()
+                    # with session() as sess:
+                    #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
+                    #     sess.execute(text(f"ALTER SEQUENCE price_1_id_seq restart 1"))
+                    #     sess.commit()
                     if len(new_files) < self.threads_count:
                         self.threads_count = len(new_files)
 

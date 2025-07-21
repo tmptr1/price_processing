@@ -93,8 +93,8 @@ class SumTable(Base):
     # __table_args__ = (Index("sum_table_id_compare_index", "id_compare"),
                       # Index("price_1_id_index", "id"),
                       # )
-    # id: Mapped[uuidpk]
-    id: Mapped[intpk]
+    id: Mapped[uuidpk]
+    # id: Mapped[intpk]
     # id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=True)
     price_code: Mapped[str_x(20)]
     prev_sum: Mapped[real]
@@ -119,8 +119,8 @@ class Price_1(Base):
     #                   Index("price_15_index", "_15code_optt"),
     #                   )
     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
-    # id: Mapped[uuidpk]
-    id: Mapped[intpk]
+    id: Mapped[uuidpk]
+    # id: Mapped[intpk]
     # Ключ1_поставщика varchar(256),
     key1_s: Mapped[str_x(256)]
     # Артикул_поставщика varchar(256),
