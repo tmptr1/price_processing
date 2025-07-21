@@ -62,44 +62,44 @@ class MainWorker(QThread):
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
 
 
-                # files = os.listdir(settings_data["mail_files_dir"])
-                # new_files = []
-                # # engine.echo=True
-                # with session() as sess:
-                #     for file in files:
-                #         file_name = '.'.join(file.split('.')[:-1])
-                #         if len(file_name) < 4:
-                #             continue
-                #         price_code = file_name[:4]
-                #         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
-                #                                                           ).strftime("%Y-%m-%d %H:%M:%S")
-                #
-                #         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
-                #         standard = sess.execute(req).scalar()
-                #         if not standard:
-                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
-                #                                  updated_at=new_update_time))
-                #             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
-                #                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
-                #             continue
-                #         elif str(standard).upper() != 'ДА':
-                #             req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указано сохранение",
-                #                                                                                   updated_at=new_update_time)
-                #             sess.execute(req)
-                #             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
-                #                          f"<span style='color:{colors.orange_log_color};"
-                #                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
-                #             continue
-                #
-                #         req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
-                #         last_update_tile = sess.execute(req).scalar()
-                #         # print(price_code, in_cond, last_update_tile)
-                #         if not last_update_tile:
-                #             new_files.append(file)
-                #             continue
-                #         if str(last_update_tile) < new_update_time:
-                #             new_files.append(file)
-                #     sess.commit()
+                files = os.listdir(settings_data["mail_files_dir"])
+                new_files = []
+                # engine.echo=True
+                with session() as sess:
+                    for file in files:
+                        file_name = '.'.join(file.split('.')[:-1])
+                        if len(file_name) < 4:
+                            continue
+                        price_code = file_name[:4]
+                        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
+                                                                          ).strftime("%Y-%m-%d %H:%M:%S")
+
+                        req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
+                        standard = sess.execute(req).scalar()
+                        if not standard:
+                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
+                                                 updated_at=new_update_time))
+                            self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
+                                                                                 f"font-weight:bold;'>{price_code}</span> Нет в условиях")
+                            continue
+                        elif str(standard).upper() != 'ДА':
+                            req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указано сохранение",
+                                                                                                  updated_at=new_update_time)
+                            sess.execute(req)
+                            self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
+                                         f"<span style='color:{colors.orange_log_color};"
+                                         f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
+                            continue
+
+                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
+                        last_update_tile = sess.execute(req).scalar()
+                        # print(price_code, in_cond, last_update_tile)
+                        if not last_update_tile:
+                            new_files.append(file)
+                            continue
+                        if str(last_update_tile) < new_update_time:
+                            new_files.append(file)
+                    sess.commit()
 
                 # print(f"{new_files=}")
                 # return
@@ -109,7 +109,7 @@ class MainWorker(QThread):
                 # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
                 # new_files = ['3МСК rostov_.xlsx']
                 # new_files = ['1ROS 155889.xlsx']
-                new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
+                # new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
 
                 if new_files:
                     with session() as sess:
