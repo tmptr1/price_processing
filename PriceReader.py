@@ -118,6 +118,7 @@ class MainWorker(QThread):
                     #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
                     #     sess.execute(text(f"ALTER SEQUENCE price_1_id_seq restart 1"))
                     #     sess.commit()
+
                     if len(new_files) < self.threads_count:
                         self.threads_count = len(new_files)
 
@@ -301,13 +302,6 @@ def multi_calculate(args):
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
                          .values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W", "", 'g')))
 
-            # add_log_cf(LOG_ID, "Обработка 1-6, 12, 14, 15 завершена", sender, price_code, color, cur_time)
-            add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15 завершена", sender, price_code, color, cur_time)
-
-            cur_time = datetime.datetime.now()
-            # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13, 17, 18, 20 ..."])
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 17, 18, 20 ..."])
-
             # 20ИслючитьИзПрайса
             cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s, "Производитель поставщика": Price_1.brand_s,
                          "Наименование поставщика": Price_1.name_s, " ВалютаП": Price_1.currency_s, "Примечание поставщика": Price_1.notice_s,
@@ -336,7 +330,7 @@ def multi_calculate(args):
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
                          .values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
-            add_log_cf(LOG_ID, "Обработка 17, 18, 20 завершена", sender, price_code, color, cur_time)
+            add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
 
             cur_time = datetime.datetime.now()
             sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
@@ -350,13 +344,14 @@ def multi_calculate(args):
             # from sum_table where _07supplier_code = '3МСК' and price_1.id = sum_table.id
             total_sum = sess.execute(
                 select(func.sum(Price_1._05price)).where(Price_1._07supplier_code == price_code)).scalar()
+            # print(f"{price_code} {total_sum=}")
             # # #
             # # # # cmt_time = datetime.datetime.now()
             # # # # sess.commit()
             # # # # print(datetime.datetime.now() - cmt_time, 'commit', price_code)
             # # #
-            subq_limit = 5_000
-            cnt = sess.query(Price_1.id).where(Price_1._07supplier_code == price_code).count()
+            # subq_limit = 5_000
+            # cnt = sess.query(Price_1.id).where(Price_1._07supplier_code == price_code).count()
             # # #
             # for i in range(math.ceil(cnt/subq_limit)):
             #     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {price_code} [{i}] offset: {0} limit: {subq_limit}")
@@ -378,20 +373,27 @@ def multi_calculate(args):
             #     sess.execute(cte)
 
 
-            subq = select(Price_1.id, Price_1._07supplier_code,
+            subq = select(Price_1.id_compare, Price_1._07supplier_code,
                           func.floor((total_sum - func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id))) / (total_sum / 100))).where(
                 and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0))
+            # subq = select(Price_1.id, Price_1._07supplier_code, Price_1._05price,
+            #               func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id))).where(
+            #     and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0))
+
             # cte = update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.id == subq.c.id)
             #                             ).values(
             #     _13grad=func.floor((total_sum - subq.c.prev_sum) / (total_sum / 100)))
             # sess.execute(cte)
 
-            sess.execute(insert(SumTable).from_select(['id', 'price_code', 'prev_sum'], subq))
+            sess.execute(insert(SumTable).from_select(['id_compare', 'price_code', 'prev_sum'], subq))
+            # sess.execute(update(SumTable).where(SumTable.price_code == price_code).values
+            #              (grad=func.floor(total_sum - SumTable.prev_sum / (total_sum / 100))))
             # sess.flush()
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, SumTable.price_code == price_code,
-                                                    Price_1.id == SumTable.id)).values(_13grad=SumTable.prev_sum))
-            # sess.execute(text(f"update price_1 set _13grad = prev_sum from sum_table where _07supplier_code = '{price_code}' and price_1.id = sum_table.id"))
+            sess.execute(update(Price_1).where(Price_1.id_compare == SumTable.id_compare).values(_13grad=SumTable.prev_sum))
+            # sess.execute(text(f"update price_1 set _13grad = prev_sum from sum_table where price_1.id = sum_table.id"))
             sess.query(SumTable).where(SumTable.price_code == price_code).delete()
+
+            # MAX ID, MIN ID AND PRICE_CODE ==
 
             add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
 

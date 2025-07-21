@@ -90,19 +90,22 @@ class MailReport(Base):
 
 class SumTable(Base):
     __tablename__ = "sum_table"
-    # __table_args__ = (Index("sum_table_id_compare_index", "id_compare"),
+    __table_args__ = (#Index("sum_table_id_compare_index", "id_compare"),
                       # Index("price_1_id_index", "id"),
-                      # )
+                        Index("sum_table_id_compare_hash_index", "id_compare", postgresql_using="hash"),
+                      )
     id: Mapped[uuidpk]
     # id: Mapped[intpk]
-    # id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=True)
+    id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, server_default=text("gen_random_uuid()"))
     price_code: Mapped[str_x(20)]
+    # price: Mapped[real]
     prev_sum: Mapped[real]
+    # grad: Mapped[intgr]
 
 class Price_1(Base):
     __tablename__ = "price_1"
     __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
-                      # Index("price_1_id_index", "id"),
+                      Index("price_1_id_compare_hash_index", "id_compare", postgresql_using="hash"),
                       Index("price_1_key1_index", "key1_s"),
                       Index("price_1_05_price_index", "_05price"),
                       Index("price_1_07_index", "_07supplier_code"),
@@ -118,8 +121,8 @@ class Price_1(Base):
     #                   Index("price_14_low_index", "_14brand_filled_in_low"),
     #                   Index("price_15_index", "_15code_optt"),
     #                   )
-    # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     id: Mapped[uuidpk]
+    id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, server_default=text("gen_random_uuid()"))
     # id: Mapped[intpk]
     # Ключ1_поставщика varchar(256),
     key1_s: Mapped[str_x(256)]
