@@ -51,6 +51,7 @@ class MailParserClass(QThread):
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("80065", mail)
+                # self.get_mail("86422", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -218,7 +219,9 @@ class MailParserClass(QThread):
                                         addition = f"{d_name[0]}.{f.split('.')[-1]}"
                                         if d_name[1] == 'Равно':
                                             addition = ".".join(addition.split('.')[:-1])
-                                        shutil.move(f"{tmp_dir}/{f}", f"{settings_data['mail_files_dir']}/{price_code} {addition}")
+                                        shutil.move(fr"{tmp_dir}/{f}", fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
+                                        shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
+                                                    fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
                                         # logger.info(f"+ ({price_code}) - {f}")
                                         self.log.add(LOG_ID, f"+ ({price_code}) - {f}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {f}")
@@ -238,7 +241,9 @@ class MailParserClass(QThread):
                                 addition = f"{d_name[0]}.{name.split('.')[-1]}"
                                 if d_name[1] == 'Равно':
                                     addition = ".".join(addition.split('.')[:-1])
-                                open(f"{settings_data['mail_files_dir']}/{price_code} {addition}", 'wb').write(part.get_payload(decode=True))
+                                open(fr"{settings_data['mail_files_dir']}\{price_code} {addition}", 'wb').write(part.get_payload(decode=True))
+                                shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
+                                            fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
                                 # logger.info(f"+ ({price_code}) - {name}")
                                 self.log.add(LOG_ID, f"+ ({price_code}) - {name}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {name}")

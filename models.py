@@ -626,6 +626,7 @@ class PriceReport(Base):
     price_code: Mapped[str_x(256)]
     # Время_изменения varchar(256)
     info_message: Mapped[str_x(100)]
+    row_count: Mapped[intgr]
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 # class PriceUpdateTime(Base):
