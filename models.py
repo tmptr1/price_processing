@@ -26,13 +26,13 @@ class SupplierPriceSettings(Base):
     # Работаем varchar(20),
     works: Mapped[str_x(20)]
     # Почта varchar(256),
-    email: Mapped[str_x(256)]
+    # email: Mapped[str_x(256)]
     # Условие_имени_файла varchar(20),
-    file_name_cond: Mapped[str_x(20)]
+    # file_name_cond: Mapped[str_x(20)]
     # Срок_обновление_не_более real,
     update_time: Mapped[real]
     # Имя_файла varchar(256),
-    file_name: Mapped[str_x(256)]
+    # file_name: Mapped[str_x(256)]
     # Прайс_оптовый varchar(20),
     wholesale: Mapped[str_x(20)]
     # Цену_считать_базовой varchar(20),
@@ -441,6 +441,11 @@ class FileSettings(Base):
     id: Mapped[intpk]
     # 	Прайс varchar(20),
     price_code: Mapped[str_x(20)]
+    email: Mapped[str_x(256)]
+    # Условие_имени_файла varchar(20),
+    file_name_cond: Mapped[str_x(20)]
+    # Имя_файла varchar(256),
+    file_name: Mapped[str_x(256)]
     # 	Пропуск_сверху integer default 0,
     pass_up: Mapped[Integer] = mapped_column(Integer, nullable=True, default=0)
     # 	Пропуск_снизу integer default 0,
@@ -466,6 +471,7 @@ class FileSettings(Base):
     # 	Строка_БрендП integer,
     r_brand_s: Mapped[intgr]
     # 	Столбец_БрендП integer,
+    replace_brand_s: Mapped[str_x(256)]
     c_brand_s: Mapped[intgr]
     # 	rc_БрендП varchar(50),
     rc_brand_s: Mapped[str_x(50)]

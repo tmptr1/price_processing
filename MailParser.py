@@ -13,7 +13,7 @@ import aspose.zip as az
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import SupplierPriceSettings, MailReport, CatalogUpdateTime
+from models import FileSettings, MailReport, CatalogUpdateTime, SupplierPriceSettings
 from sqlalchemy import select, delete, insert, and_
 import pandas as pd
 import colors
@@ -50,7 +50,7 @@ class MailParserClass(QThread):
                 mail = imaplib.IMAP4_SSL(host='imap.yandex.ru', port=993)
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
-                # self.get_mail("80065", mail)
+                # self.get_mail("86693", mail)
                 # self.get_mail("86422", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
@@ -145,10 +145,17 @@ class MailParserClass(QThread):
 
             with session() as sess:
                 # sender = sender.replace('\'', '\'\'')
-                req = select(SupplierPriceSettings.file_name, SupplierPriceSettings.file_name_cond,
-                             SupplierPriceSettings.price_code
+                # req = select(SupplierPriceSettings.file_name, SupplierPriceSettings.file_name_cond,
+                #              SupplierPriceSettings.price_code
+                #              ).where(
+                #     and_(func.lower(SupplierPriceSettings.email) == str.lower(sender),
+                #          SupplierPriceSettings.save == "ДА"))
+                # db_data = sess.execute(req).all()
+
+                req = select(FileSettings.file_name, FileSettings.file_name_cond,
+                             FileSettings.price_code
                              ).where(
-                    and_(func.lower(SupplierPriceSettings.email) == str.lower(sender),
+                    and_(func.lower(FileSettings.email) == str.lower(sender), SupplierPriceSettings.price_code == FileSettings.price_code,
                          SupplierPriceSettings.save == "ДА"))
                 db_data = sess.execute(req).all()
 

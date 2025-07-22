@@ -38,7 +38,7 @@ Log = Logs.LogClass()
 Log.start()
 
 MAX_LOG_ROWS_IN_TEXT_BROWSER = 200
-DEFAULT_THREAD_COUNT = 2
+DEFAULT_THREAD_COUNT = settings_data["thread_count"]
 
 # def test_mp():
 #     pass
@@ -216,6 +216,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.x = 0
         self.dbWorker = None
+
+        # AUTO START
+        if os.path.exists('autostart.txt'):
+            self.start_mail_parser()
+            self.start_mult()
+            self.start_catalog_update()
 
 
     def reset_db(self, btn):

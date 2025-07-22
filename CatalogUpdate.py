@@ -22,7 +22,7 @@ settings_data = setting.get_vars()
 green_log_color = "#38b04c"
 
 PARAM_LIST = ["base_price_update", "mass_offers_update"]
-CHUNKSIZE = 50000
+CHUNKSIZE = int(settings_data["chunk_size"])
 LOG_ID = 2
 
 class CatalogUpdate(QThread):
@@ -116,11 +116,12 @@ class CatalogUpdate(QThread):
 
                 table_name = 'file_settings'
                 table_class = FileSettings
-                cols = {"price_code": ["Прайс"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
+                cols = {"price_code": ["Прайс"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
+                        "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
                         "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
                         "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
-                        "rc_brand_s": ["R/C БрендП"],
-                        "name_brand_s": ["Название БрендП"], "rc_name_s": ["R/C НаименованиеП"],
+                        "rc_brand_s": ["R/C БрендП"], "name_brand_s": ["Название БрендП"], "replace_brand_s": ["Подставить Бренд"],
+                        "rc_name_s": ["R/C НаименованиеП"],
                         "name_name_s": ["Название НаименованиеП"], "rc_count_s": ["R/C КоличествоП"],
                         "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"],
                         "name_price_s": ["Название ЦенаП"],
@@ -158,9 +159,7 @@ class CatalogUpdate(QThread):
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
-                        "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "email": ["Почта"],
-                        "file_name_cond": ["Условие имени файла"], "update_time": ["Срок обновление не более"],
-                        "file_name": ["Имя файла"],
+                        "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "update_time": ["Срок обновление не более"],
                         "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
                         "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
                         "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],

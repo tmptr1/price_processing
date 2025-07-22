@@ -17,7 +17,7 @@ from python_calamine.pandas import pandas_monkeypatch
 pd.set_option('future.no_silent_downcasting', True)
 import openpyxl
 import warnings
-# warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base, PriceReport, Price_1, BasePrice, MassOffers, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
@@ -29,7 +29,7 @@ engine = setting.get_engine()
 session = sessionmaker(engine)
 settings_data = setting.get_vars()
 
-CHUNKSIZE = 50000
+CHUNKSIZE = int(settings_data["chunk_size"])
 LOG_ID = 1
 REPORT_FILE = r"price_report.csv"
 
@@ -109,9 +109,10 @@ class MainWorker(QThread):
                 # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']#'1MTK Остатки оригинал Bobcat Doosan.xlsx'] #'1AVX AVEX.xlsx']
                 # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
-                # new_files = ['3МСК rostov_.xlsx']
+                # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
-                # new_files = ["1MTK Остатки оригинал Bobcat Doosan.xlsx"]
+                # new_files = ["1ROS 155889.xlsx"]
+                # new_files = ["1ШСА PRC_.xls"]
 
                 if new_files:
                     self.log.add(LOG_ID, "Начало обработки")
@@ -203,28 +204,32 @@ def multi_calculate(args):
             id_settig, rc_dict = get_setting_id(price_table_settings, frmt, path_to_price)
             if not id_settig:
                 sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
-                    info_message="Нет подходящих настроек", updated_at=new_update_time))
+                    info_message="Нет подходящих настроек столбцов", updated_at=new_update_time))
                 sess.commit()
-                add_log_cf(LOG_ID, "Нет подходящих настроек", sender, price_code, color)
-                return
-
-            sett = sess.get(FileSettings, {'id': id_settig})
-            if not load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
-                sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
-                    info_message="Нет подходящих настроек", updated_at=new_update_time))
-                sess.commit()
-                add_log_cf(LOG_ID, "Нет подходящих настроек", sender, price_code, color)
+                add_log_cf(LOG_ID, "Нет подходящих настроек столбцов", sender, price_code, color)
                 return
 
             # Удаление старой версии
             # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
 
-
+            # загрузка сырых данных
+            sett = sess.get(FileSettings, {'id': id_settig})
+            if not load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
+                sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
+                    info_message="Настройки столбцов не подошли", updated_at=new_update_time))
+                sess.commit()
+                add_log_cf(LOG_ID, "Настройки столбцов не подошли", sender, price_code, color)
+                return
 
             add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
 
             cur_time = datetime.datetime.now()
             sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
+
+            # замена пустых бренд п
+            if sett.replace_brand_s:
+                sess.execute(update(Price_1).where(and_(Price_1._07supplier_code==price_code, Price_1.brand_s==None))
+                             .values(brand_s=sett.replace_brand_s))
 
             # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
             suppliers_goods_compare(price_code, sett, sess)
@@ -274,7 +279,7 @@ def multi_calculate(args):
             # sess.commit()
 
             cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15 ..."])
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
 
             # 05Цена
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._05price == None))
@@ -288,9 +293,9 @@ def multi_calculate(args):
             # 12Сумма
             numeric_max = 9999999999
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
-                                                    Price_1.count_s * Price_1.price_s < numeric_max)).values(_12sum=Price_1.count_s * Price_1.price_s))
+                                                    Price_1.count_s * Price_1._05price < numeric_max)).values(_12sum=Price_1.count_s * Price_1._05price))
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
-                                                    Price_1.count_s * Price_1.price_s >= numeric_max)).values(_12sum=numeric_max))
+                                                    Price_1.count_s * Price_1._05price >= numeric_max)).values(_12sum=numeric_max))
 
             # Настройка строк: Вариант изменения цены
             if sett.change_price_type in ("- X %", "+ X %"):
@@ -562,7 +567,7 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
         rows = []
         del_from_dict = []
         for k in rc_dict:
-            if rc_dict[k][0]:
+            if rc_dict[k][0] != None:
                 cols.append(rc_dict[k][0])
                 rows.append(rc_dict[k][1])
             else:
@@ -572,7 +577,8 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
             del rc_dict[d]
         # print(f"{rc_dict=}")
 
-        if not cols or not rows:
+        if not rows:
+            # print('cnt', rows)
             continue
 
         max_col = int(max(cols))
@@ -615,7 +621,13 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
         method = None
         # print(f"{rc_dict}")
         cols = [int(i[1] - 1) for i in rc_dict.values()]
-        # print(f"{cols}")
+        # print(f"{cols=}")
+        cols_len_1 = len(cols)
+        cols = set(cols)
+        cols_len_2 = len(cols)
+        if cols_len_1 != cols_len_2:
+            return False
+
         # print(f"{rc_dict=}")
         new_cols_name = {rc_dict[k][1] - 1: k for k in rc_dict}
 
@@ -692,6 +704,7 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
             table.to_sql(name=Price_1.__tablename__, con=sess.connection(), if_exists='append', index=False)
         return True
     except KeyError:
+        # raise ke
         return False
 
 def get_correct_df(df, cols, con):
@@ -715,7 +728,8 @@ def get_correct_df(df, cols, con):
 
     # df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False, sheet_name=sheet_name)
     # df = df.rename(columns={cols[c][0]: c for c in cols})
-
+    # print(df.columns)
+    # print(f"{cols=}")
     for c in cols:
         char_limit = cols[c]
         if char_limit:  # str
@@ -771,7 +785,7 @@ class PriceReportUpdate(QThread):
         try:
             with session() as sess:
                 req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
-                                              PriceReport.updated_at.label("Время"))
+                                              PriceReport.updated_at.label("Время")).order_by(PriceReport.price_code)
                 reports = sess.execute(req).all()
                 for r in reports:
                     self.UpdateInfoTableSignal.emit(r)
