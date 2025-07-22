@@ -34,10 +34,6 @@ def get_vars():
         # print(f"{data=}")
         return data
 
-
-    # with engine.connect() as con:
-    #     res = con.execute(text("select count(*) from data07")).scalar()
-    #     print(f"{res=}")
 def create_dirs():
     dirs = [r'logs', r'Archives']
     for d in dirs:

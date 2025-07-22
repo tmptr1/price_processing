@@ -244,7 +244,7 @@ class MailParserClass(QThread):
                                 open(fr"{settings_data['mail_files_dir']}\{price_code} {addition}", 'wb').write(part.get_payload(decode=True))
                                 shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
                                             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
-                                # logger.info(f"+ ({price_code}) - {name}")
+
                                 self.log.add(LOG_ID, f"+ ({price_code}) - {name}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {name}")
                                 is_loaded = True

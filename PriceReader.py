@@ -285,14 +285,12 @@ def multi_calculate(args):
                                                     ExchangeRate.code == func.upper(Price_1.currency_s)))
                          .values(_05price=Price_1._05price * ExchangeRate.rate))
 
-            # nt = datetime.datetime.now()
             # 12Сумма
             numeric_max = 9999999999
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
                                                     Price_1.count_s * Price_1.price_s < numeric_max)).values(_12sum=Price_1.count_s * Price_1.price_s))
             sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
                                                     Price_1.count_s * Price_1.price_s >= numeric_max)).values(_12sum=numeric_max))
-            # print('12', datetime.datetime.now() - nt)
 
             # Настройка строк: Вариант изменения цены
             if sett.change_price_type in ("- X %", "+ X %"):

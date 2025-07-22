@@ -91,7 +91,6 @@ class MailReport(Base):
 class SumTable(Base):
     __tablename__ = "sum_table"
     __table_args__ = (#Index("sum_table_id_compare_index", "id_compare"),
-                      # Index("price_1_id_index", "id"),
                         Index("sum_table_id_compare_hash_index", "id_compare", postgresql_using="hash"),
                       )
     id: Mapped[uuidpk]
