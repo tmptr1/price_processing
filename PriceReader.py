@@ -177,6 +177,7 @@ def multi_calculate(args):
         cur_time = datetime.datetime.now()
         with session() as sess:
             # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+            # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
             # sess.commit()
 
             req = select(PriceReport).where(PriceReport.file_name == file_name)

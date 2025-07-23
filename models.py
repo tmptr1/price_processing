@@ -57,8 +57,6 @@ class SupplierPriceSettings(Base):
     standard: Mapped[str_x(20)]
     # Код_прайса varchar(10),
     price_code: Mapped[str_x(20)]
-    # Сохраняем varchar(20),
-    save: Mapped[str_x(20)]
     # Наценка_мин real,
     min_markup: Mapped[real]
     # Наценка_опт real,
@@ -85,6 +83,7 @@ class MailReport(Base):
     sender: Mapped[str_x(256)]
     # file_name varchar(256),
     file_name: Mapped[str_x(256)]
+    info_message: Mapped[str_x(100)]
     # date varchar(256)
     date: Mapped[str_x(256)]
 
@@ -441,6 +440,8 @@ class FileSettings(Base):
     id: Mapped[intpk]
     # 	Прайс varchar(20),
     price_code: Mapped[str_x(20)]
+    # Сохраняем varchar(20),
+    save: Mapped[str_x(20)]
     email: Mapped[str_x(256)]
     # Условие_имени_файла varchar(20),
     file_name_cond: Mapped[str_x(20)]

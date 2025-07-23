@@ -116,7 +116,7 @@ class CatalogUpdate(QThread):
 
                 table_name = 'file_settings'
                 table_class = FileSettings
-                cols = {"price_code": ["Прайс"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
+                cols = {"price_code": ["Прайс"], "save": ["Сохраняем"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
                         "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
                         "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
                         "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
@@ -155,7 +155,7 @@ class CatalogUpdate(QThread):
 
                 table_name = 'supplier_price_settings'
                 table_class = SupplierPriceSettings
-                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"], "save": ["Сохраняем"],
+                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],

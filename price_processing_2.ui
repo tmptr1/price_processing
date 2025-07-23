@@ -499,7 +499,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Не удалось сопоставить:</string>
+               <string>Статус прайсов:</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignmentFlag::AlignCenter</set>

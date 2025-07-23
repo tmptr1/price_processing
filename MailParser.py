@@ -13,7 +13,7 @@ import aspose.zip as az
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import FileSettings, MailReport, CatalogUpdateTime, SupplierPriceSettings
+from models import FileSettings, MailReport, CatalogUpdateTime
 from sqlalchemy import select, delete, insert, and_
 import pandas as pd
 import colors
@@ -152,11 +152,10 @@ class MailParserClass(QThread):
                 #          SupplierPriceSettings.save == "ДА"))
                 # db_data = sess.execute(req).all()
 
-                req = select(FileSettings.file_name, FileSettings.file_name_cond,
-                             FileSettings.price_code
+                req = select(FileSettings.file_name, FileSettings.file_name_cond, FileSettings.price_code
                              ).where(
-                    and_(func.lower(FileSettings.email) == str.lower(sender), SupplierPriceSettings.price_code == FileSettings.price_code,
-                         SupplierPriceSettings.save == "ДА"))
+                    and_(func.lower(FileSettings.email) == str.lower(sender), FileSettings.price_code == FileSettings.price_code,
+                         FileSettings.save == "ДА"))
                 db_data = sess.execute(req).all()
 
             # connection = psycopg2.connect(host=host, user=user, password=password, database=db_name)
@@ -201,10 +200,10 @@ class MailParserClass(QThread):
                     self.log.add(LOG_ID, f"{name}")
 
                     file_format = name.split('.')[-1]
+                    received_time = datetime.datetime.strptime(received_time, "%d %b %Y %H-%M-%S")
 
                     with session() as sess:
                         # обработка архивов
-                        is_loaded = False
                         if file_format in ('zip', 'rar'):
                             path_to_archieve = f'{tmp_archive_dir}/{name}'
                             open(path_to_archieve, 'wb').write(part.get_payload(decode=True))
@@ -222,17 +221,35 @@ class MailParserClass(QThread):
                                 for d_name in db_data:
                                     if self.check_file_name(f, d_name[0], d_name[1]):
                                         price_code = str(d_name[2])
-                                        self.del_duplicates(price_code, id)
                                         addition = f"{d_name[0]}.{f.split('.')[-1]}"
                                         if d_name[1] == 'Равно':
                                             addition = ".".join(addition.split('.')[:-1])
+
+                                        price_from_db = sess.execute(select(MailReport).where(
+                                            and_(MailReport.sender == sender,
+                                                 MailReport.file_name == addition))).scalar()
+
+                                        if price_from_db:
+                                            # print(f"{price_from_db.date=}")
+                                            if str(received_time) <= price_from_db.date:
+                                                self.log.add(LOG_ID, f"- ({price_code}) - {name}",
+                                                             f"- ({price_code}) - {name}")
+                                                continue
+
+                                        self.del_duplicates(price_code, id)
+
                                         shutil.move(fr"{tmp_dir}/{f}", fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
                                         shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
                                                     fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
                                         # logger.info(f"+ ({price_code}) - {f}")
                                         self.log.add(LOG_ID, f"+ ({price_code}) - {f}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {f}")
-                                        is_loaded = True
+
+                                        sess.query(MailReport).where(
+                                            and_(MailReport.sender == sender, MailReport.file_name == addition)).delete()
+                                        sess.add(
+                                            MailReport(sender=sender, file_name=addition, date=received_time))
+                                        sess.commit()
                                         break
                                     # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{f}'")
                                     # cur.execute(f"insert into mail_report_tab values('{sender}', '{f}', '{received_time}')")
@@ -244,26 +261,40 @@ class MailParserClass(QThread):
                         for d_name in db_data:
                             if self.check_file_name(name, d_name[0], d_name[1]):
                                 price_code = str(d_name[2])
-                                self.del_duplicates(price_code, id)
                                 addition = f"{d_name[0]}.{name.split('.')[-1]}"
                                 if d_name[1] == 'Равно':
                                     addition = ".".join(addition.split('.')[:-1])
+
+                                price_from_db = sess.execute(select(MailReport).where(
+                                    and_(MailReport.sender == sender, MailReport.file_name == addition))).scalar()
+
+                                if price_from_db:
+                                    # print(f"{price_from_db.date=}")
+                                    if str(received_time) <= price_from_db.date:
+                                        self.log.add(LOG_ID, f"- ({price_code}) - {name}",
+                                                     f"- ({price_code}) - {name}")
+                                        continue
+
+                                self.del_duplicates(price_code, id)
+
                                 open(fr"{settings_data['mail_files_dir']}\{price_code} {addition}", 'wb').write(part.get_payload(decode=True))
                                 shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
                                             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
 
                                 self.log.add(LOG_ID, f"+ ({price_code}) - {name}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {name}")
-                                is_loaded = True
+
+                                sess.query(MailReport).where(
+                                    and_(MailReport.sender == sender, MailReport.file_name == addition)).delete()
+                                sess.add(
+                                    MailReport(sender=sender, file_name=addition, date=received_time))
+                                sess.commit()
                                 break
 
-                        if not is_loaded:
-                            sess.query(MailReport).filter(and_(MailReport.sender == sender, MailReport.file_name == name)).delete()
-                            sess.add(MailReport(sender=sender, file_name=name, date=received_time))
+
+                        # if not is_loaded:
                             # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{name}'")
                             # cur.execute(f"insert into mail_report_tab values('{sender}', '{name}', '{received_time}')")
-
-                    sess.commit()
 
     def del_duplicates(self, file_code, id):
         '''Удаляет файл при совпадении первых 4 символов (код прайса)'''
