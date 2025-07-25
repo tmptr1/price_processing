@@ -1,5 +1,4 @@
 from PySide6.QtCore import QThread, Signal
-import multiprocessing as mp
 import time
 import math
 import datetime
@@ -42,6 +41,7 @@ class CatalogUpdate(QThread):
             try:
                 self.update_currency()
                 self.update_price_settings_catalog()
+                # self.update_base_price()
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
                                                                         f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
@@ -68,7 +68,7 @@ class CatalogUpdate(QThread):
         try:
             with session() as sess:
                 now = datetime.datetime.now()#.strftime("%Y-%m-%d %H:%M:%S")
-                req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'currency')
+                req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Курс валют')
                 res = sess.execute(req).scalar()
 
                 if res:
@@ -87,8 +87,8 @@ class CatalogUpdate(QThread):
                 df = df.rename(columns={"index": "code", 0: "rate"})
                 df.to_sql(name='exchange_rate', con=sess.connection(), if_exists='append', index=False)
 
-                sess.query(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'currency').delete()
-                sess.add(CatalogUpdateTime(catalog_name='currency', updated_at=now.strftime("%Y-%m-%d %H:%M:%S")))
+                sess.query(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Курс валют').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Курс валют', updated_at=now.strftime("%Y-%m-%d %H:%M:%S")))
 
                 sess.commit()
 
@@ -231,6 +231,92 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_price_settings_catalog Error", ex_text)
 
+    def update_base_price(self, check=True):
+        '''Формирование справочника  Базовая цен'''
+        try:
+            catalog_name = 'Базовая цена'
+            report_parts_count = 4 # dynamic (count total) / count base_price
+            with session() as sess:
+                hm = sess.execute(select(AppSettings.var).where(AppSettings.param=="base_price_update")).scalar()
+                h, m = hm.split()
+                hm_time = datetime.time(int(h), int(m))
+                # if len(h) == 1:
+                #     h = f"0{h}"
+                # if len(m) == 1:
+                #     m = f"0{m}"
+                # cur_time = datetime.datetime.now()  # .strftime("%Y-%m-%d %H:%M:%S")
+                cur_time = datetime.datetime(2025, 7, 24, 1, 51,  0)
+                # next_update_time = datetime.datetime.strptime(f"{cur_time.year}-{cur_time.month}-{cur_time.day} {h}:{m}:00",
+                #                                               "%Y-%m-%d %H:%M:%S")
+                last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == catalog_name)).scalar()
+                # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
+                print(last_update, hm_time, cur_time)
+                if last_update.date() == cur_time.date():
+                    if cur_time.time() > hm_time and last_update.time() < hm_time: # last_update.date() == cur_time.date() and
+                        print('+')
+                elif cur_time.time() > hm_time:
+                    # if cur_time.time() > hm_time:
+                        print('+')
+                else:
+                    print('-')
+                return
+                # print(f"{str(last_update)=} {str(next_update_time)=}")
+                # if check and last_update and str(last_update) < str(next_update_time):
+                #     print('-')
+                #     return
+                # print('+')
+
+                self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
+                             f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
+            #
+            #     cur.execute("delete from base_price")
+            #     cur.execute(f"ALTER SEQUENCE base_price_id_seq restart 1")
+            #
+            #     # cur.execute(
+            #     #     f"insert into base_price (Артикул, Бренд, ЦенаБ) select UPPER(total.Артикул), UPPER(total.Бренд), (max(Цена)-min(Цена))/2 + min(Цена) "
+            #     #     f"from total, Настройки_прайса_поставщика where total.Код_поставщика = Код_прайса and "
+            #     #     f"Цену_считать_базовой = 'ДА' group by Артикул, Бренд")
+            #     cur.execute(f"""insert into base_price (Артикул, Бренд, ЦенаБ, ЦенаМинПоставщик) select UPPER(total.Артикул),
+            #         UPPER(total.Бренд), total.Цена, Настройки_прайса_поставщика.Код_поставщика from total, Настройки_прайса_поставщика where
+            #         total.Код_поставщика = Код_прайса and Цену_считать_базовой = 'ДА' and Бренд is not NULL""")
+            #     cur.execute(f"""with min_supl_T as (with min_price_T as (select Артикул, Бренд, min(ЦенаБ) as min_price
+            #         from base_price group by Артикул, Бренд having count(*) > 1) select base_price.Артикул as min_art,
+            #         base_price.Бренд as min_brand, ЦенаМинПоставщик as min_supl from base_price, min_price_T
+            #         where base_price.Артикул = min_price_T.Артикул and base_price.Бренд = min_price_T.Бренд and
+            #         base_price.ЦенаБ = min_price_T.min_price) update base_price set ЦенаМинПоставщик = min_supl from min_supl_T
+            #         where Артикул = min_art and Бренд = min_brand""")
+            #     cur.execute(f"""with avg_price as (select Артикул, Бренд, avg(ЦенаБ) as avg_ЦенаБ, min(ЦенаБ) as min_ЦенаБ
+            #         from base_price group by Артикул, Бренд) update base_price set ЦенаБ = avg_price.avg_ЦенаБ,
+            #         ЦенаМин = avg_price.min_ЦенаБ from avg_price where base_price.Артикул = avg_price.Артикул
+            #         and base_price.Бренд = avg_price.Бренд""")
+            #     cur.execute(f"""with max_id_dupl as (select max(id) as max_id from base_price group by Артикул, Бренд)
+            #         update base_price set duple = False where id in (select max_id from max_id_dupl)""")
+            #     cur.execute(f"delete from base_price where duple = True")
+            #
+            #     # cur.execute(f"delete from base_price where Бренд is NULL")
+            # connection.commit()
+            # connection.close()
+            #
+            # # Удаление старых данных
+            # delete_files_from_dir(fr"{path_to_catalogs}/pre Справочник Базовая цена")
+            #
+            # create_csv_catalog(path_to_catalogs + "/pre Справочник Базовая цена/Базовая цена - страница {}.csv",
+            #                    """SELECT base_price.Артикул as "Артикул", base_price.Бренд as "Бренд",
+            #                         base_price.ЦенаБ as "ЦенаБ", base_price.ЦенаМин as "Мин. Цена", ЦенаМинПоставщик
+            #                         as "Мин. Поставщик" FROM base_price ORDER BY Бренд OFFSET {} LIMIT {}""",
+            #                    host, user, password, db_name, report_parts_count)
+            #
+            # for i in range(1, report_parts_count + 1):
+            #     shutil.copy(
+            #         path_to_catalogs + "/pre Справочник Базовая цена/Базовая цена - страница {}.csv".format(i),
+            #         path_to_catalogs + "/Справочник Базовая цена/Базовая цена - страница {}.csv".format(i))
+            # logger.info(f"Справочник Базовая цена обновлён")
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"update_base_price Error", ex_text)
+
 
 class SaveTime(QThread):
     def __init__(self, BasePriceTime, MassOffersTime, log=None, parent=None):
@@ -249,6 +335,23 @@ class SaveTime(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"SaveTime Error", ex_text)
+
+class CatalogsUpdateTable(QThread):
+    CatalogsInfoSignal = Signal(CatalogUpdateTime)
+    def __init__(self, log=None, parent=None):
+        self.log = log
+        QThread.__init__(self, parent)
+
+    def run(self):
+        try:
+            with session() as sess:
+                catalogs_info = sess.execute(select(CatalogUpdateTime)).scalars().all()
+                # print(f"{catalogs_info=}")
+                self.CatalogsInfoSignal.emit(catalogs_info)
+            self.log.add(LOG_ID, f"Таблица обновлена", f"<span style='color:{colors.green_log_color};'>Таблица обновлена</span>  ")
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"CatalogsUpdateTable Error", ex_text)
 
 def get_catalogs_time_update():
     try:

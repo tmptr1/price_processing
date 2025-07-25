@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import logging
 import time
 from logging.handlers import RotatingFileHandler

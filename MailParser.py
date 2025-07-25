@@ -52,6 +52,7 @@ class MailParserClass(QThread):
                 mail.select("inbox")
                 # self.get_mail("86693", mail)
                 # self.get_mail("86422", mail)
+                # self.get_mail("86854", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -185,6 +186,8 @@ class MailParserClass(QThread):
     def load_content(self, message, tmp_archive_dir, tmp_dir, db_data, sender, received_time):
         '''Скачивает необходимые файлы, в случае с архивами, скачивает полный архив в папку Archives, далее распаковывает
         его в папку tmp, нужные файлы переносит в папку для сырых прайсов'''
+        received_time = datetime.datetime.strptime(str(received_time), "%d %b %Y %H-%M-%S")
+
         for part in message.walk():
             if part.get_content_disposition() == 'attachment':
 
@@ -200,7 +203,6 @@ class MailParserClass(QThread):
                     self.log.add(LOG_ID, f"{name}")
 
                     file_format = name.split('.')[-1]
-                    received_time = datetime.datetime.strptime(received_time, "%d %b %Y %H-%M-%S")
 
                     with session() as sess:
                         # обработка архивов
@@ -222,7 +224,7 @@ class MailParserClass(QThread):
                                     if self.check_file_name(f, d_name[0], d_name[1]):
                                         price_code = str(d_name[2])
                                         addition = f"{d_name[0]}.{f.split('.')[-1]}"
-                                        if d_name[1] == 'Равно':
+                                        if d_name[1] == 'Равно + расширение':
                                             addition = ".".join(addition.split('.')[:-1])
 
                                         price_from_db = sess.execute(select(MailReport).where(
@@ -262,7 +264,7 @@ class MailParserClass(QThread):
                             if self.check_file_name(name, d_name[0], d_name[1]):
                                 price_code = str(d_name[2])
                                 addition = f"{d_name[0]}.{name.split('.')[-1]}"
-                                if d_name[1] == 'Равно':
+                                if d_name[1] == 'Равно + расширение':
                                     addition = ".".join(addition.split('.')[:-1])
 
                                 price_from_db = sess.execute(select(MailReport).where(
@@ -321,9 +323,10 @@ class MailParserClass(QThread):
             if not file_db_name:
                 return 0
 
-            if type == 'Равно':
+            if type == 'Равно + расширение':
                 if file_name == file_db_name:
                     return 1
+            elif type == 'Равно':
                 return 1 if ".".join(file_name.split('.')[:-1]) == file_db_name else 0
             elif type == 'Содержит':
                 return 1 if file_db_name in file_name else 0

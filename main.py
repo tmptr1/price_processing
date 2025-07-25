@@ -9,6 +9,7 @@ import os
 from multiprocessing import Pipe
 import multiprocessing as mp
 from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 
 import setting
 setting.create_dirs()
@@ -20,9 +21,9 @@ if not engine:
     _ = input()
     sys.exit()
 
-mp.freeze_support()
+# mp.freeze_support()
 
-from models import Base
+from models import Base, AppSettings
 # Base.metadata.create_all(engine)
 
 settings_data = setting.get_vars()
@@ -32,7 +33,7 @@ from PriceReader import MainWorker, PriceReportUpdate#, get_correct_df
 import MailParser
 from Timer import MyTimer
 from PipeListener import PipeListener
-from CatalogUpdate import CatalogUpdate, SaveTime, get_catalogs_time_update
+import CatalogUpdate # import CatalogUpdate, SaveTime, get_catalogs_time_update, CatalogsUpdateTable
 
 Log = Logs.LogClass()
 Log.start()
@@ -94,6 +95,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ST = None
         self.MailReportReset = MailParser.MailReportDelete(log=Log)
         self.MailReportUpdate = MailParser.MailReportUpdate(log=Log)
+        self.CatalogsUpdateTable = CatalogUpdate.CatalogsUpdateTable(log=Log)
+        self.CatalogsUpdateTable.CatalogsInfoSignal.connect(lambda x:self.add_item_to_catalogs_update_time_table(x))
         # try:
         #     self.MailReportUpdate.start()
         # except:
@@ -101,7 +104,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate = PriceReportUpdate(log=Log)
         self.PriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_1_report_table)
         self.PriceReportUpdate.UpdatePriceReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_1.setText(x))
-        self.CU = CatalogUpdate(log=Log)
+        self.CU = CatalogUpdate.CatalogUpdate(log=Log)
 
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
@@ -122,7 +125,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.model_0.setHorizontalHeaderLabels(['Sender', 'File name', 'Date'])
         self.MailStatusTable_0.setModel(self.model_0)
         self.MailStatusTable_0.verticalHeader().hide()
-        # self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
+        self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
         self.MailStatusTable_0.setEditTriggers(QTableView.NoEditTriggers)
         self.MailStatusTable_0.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         # self.MailStatusTable_0.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -149,12 +152,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.model_1.setHorizontalHeaderLabels(['Code', 'Status', 'Time', 'Total Time'])
         self.PriceStatusTableView_1.setModel(self.model_1)
         self.PriceStatusTableView_1.verticalHeader().hide()
-        # self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
         self.PriceStatusTableView_1.setEditTriggers(QTableView.NoEditTriggers)
         self.PriceStatusTableView_1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        # self.PriceStatusTableView_1.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        # self.PriceStatusTableView_1.setColumnWidth(0, 40)
-        # self.PriceStatusTableView_1.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        # self.PriceStatusTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        # self.PriceStatusTableView_1.horizontalHeader().stretchLastSection()
+        # for i in range(self.PriceStatusTableView_1.horizontalHeader().count()):
+        #     self.PriceStatusTableView_1.horizontalHeader().resizeSection(i, 200)
+
 
 
         self.model_1_1 = QStandardItemModel()
@@ -163,6 +167,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.NotMatchedTableView_1.verticalHeader().hide()
         self.NotMatchedTableView_1.setEditTriggers(QTableView.NoEditTriggers)
         self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
         # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -176,21 +182,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CatalogUpdateTimeTableView_2.setModel(self.model_2_1)
         self.CatalogUpdateTimeTableView_2.verticalHeader().hide()
         self.CatalogUpdateTimeTableView_2.setEditTriggers(QTableView.NoEditTriggers)
-        self.CatalogUpdateTimeTableView_2.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        # self.CatalogUpdateTimeTableView_2.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.CatalogUpdateTimeTableView_2.horizontalHeader().resizeSection(0, 170)
+        self.CatalogUpdateTimeTableView_2.horizontalHeader().setStretchLastSection(True)
 
         self.model_2_2 = QStandardItemModel()
         self.model_2_2.setHorizontalHeaderLabels(['Code', 'Value'])
         self.CurrencyTableView_2.setModel(self.model_2_2)
         self.CurrencyTableView_2.verticalHeader().hide()
         self.CurrencyTableView_2.setEditTriggers(QTableView.NoEditTriggers)
-        self.CurrencyTableView_2.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        # self.CurrencyTableView_2.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.CurrencyTableView_2.horizontalHeader().resizeSection(0, 170)
+        self.CurrencyTableView_2.horizontalHeader().setStretchLastSection(True)
 
         self.LogButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['local_logs_dir']}/{Logs.log_file_names[2]}"))
         self.LogButton_2.setToolTip("Открыть файл с логами")
         self.ResetDBButton_2.clicked.connect(
             lambda _: self.confirmed_message_box('Обнуление БД', 'Обнулить данные в БД?', self.reset_db))
+        self.CatalogUpdateTimeTableUpdateButton_2.clicked.connect(self.update_catalogs_update_time_table)
 
-        times = get_catalogs_time_update()
+        times = CatalogUpdate.get_catalogs_time_update()
         time_edits = {"base_price_update": self.BasePriceTimeEdit_2, "mass_offers_update": self.MassOffersTimeEdit_2}
         if times:
             for t in times:
@@ -229,6 +240,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             try:
                 Base.metadata.drop_all(engine)
                 Base.metadata.create_all(engine)
+                with sessionmaker(engine)() as sess:
+                    sess.add_all([AppSettings(param="base_price_update", var="0 15"), AppSettings(param="mass_offers_update", var="0 15")])
+                    sess.commit()
                 print('БД обновлена')
             except Exception as ex:
                 print(ex)
@@ -239,10 +253,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def save_catalogs_time_update(self):
         if not self.ST:
-            self.ST = SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
+            self.ST = CatalogUpdate.SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
             self.ST.start()
         elif not self.ST.isRunning():
-            self.ST = SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
+            self.ST = CatalogUpdate.SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
             self.ST.start()
 
     def update_price_1_report_table(self):
@@ -255,7 +269,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if report:
             items = [QStandardItem(f"{r}") for r in report]
             self.model_1_1.appendRow(items)
-
 
     def start_update_mail_report_table(self):
         if not self.MailReportUpdate.isRunning():
@@ -298,6 +311,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def add_log_to_text_browser(self, id_console_log, text):
         self.consoles[id_console_log].append(text)
+
     def stop_timer(self, r):
         self.doneFiles += 1
         self.ProgressLabel_1.setText(f"{self.doneFiles}/{self.totalFiles}")
@@ -355,6 +369,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_time(self, r, c, str_time):
         # print("set_time", r)
         self.model_1.setData(self.model_1.index(r, c), str_time)
+
+    def update_catalogs_update_time_table(self):
+        if not self.CatalogsUpdateTable.isRunning():
+            while self.model_2_1.rowCount() > 0:
+                self.model_2_1.removeRow(self.model_2_1.rowCount() - 1)
+            self.CatalogsUpdateTable.start()
+
+    def add_item_to_catalogs_update_time_table(self, info_items):
+        for info in info_items:
+            items = [QStandardItem(f"{i}") for i in [info.catalog_name, info.updated_at]]
+            self.model_2_1.appendRow(items)
+        # print(f"{info=}")
 
     def add_new_row(self):
         # d = [None, None, None]

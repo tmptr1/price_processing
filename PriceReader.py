@@ -18,10 +18,11 @@ pd.set_option('future.no_silent_downcasting', True)
 import openpyxl
 import warnings
 warnings.filterwarnings('ignore')
+# mp.freeze_support()
 
 import colors
 from models import (Base, PriceReport, Price_1, BasePrice, MassOffers, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
-                    ArticleFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, ExchangeRate, SumTable)
+                    ArticleFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, ExchangeRate, SumTable, TotalPrice_1)
 from Logs import add_log_cf
 import setting
 engine = setting.get_engine()
@@ -79,6 +80,7 @@ class MainWorker(QThread):
                         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
                         standard = sess.execute(req).scalar()
                         if not standard:
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
                             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
                                                  updated_at=new_update_time))
                             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
@@ -112,7 +114,9 @@ class MainWorker(QThread):
                 # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
                 # new_files = ["1ROS 155889.xlsx"]
-                # new_files = ["1ШСА PRC_.xls"]
+                # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
+                # new_files = ['MI21 mikado_price_vlgd.csv', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx", "VTTE электроинструмент.xlsx",
+                #              "1IMP IMPEKS_KRD.xlsx"]
 
                 if new_files:
                     self.log.add(LOG_ID, "Начало обработки")
@@ -454,7 +458,20 @@ def multi_calculate(args):
                     # print(df)
 
                 cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
-                # УДАЛИТЬ ИЗ БД ПОСЛЕ ФОРМИРОВАНИЯ CSV
+
+                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
+
+                cols_for_total = [Price_1.id, Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s,
+                                  Price_1.count_s, Price_1.price_s, Price_1.currency_s, Price_1.mult_s, Price_1.notice_s,
+                                  Price_1._01article, Price_1._02brand, Price_1._14brand_filled_in, Price_1._03name,
+                                  Price_1._04count, Price_1._05price, Price_1._12sum, Price_1._06mult,
+                                  Price_1._15code_optt, Price_1._07supplier_code, Price_1._20exclude, Price_1._13grad,
+                                  Price_1._17code_unique, Price_1._18short_name]
+                cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
+                total = select(*cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+                sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+
+                # УДАЛИТЬ ИЗ БД
                 sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
 
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)

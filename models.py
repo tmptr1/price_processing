@@ -166,6 +166,62 @@ class Price_1(Base):
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
 
+class TotalPrice_1(Base):
+    __tablename__ = "total_price_1"
+    # __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
+    #                   Index("price_1_id_compare_hash_index", "id_compare", postgresql_using="hash"),
+    #                   Index("price_1_key1_index", "key1_s"),
+    #                   Index("price_1_05_price_index", "_05price"),
+    #                   Index("price_1_07_index", "_07supplier_code"),
+    #                   Index("price_1_article_brand_index", "article_s", "brand_s"),
+    #                   Index("price_1_article_name_index", "article_s", "name_s"),
+    #                   )
+    id: Mapped[uuidpk]
+    # id: Mapped[intpk]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
+    # brand_s_low: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[real]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _02Производитель varchar(256),
+    _02brand: Mapped[str_x(256)]
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
+    _12sum: Mapped[numeric]
+    # _06Кратность_ REAL,
+    _06mult: Mapped[intgr]
+    _15code_optt: Mapped[str_x(256)]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    # _20ИслючитьИзПрайса varchar(50),
+    _20exclude: Mapped[str_x(50)]
+    # _13Градация REAL,
+    _13grad: Mapped[intgr]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    # _18КороткоеНаименование varchar(256),
+    _18short_name: Mapped[str_x(256)]
+
     # # _09Код_Поставщик_Товар varchar(500),
     # _09code_supl_goods: Mapped[str_x(300)]
     # # _10Оригинал varchar(30),
