@@ -67,72 +67,74 @@ class MainWorker(QThread):
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
 
 
-                # files = os.listdir(settings_data["mail_files_dir"])
-                # new_files = []
-                # # engine.echo=True
-                # with (session() as sess):
-                #     for file in files:
-                #         file_name = '.'.join(file.split('.')[:-1])
-                #         if len(file_name) < 4:
-                #             continue
-                #         price_code = file_name[:4]
-                #         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
-                #                                                           ).strftime("%Y-%m-%d %H:%M:%S")
-                #
-                #         req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
-                #         last_update_tile = sess.execute(req).scalar()
-                #         if last_update_tile and str(last_update_tile) == new_update_time:
-                #             continue
-                #
-                #         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
-                #         standard = sess.execute(req).scalar()
-                #         if not standard:
-                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
-                #                                  updated_at=new_update_time))
-                #             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
-                #                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
-                #             continue
-                #         elif str(standard).upper() != 'ДА':
-                #             # req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указана стандартизация",
-                #             #                                                                       updated_at=new_update_time)
-                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
-                #                                  updated_at=new_update_time))
-                #             sess.execute(req)
-                #             self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
-                #                          f"<span style='color:{colors.orange_log_color};"
-                #                          f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
-                #             continue
-                #
-                #         save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
-                #         if not save or str(save).upper() != 'ДА':
-                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                #             sess.add(PriceReport(file_name=file, price_code=price_code,
-                #                                  info_message="Не указано сохранение",
-                #                                  updated_at=new_update_time))
-                #             sess.execute(req)
-                #             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
-                #                          f"<span style='color:{colors.orange_log_color};"
-                #                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
-                #             continue
-                #
-                #         if not last_update_tile:
-                #             new_files.append(file)
-                #             continue
-                #         if str(last_update_tile) < new_update_time:
-                #             new_files.append(file)
-                #
-                #     # Удаление неактуальных прайсов (сохранение != ДА)
-                #     loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
-                #     actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
-                #     useless_prices = (loaded_prices-actual_prices)
-                #     if useless_prices:
-                #         self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
-                #         cur_time = datetime.datetime.now()
-                #         sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
-                #         self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
-                #     sess.commit()
+                files = os.listdir(settings_data["mail_files_dir"])
+                new_files = []
+                # engine.echo=True
+                with (session() as sess):
+                    for file in files:
+                        if file.startswith('~$'):
+                            continue
+                        file_name = '.'.join(file.split('.')[:-1])
+                        if len(file_name) < 4:
+                            continue
+                        price_code = file_name[:4]
+                        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
+                                                                          ).strftime("%Y-%m-%d %H:%M:%S")
+
+                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
+                        last_update_tile = sess.execute(req).scalar()
+                        if last_update_tile and str(last_update_tile) == new_update_time:
+                            continue
+
+                        req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
+                        standard = sess.execute(req).scalar()
+                        if not standard:
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
+                                                 updated_at=new_update_time))
+                            self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
+                                                                                 f"font-weight:bold;'>{price_code}</span> Нет в условиях")
+                            continue
+                        elif str(standard).upper() != 'ДА':
+                            # req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указана стандартизация",
+                            #                                                                       updated_at=new_update_time)
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
+                                                 updated_at=new_update_time))
+                            sess.execute(req)
+                            self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
+                                         f"<span style='color:{colors.orange_log_color};"
+                                         f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
+                            continue
+
+                        save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
+                        if not save or str(save).upper() != 'ДА':
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=file, price_code=price_code,
+                                                 info_message="Не указано сохранение",
+                                                 updated_at=new_update_time))
+                            sess.execute(req)
+                            self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
+                                         f"<span style='color:{colors.orange_log_color};"
+                                         f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
+                            continue
+
+                        if not last_update_tile:
+                            new_files.append(file)
+                            continue
+                        if str(last_update_tile) < new_update_time:
+                            new_files.append(file)
+
+                    # Удаление неактуальных прайсов (сохранение != ДА)
+                    loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
+                    actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
+                    useless_prices = (loaded_prices-actual_prices)
+                    if useless_prices:
+                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
+                        cur_time = datetime.datetime.now()
+                        sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                    sess.commit()
 
                 # print(f"{new_files=}")
                 # return
@@ -146,7 +148,7 @@ class MainWorker(QThread):
                 # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['MI21 mikado_price_vlgd.csv', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx", "VTTE электроинструмент.xlsx",
                 #              "1IMP IMPEKS_KRD.xlsx"]
-                new_files = ["АСИ1 price.xls"]
+                # new_files = ["АСИ1 price.xls"]
                 # new_files = ["MKOZ остатки_ИМ.xls"]
 
                 if new_files:
@@ -943,6 +945,8 @@ class PriceReportUpdate(QThread):
                     reports.append(r)
                 for r in reports:
                     self.UpdateInfoTableSignal.emit(r)
+                req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
+                             PriceReport.updated_at.label("Время")).order_by(PriceReport.price_code)
                 self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
                 df = pd.read_sql(req, engine)
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
