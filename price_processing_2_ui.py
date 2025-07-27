@@ -446,6 +446,14 @@ class Ui_MainWindow(object):
 
         self.gridLayout_6 = QGridLayout()
         self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.horizontalSpacer_13 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_6.addItem(self.horizontalSpacer_13, 1, 0, 1, 1)
+
+        self.horizontalSpacer_15 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_6.addItem(self.horizontalSpacer_15, 1, 4, 1, 1)
+
         self.horizontalLayout_15 = QHBoxLayout()
         self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
         self.CatalogUpdateTimeLabel_2 = QLabel(self.tab_3)
@@ -469,6 +477,20 @@ class Ui_MainWindow(object):
 
         self.gridLayout_6.addLayout(self.horizontalLayout_15, 0, 1, 1, 1)
 
+        self.horizontalSpacer_14 = QSpacerItem(30, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_6.addItem(self.horizontalSpacer_14, 1, 2, 1, 1)
+
+        self.CurrencyTableView_2 = QTableView(self.tab_3)
+        self.CurrencyTableView_2.setObjectName(u"CurrencyTableView_2")
+
+        self.gridLayout_6.addWidget(self.CurrencyTableView_2, 1, 3, 1, 1)
+
+        self.CatalogUpdateTimeTableView_2 = QTableView(self.tab_3)
+        self.CatalogUpdateTimeTableView_2.setObjectName(u"CatalogUpdateTimeTableView_2")
+
+        self.gridLayout_6.addWidget(self.CatalogUpdateTimeTableView_2, 1, 1, 1, 1)
+
         self.horizontalLayout_16 = QHBoxLayout()
         self.horizontalLayout_16.setObjectName(u"horizontalLayout_16")
         self.CurrencyLabel_2 = QLabel(self.tab_3)
@@ -491,27 +513,15 @@ class Ui_MainWindow(object):
 
         self.gridLayout_6.addLayout(self.horizontalLayout_16, 0, 3, 1, 1)
 
-        self.horizontalSpacer_13 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.CatalogUpdateTime_TimeLabel2 = QLabel(self.tab_3)
+        self.CatalogUpdateTime_TimeLabel2.setObjectName(u"CatalogUpdateTime_TimeLabel2")
 
-        self.gridLayout_6.addItem(self.horizontalSpacer_13, 1, 0, 1, 1)
+        self.gridLayout_6.addWidget(self.CatalogUpdateTime_TimeLabel2, 2, 1, 1, 1)
 
-        self.CatalogUpdateTimeTableView_2 = QTableView(self.tab_3)
-        self.CatalogUpdateTimeTableView_2.setObjectName(u"CatalogUpdateTimeTableView_2")
+        self.CurrencyTable_TimeLabel2 = QLabel(self.tab_3)
+        self.CurrencyTable_TimeLabel2.setObjectName(u"CurrencyTable_TimeLabel2")
 
-        self.gridLayout_6.addWidget(self.CatalogUpdateTimeTableView_2, 1, 1, 1, 1)
-
-        self.horizontalSpacer_14 = QSpacerItem(30, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_6.addItem(self.horizontalSpacer_14, 1, 2, 1, 1)
-
-        self.CurrencyTableView_2 = QTableView(self.tab_3)
-        self.CurrencyTableView_2.setObjectName(u"CurrencyTableView_2")
-
-        self.gridLayout_6.addWidget(self.CurrencyTableView_2, 1, 3, 1, 1)
-
-        self.horizontalSpacer_15 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_6.addItem(self.horizontalSpacer_15, 1, 4, 1, 1)
+        self.gridLayout_6.addWidget(self.CurrencyTable_TimeLabel2, 2, 3, 1, 1)
 
         self.gridLayout_6.setColumnStretch(0, 3)
         self.gridLayout_6.setColumnStretch(1, 10)
@@ -784,10 +794,12 @@ class Ui_MainWindow(object):
         self.StartButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u043a", None))
         self.PauseCheckBox_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
         self.ToReportDirButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441\u043e \u0441\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0430\u043c\u0438 \u0438 \u043e\u0442\u0447\u0451\u0442\u0430\u043c\u0438", None))
-        self.CatalogUpdateTimeLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f:", None))
+        self.CatalogUpdateTimeLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f - \u0441\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438:", None))
         self.CatalogUpdateTimeTableUpdateButton_2.setText("")
         self.CurrencyLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u041a\u0443\u0440\u0441 \u0432\u0430\u043b\u044e\u0442:", None))
         self.CurrencyTableUpdateButton_2.setText("")
+        self.CatalogUpdateTime_TimeLabel2.setText(QCoreApplication.translate("MainWindow", u"-", None))
+        self.CurrencyTable_TimeLabel2.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.LogButton_2.setText("")
         self.groupBox.setTitle("")
         self.CreateBasePriceButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))

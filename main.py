@@ -95,8 +95,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ST = None
         self.MailReportReset = MailParser.MailReportDelete(log=Log)
         self.MailReportUpdate = MailParser.MailReportUpdate(log=Log)
+
         self.CatalogsUpdateTable = CatalogUpdate.CatalogsUpdateTable(log=Log)
         self.CatalogsUpdateTable.CatalogsInfoSignal.connect(lambda x:self.add_item_to_catalogs_update_time_table(x))
+        self.CatalogsUpdateTable.TimeUpdateSetSignal.connect(lambda x:self.CatalogUpdateTime_TimeLabel2.setText(x))
+
+        self.CurrencyUpdateTable = CatalogUpdate.CurrencyUpdateTable(log=Log)
+        self.CurrencyUpdateTable.CurrencyInfoSignal.connect(lambda x:self.add_item_to_currency_table(x))
+        self.CurrencyUpdateTable.TimeUpdateSetSignal.connect(lambda x:self.CurrencyTable_TimeLabel2.setText(x))
         # try:
         #     self.MailReportUpdate.start()
         # except:
@@ -105,6 +111,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_1_report_table)
         self.PriceReportUpdate.UpdatePriceReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_1.setText(x))
         self.CU = CatalogUpdate.CatalogUpdate(log=Log)
+        self.CU.StartTablesUpdateSignal.connect(self.update_catalogs_update_time_table)
+        self.CU.StartTablesUpdateSignal.connect(self.update_currency_table)
 
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
@@ -200,6 +208,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ResetDBButton_2.clicked.connect(
             lambda _: self.confirmed_message_box('Обнуление БД', 'Обнулить данные в БД?', self.reset_db))
         self.CatalogUpdateTimeTableUpdateButton_2.clicked.connect(self.update_catalogs_update_time_table)
+        self.CurrencyTableUpdateButton_2.clicked.connect(self.update_currency_table)
+
 
         times = CatalogUpdate.get_catalogs_time_update()
         time_edits = {"base_price_update": self.BasePriceTimeEdit_2, "mass_offers_update": self.MassOffersTimeEdit_2}
@@ -333,6 +343,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda _: self.set_enabled_start_buttons(_, self.StartButton_1, self.PauseCheckBox_1))
         self.MW.start()
         self.MW.StartTotalTimeSignal.connect(self.set_total_time)
+        self.MW.UpdateReportSignal.connect(self.update_price_1_report_table)
 
     def start_mail_parser(self):
         if not self.MP:
@@ -380,7 +391,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for info in info_items:
             items = [QStandardItem(f"{i}") for i in [info.catalog_name, info.updated_at]]
             self.model_2_1.appendRow(items)
-        # print(f"{info=}")
+
+    def update_currency_table(self):
+        if not self.CurrencyUpdateTable.isRunning():
+            while self.model_2_2.rowCount() > 0:
+                self.model_2_2.removeRow(self.model_2_2.rowCount() - 1)
+            self.CurrencyUpdateTable.start()
+    def add_item_to_currency_table(self, info_items):
+        for info in info_items:
+            items = [QStandardItem(f"{i}") for i in [info.code, info.rate]]
+            self.model_2_2.appendRow(items)
 
     def add_new_row(self):
         # d = [None, None, None]

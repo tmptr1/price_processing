@@ -8,7 +8,7 @@ import math
 import os
 import holidays
 import holidays_ru
-from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func
+from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 import numpy as np
@@ -16,6 +16,7 @@ import pandas as pd
 from python_calamine.pandas import pandas_monkeypatch
 pd.set_option('future.no_silent_downcasting', True)
 import openpyxl
+import xml.etree.ElementTree as ET
 import warnings
 warnings.filterwarnings('ignore')
 # mp.freeze_support()
@@ -38,6 +39,7 @@ REPORT_FILE = r"price_report.csv"
 class MainWorker(QThread):
     StartTotalTimeSignal = Signal(bool)
     SetButtonEnabledSignal = Signal(bool)
+    UpdateReportSignal = Signal(bool)
     isPause = None
 
     def __init__(self, log=None, sender=None, threads_count=None, parent=None):
@@ -68,7 +70,7 @@ class MainWorker(QThread):
                 files = os.listdir(settings_data["mail_files_dir"])
                 new_files = []
                 # engine.echo=True
-                with session() as sess:
+                with (session() as sess):
                     for file in files:
                         file_name = '.'.join(file.split('.')[:-1])
                         if len(file_name) < 4:
@@ -76,6 +78,11 @@ class MainWorker(QThread):
                         price_code = file_name[:4]
                         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
                                                                           ).strftime("%Y-%m-%d %H:%M:%S")
+
+                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
+                        last_update_tile = sess.execute(req).scalar()
+                        if last_update_tile and str(last_update_tile) == new_update_time:
+                            continue
 
                         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
                         standard = sess.execute(req).scalar()
@@ -87,22 +94,44 @@ class MainWorker(QThread):
                                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
                             continue
                         elif str(standard).upper() != 'ДА':
-                            req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указано сохранение",
-                                                                                                  updated_at=new_update_time)
+                            # req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указана стандартизация",
+                            #                                                                       updated_at=new_update_time)
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
+                                                 updated_at=new_update_time))
+                            sess.execute(req)
+                            self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
+                                         f"<span style='color:{colors.orange_log_color};"
+                                         f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
+                            continue
+
+                        save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
+                        if not save or str(save).upper() != 'ДА':
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=file, price_code=price_code,
+                                                 info_message="Не указано сохранение",
+                                                 updated_at=new_update_time))
                             sess.execute(req)
                             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
                                          f"<span style='color:{colors.orange_log_color};"
                                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
                             continue
 
-                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
-                        last_update_tile = sess.execute(req).scalar()
-                        # print(price_code, in_cond, last_update_tile)
                         if not last_update_tile:
                             new_files.append(file)
                             continue
                         if str(last_update_tile) < new_update_time:
                             new_files.append(file)
+
+                    # Удаление неактуальных прайсов (сохранение != ДА)
+                    loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
+                    actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
+                    useless_prices = (loaded_prices-actual_prices)
+                    if useless_prices:
+                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
+                        cur_time = datetime.datetime.now()
+                        sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
                     sess.commit()
 
                 # print(f"{new_files=}")
@@ -117,6 +146,7 @@ class MainWorker(QThread):
                 # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['MI21 mikado_price_vlgd.csv', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx", "VTTE электроинструмент.xlsx",
                 #              "1IMP IMPEKS_KRD.xlsx"]
+                # new_files = ["АСИ1 price.xls"]
 
                 if new_files:
                     self.log.add(LOG_ID, "Начало обработки")
@@ -140,6 +170,7 @@ class MainWorker(QThread):
                     self.log.add(LOG_ID, f"Обработка закончена [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
                     self.StartTotalTimeSignal.emit(False)
+                    self.UpdateReportSignal.emit(1)
                 # self.log.add(1, "Начало обработки calc")
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
@@ -183,7 +214,6 @@ def multi_calculate(args):
             # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
             # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
             # sess.commit()
-
             req = select(PriceReport).where(PriceReport.file_name == file_name)
             is_report_exists = sess.execute(req).scalar()
             if not is_report_exists:
@@ -206,20 +236,37 @@ def multi_calculate(args):
                 return
 
             # сопоставление столлцов
-            id_settig, rc_dict = get_setting_id(price_table_settings, frmt, path_to_price)
-            if not id_settig:
+            try:
+                id_settig, rc_dict, new_frmt = get_setting_id(price_table_settings, frmt, path_to_price)
+                if not id_settig:
+                    sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
+                        info_message="Нет подходящих настроек столбцов", updated_at=new_update_time))
+                    sess.commit()
+                    add_log_cf(LOG_ID, "Нет подходящих настроек столбцов", sender, price_code, color)
+                    return
+            except ValueError as val_ex:
                 sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
-                    info_message="Нет подходящих настроек столбцов", updated_at=new_update_time))
+                    info_message="Ошибка формата", updated_at=new_update_time))
                 sess.commit()
-                add_log_cf(LOG_ID, "Нет подходящих настроек столбцов", sender, price_code, color)
-                return
+                # add_log_cf(LOG_ID, "Ошибка формата", sender, price_code, color)
+                sender.send(["log", LOG_ID, f"{price_code} Ошибка формата",
+                             f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                             f"{price_code}</span> Ошибка формата  "])
+                raise val_ex
+                # return
 
             # Удаление старой версии
             # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
 
             # загрузка сырых данных
             sett = sess.get(FileSettings, {'id': id_settig})
-            if not load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
+
+            loaded = False
+            if new_frmt == 'xml':
+                loaded = load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess)
+            else:
+                loaded = load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
+            if not loaded:
                 sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
                     info_message="Настройки столбцов не подошли", updated_at=new_update_time))
                 sess.commit()
@@ -568,7 +615,15 @@ def check_price_time(price_code, file_name, sender, sess):
 def get_setting_id(price_table_settings, frmt, path_to_price):
     id_settig = None
     rc_dict = dict()
+    new_frmt = None
     for sett in price_table_settings:
+        # if sett.xml_item_block_name
+        #   try:
+        #       pd.read_xml..
+        #       id_setting = ..
+        #       break
+        #   except
+        #       continue
         # print(sett.id)
         rc_dict = {"key1_s": [sett.r_key_s, sett.c_key_s, sett.name_key_s],
                    "article_s": [sett.r_article_s, sett.c_article_s, sett.name_article_s],
@@ -603,16 +658,57 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
         max_row = int(max(rows))
         # print(f"{max_row=} {max_col=}")
 
-
+        table = pd.DataFrame
         if frmt in ('xls', 'xlsx'):
             pandas_monkeypatch()
-            table = pd.read_excel(path_to_price, header=None, engine='calamine', nrows=max_row)
+            try:
+                table = pd.read_excel(path_to_price, header=None, engine='calamine', nrows=max_row)
+            except Exception as read_ex:
+                pass
+            if table.empty:
+                try:
+                    table = pd.read_excel(path_to_price, header=None, nrows=max_row)
+                except Exception as read_ex_2:
+                    pass
+
         elif frmt == 'csv':
             table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251', nrows=max_row,
                                 encoding_errors='ignore')
-        else:
+
+        # для XML
+        if table.empty and frmt in ('xls', 'xml'):
+            try:
+                tree = ET.parse(path_to_price)
+                root = tree.getroot()
+                header = []
+                for i in root.findall('{urn:schemas-microsoft-com:office:spreadsheet}Worksheet/{urn:schemas-microsoft-com:office:spreadsheet}Table/{urn:schemas-microsoft-com:office:spreadsheet}Row'):
+                    header = [j.text for j in i.findall('{urn:schemas-microsoft-com:office:spreadsheet}Cell/{urn:schemas-microsoft-com:office:spreadsheet}Data')]
+                    break
+
+                if len(header) < max_col:
+                    continue
+
+                brk = False
+                for r, c, name in rc_dict.values():
+                    if not name:
+                        continue
+                    if name not in str(header[c-1]):
+                        brk = True
+                        break
+
+                if not brk:
+                    id_settig = sett.id
+                    new_frmt = 'xml'
+                    break
+                else:
+                    continue
+            except Exception as read_xml_ex:
+                pass
+
+        if table.empty:
             # print(f"Неизвестный формат")
             break
+
 
         if len(table.columns) < max_col:
             continue
@@ -624,13 +720,14 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
             # print(r, c, name, name in table.loc[r-1, c -1])
             if name not in str(table.loc[r - 1, c - 1]):
                 brk = True
+                break
 
         if not brk:
             id_settig = sett.id
 
             break
 
-    return id_settig, rc_dict
+    return id_settig, rc_dict, new_frmt
 
 def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
     try:
@@ -725,6 +822,34 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
         # raise ke
         return False
 
+def load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess):
+    try:
+        cols_count = len(rc_dict)
+        use_cols = [rc_dict[k][1]-1 for k in rc_dict]
+        tree = ET.parse(path_to_price)
+        root = tree.getroot()
+        arr = np.array([])
+        for i in root.findall('{urn:schemas-microsoft-com:office:spreadsheet}Worksheet/{urn:schemas-microsoft-com:office:spreadsheet}Table/{urn:schemas-microsoft-com:office:spreadsheet}Row')[1:]:
+            row = np.array([j.text for j in i.findall('{urn:schemas-microsoft-com:office:spreadsheet}Cell/{urn:schemas-microsoft-com:office:spreadsheet}Data')])
+            row = row[use_cols]
+            arr = np.append(arr, row)
+
+        arr.shape = -1, cols_count
+        df = pd.DataFrame(arr, columns=use_cols)
+        new_cols_name = {rc_dict[k][1] - 1: k for k in rc_dict}
+        df = df.rename(columns=new_cols_name)
+        df['_07supplier_code'] = [price_code] * len(df)
+
+        empty_cols_dict = {k: 1 for k in rc_dict}
+        df = get_correct_df(df, empty_cols_dict, sess.connection())
+
+        df.to_sql(name=Price_1.__tablename__, con=sess.connection(), if_exists='append', index=False)
+        # print(df)
+
+        return True
+    except KeyError:
+        return False
+
 def get_correct_df(df, cols, con):
     # print(f"{cols=}")
     '''for varchar(x), real, numeric, integer'''
@@ -801,10 +926,20 @@ class PriceReportUpdate(QThread):
         QThread.__init__(self, parent)
     def run(self):
         try:
-            with session() as sess:
+            with (session() as sess):
+                reports = []
                 req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
-                                              PriceReport.updated_at.label("Время")).order_by(PriceReport.price_code)
-                reports = sess.execute(req).all()
+                                              PriceReport.updated_at.label("Время")).where(PriceReport.info_message!='Ок'
+                                                                                           ).order_by(PriceReport.price_code)
+                res = sess.execute(req).all()
+                for r in res:
+                    reports.append(r)
+                req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
+                                              PriceReport.updated_at.label("Время")).where(PriceReport.info_message=='Ок'
+                                                                                           ).order_by(PriceReport.price_code)
+                res = sess.execute(req).all()
+                for r in res:
+                    reports.append(r)
                 for r in reports:
                     self.UpdateInfoTableSignal.emit(r)
                 self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
@@ -812,7 +947,7 @@ class PriceReportUpdate(QThread):
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
                           index=False, header=True, errors='ignore')
 
-                self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
+                # self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "PriceReportUpdate Error", ex_text)

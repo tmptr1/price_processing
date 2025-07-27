@@ -17,16 +17,32 @@
 процент пройденных позиций
 + колонки Бренд или в ней пустое значение, то подставлять данные отсюда
 + thread count, chunk size
-не подходит по сроку
-тест в 1 поток с коммитаМИ, без 07==price_code
-ssd m2
 долгий autovacuum
 ждать окончания autovacuum?
 + НЕ СОХРАНЯТЬ прайсы по новой
-копировать в новую таблицу в бд
-автоудаление из total_price
-mp.freeze_support()
++ копировать в новую таблицу в бд
++ автоудаление из total_price
++ mp.freeze_support()
++ автотаблицы 1, 2
++ индексы hash
++ XML
+
 вэб интерфейс внутри сети?
+папка с логами
+не подходит по сроку
+
+прога с автоперезапуском
+restart.py:
+ if time = 6:00:
+  kill start.py
+  start ...
+
+start.py (in crlc):
+while
+ autostart.txt
+ os ... main.py
+ delay
+
 ---
 ?flush
 ?pool size

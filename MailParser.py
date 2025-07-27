@@ -378,8 +378,8 @@ class MailReportUpdate(QThread):
                 for i in db_data:
                     self.UpdateInfoTableSignal.emit(i[0], i[1], i[2])
 
-                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == REPORT_FILE).delete()
-                sess.add(CatalogUpdateTime(catalog_name=REPORT_FILE, updated_at=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Отчёт почта').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Отчёт почта', updated_at=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
                 sess.commit()
 
             self.UpdateMailReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))

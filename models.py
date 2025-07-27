@@ -102,11 +102,11 @@ class SumTable(Base):
 
 class Price_1(Base):
     __tablename__ = "price_1"
-    __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
+    __table_args__ = (Index("price_1_brand_s_low_hash_index", "brand_s_low", postgresql_using="hash"),
                       Index("price_1_id_compare_hash_index", "id_compare", postgresql_using="hash"),
-                      Index("price_1_key1_index", "key1_s"),
+                      Index("price_1_key1_hash_index", "key1_s", postgresql_using="hash"),
                       Index("price_1_05_price_index", "_05price"),
-                      Index("price_1_07_index", "_07supplier_code"),
+                      Index("price_1_07_hash_index", "_07supplier_code", postgresql_using="hash"),
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_article_name_index", "article_s", "name_s"),
                       )
@@ -596,7 +596,7 @@ class ArticleFix(Base):
 
 class Brands(Base):
     __tablename__ = "brands"
-    __table_args__ = (Index("brands_brand_low_index", "brand_low"),)
+    __table_args__ = (Index("brands_brand_low_hash_index", "brand_low", postgresql_using="hash"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     correct_brand: Mapped[str_x(500)]
     brand: Mapped[str_x(500)]
@@ -619,9 +619,9 @@ class WordsOfException(Base):
 
 class SupplierGoodsFix(Base):
     __tablename__ = "supplier_goods_fix"
-    __table_args__ = (Index("supplier_goods_fix_key1_index", "key1"),
-                      Index("supplier_goods_fix_article_brand_index", "article_s", "brand_s"),
-                      Index("supplier_goods_fix_article_name_index", "article_s", "name"),)
+    __table_args__ = (Index("supplier_goods_fix_key1_hash_index", "key1", postgresql_using="hash"),
+                      Index("supplier_goods_fix_article_brand_hash_index", "article_s", "brand_s"),
+                      Index("supplier_goods_fix_article_name_hash_index", "article_s", "name"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     supplier: Mapped[str_x(500)]
     import_setting: Mapped[str_x(20)]
@@ -670,7 +670,7 @@ class BasePrice(Base):
 
 class MassOffers(Base):
     __tablename__ = "mass_offers"
-    __table_args__ = (Index("mass_offers_article_brand_low_index", "article", "brand_low"),)
+    # __table_args__ = (Index("mass_offers_article_brand_low_index", "article", "brand_low"),) HASH
     id: Mapped[int] = mapped_column(primary_key=True)
     # Артикул varchar(256),
     article: Mapped[str] = mapped_column(String(256), nullable=True)

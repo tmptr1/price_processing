@@ -26,6 +26,7 @@ LOG_ID = 2
 
 class CatalogUpdate(QThread):
     SetButtonEnabledSignal = Signal(bool)
+    StartTablesUpdateSignal = Signal(bool)
     isPause = None
 
     def __init__(self, log=None, parent=None):
@@ -35,6 +36,7 @@ class CatalogUpdate(QThread):
     def run(self):
         global session, engine
         wait_sec = 30
+        last_update_h = None
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -42,6 +44,9 @@ class CatalogUpdate(QThread):
                 self.update_currency()
                 self.update_price_settings_catalog()
                 # self.update_base_price()
+                if datetime.datetime.now().hour != last_update_h:
+                    last_update_h = datetime.datetime.now().hour
+                    self.StartTablesUpdateSignal.emit(1)
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
                                                                         f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
@@ -338,6 +343,7 @@ class SaveTime(QThread):
 
 class CatalogsUpdateTable(QThread):
     CatalogsInfoSignal = Signal(CatalogUpdateTime)
+    TimeUpdateSetSignal = Signal(str)
     def __init__(self, log=None, parent=None):
         self.log = log
         QThread.__init__(self, parent)
@@ -348,10 +354,35 @@ class CatalogsUpdateTable(QThread):
                 catalogs_info = sess.execute(select(CatalogUpdateTime)).scalars().all()
                 # print(f"{catalogs_info=}")
                 self.CatalogsInfoSignal.emit(catalogs_info)
-            self.log.add(LOG_ID, f"Таблица обновлена", f"<span style='color:{colors.green_log_color};'>Таблица обновлена</span>  ")
+            # self.log.add(LOG_ID, f"Таблица 'Последние обновления - справочники' обновлена", f"Таблица <span style='color:{colors.green_log_color};'>"
+            #                                                                                 f"'Последние обновления - справочники'</span> обновлена  ")
+            self.TimeUpdateSetSignal.emit(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"CatalogsUpdateTable Error", ex_text)
+
+
+class CurrencyUpdateTable(QThread):
+    CurrencyInfoSignal = Signal(ExchangeRate)
+    TimeUpdateSetSignal = Signal(str)
+    def __init__(self, log=None, parent=None):
+        self.log = log
+        QThread.__init__(self, parent)
+
+    def run(self):
+        try:
+            with session() as sess:
+                catalogs_info = sess.execute(select(ExchangeRate).where(ExchangeRate.code.in_(['USD', 'EUR', 'CNY']))).scalars().all()
+                self.CurrencyInfoSignal.emit(catalogs_info)
+                catalogs_info = sess.execute(select(ExchangeRate).where(ExchangeRate.code.notin_(['USD', 'EUR', 'CNY']))).scalars().all()
+                self.CurrencyInfoSignal.emit(catalogs_info)
+            # self.log.add(LOG_ID, f"Таблица 'Курс валют' обновлена", f"Таблица <span style='color:{colors.green_log_color};'>"
+            #                                                         f"'Курс валют'</span> обновлена  ")
+            self.TimeUpdateSetSignal.emit(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"CurrencyUpdateTable Error", ex_text)
+
 
 def get_catalogs_time_update():
     try:
