@@ -9,13 +9,15 @@ import setting
 settings_data = setting.get_vars()
 
 log_file_names = ["logs_mail_parser_molule.log", "logs_price_reader_molule.log", "logs_catalog_update_molule.log"]
-log_files = []
+log_files_local = []
+log_files_server = []
 for l in log_file_names:
-    log_files.append(fr"{settings_data['local_logs_dir']}/{l}")
+    log_files_local.append(fr"logs/{l}")
+    log_files_server.append(fr"{settings_data['server_logs_dir']}/{l}")
 
 loggers = []
 
-for log_file in log_files:
+for log_file in log_files_local:
     # logger = mp.get_logger()
     logger = logging.getLogger(log_file)
     logger.setLevel(21)
@@ -43,8 +45,8 @@ class LogClass(QThread):
         while True:
             time.sleep(120)
             try:
-                for i, l in enumerate(log_files):
-                    shutil.copy(l, fr"logs/{log_file_names[i]}")
+                for i, l in enumerate(log_files_local):
+                    shutil.copy(l, log_files_server[i])
                 # print('logs ok')
             except Exception as ex:
                 print(ex)

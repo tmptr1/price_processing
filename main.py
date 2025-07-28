@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 import setting
 setting.create_dirs()
+# print(os.getpid())
 
 setting.check_settings_file()
 engine = setting.get_engine()
@@ -123,7 +124,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ResetMailReportButton_0.clicked.connect(
             lambda _:self.confirmed_message_box('Обнуление отчёта','Обнулить отчёт?', self.reset_mail_report_confirmed))
         self.UpdateReportButton_0.clicked.connect(self.start_update_mail_report_table)
-        self.LogButton_0.clicked.connect(lambda _: self.open_dir(fr"{settings_data['local_logs_dir']}/{Logs.log_file_names[0]}"))
+        self.LogButton_0.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[0]}"))
         self.LogButton_0.setToolTip("Открыть файл с логами")
 
         self.MailReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_mail_report_table)
@@ -141,7 +142,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         self.StartButton_1.clicked.connect(self.start_mult)
-        self.LogButton_1.clicked.connect(lambda _: self.open_dir(fr"{settings_data['local_logs_dir']}/{Logs.log_file_names[1]}"))
+        self.LogButton_1.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[1]}"))
         self.LogButton_1.setToolTip("Открыть файл с логами")
         self.ToFilesDirButton_1.clicked.connect(lambda _: self.open_dir(settings_data['exit_1_dir']))
         self.UpdateReportButton_1.clicked.connect(self.update_price_1_report_table)
@@ -203,8 +204,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CurrencyTableView_2.horizontalHeader().resizeSection(0, 170)
         self.CurrencyTableView_2.horizontalHeader().setStretchLastSection(True)
 
-        self.LogButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['local_logs_dir']}/{Logs.log_file_names[2]}"))
+        self.LogButton_2.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[2]}"))
         self.LogButton_2.setToolTip("Открыть файл с логами")
+        self.ToReportDirButton_2.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
         self.ResetDBButton_2.clicked.connect(
             lambda _: self.confirmed_message_box('Обнуление БД', 'Обнулить данные в БД?', self.reset_db))
         self.CatalogUpdateTimeTableUpdateButton_2.clicked.connect(self.update_catalogs_update_time_table)
@@ -312,7 +314,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_old_logs(self):
         for i in self.consoles.keys():
-            with open(Logs.log_files[i], 'r') as log_file:
+            with open(Logs.log_files_local[i], 'r') as log_file:
                 last_log_rows = log_file.readlines()[-MAX_LOG_ROWS_IN_TEXT_BROWSER:]
                 if last_log_rows:
                     self.consoles[i].append('\n'.join(l.replace('\n', '') for l in last_log_rows))

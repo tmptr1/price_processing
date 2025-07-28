@@ -160,7 +160,7 @@ class CatalogUpdate(QThread):
 
                 table_name = 'supplier_price_settings'
                 table_class = SupplierPriceSettings
-                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
+                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"], "parent_code": ["Прайс родитель"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
@@ -217,7 +217,7 @@ class CatalogUpdate(QThread):
                         "sales_ban": ["Запрет продажи"], "original": ["Оригинал"],
                         "marketable_appearance": ["Товарный вид"],
                         "put_away_percent": ["Убрать %"], "put_away_count": ["Убрать шт"], "nomenclature": ["Номенклатура"],
-                        "mult_s": ["Кратность поставщика"],
+                        "mult_s": ["Кратность поставщика"], "name_s": ["Наименование поставщика"]
                         }
                 sheet_name = "Исправление товаров поставщиков"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)

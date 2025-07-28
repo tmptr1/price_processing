@@ -67,74 +67,74 @@ class MainWorker(QThread):
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
 
 
-                files = os.listdir(settings_data["mail_files_dir"])
-                new_files = []
-                # engine.echo=True
-                with (session() as sess):
-                    for file in files:
-                        if file.startswith('~$'):
-                            continue
-                        file_name = '.'.join(file.split('.')[:-1])
-                        if len(file_name) < 4:
-                            continue
-                        price_code = file_name[:4]
-                        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
-                                                                          ).strftime("%Y-%m-%d %H:%M:%S")
-
-                        req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
-                        last_update_tile = sess.execute(req).scalar()
-                        if last_update_tile and str(last_update_tile) == new_update_time:
-                            continue
-
-                        req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
-                        standard = sess.execute(req).scalar()
-                        if not standard:
-                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
-                                                 updated_at=new_update_time))
-                            self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
-                                                                                 f"font-weight:bold;'>{price_code}</span> Нет в условиях")
-                            continue
-                        elif str(standard).upper() != 'ДА':
-                            # req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указана стандартизация",
-                            #                                                                       updated_at=new_update_time)
-                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
-                                                 updated_at=new_update_time))
-                            sess.execute(req)
-                            self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
-                                         f"<span style='color:{colors.orange_log_color};"
-                                         f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
-                            continue
-
-                        save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
-                        if not save or str(save).upper() != 'ДА':
-                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code,
-                                                 info_message="Не указано сохранение",
-                                                 updated_at=new_update_time))
-                            sess.execute(req)
-                            self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
-                                         f"<span style='color:{colors.orange_log_color};"
-                                         f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
-                            continue
-
-                        if not last_update_tile:
-                            new_files.append(file)
-                            continue
-                        if str(last_update_tile) < new_update_time:
-                            new_files.append(file)
-
-                    # Удаление неактуальных прайсов (сохранение != ДА)
-                    loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
-                    actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
-                    useless_prices = (loaded_prices-actual_prices)
-                    if useless_prices:
-                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
-                        cur_time = datetime.datetime.now()
-                        sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
-                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
-                    sess.commit()
+                # files = os.listdir(settings_data["mail_files_dir"])
+                # new_files = []
+                # # engine.echo=True
+                # with (session() as sess):
+                #     for file in files:
+                #         if file.startswith('~$'):
+                #             continue
+                #         file_name = '.'.join(file.split('.')[:-1])
+                #         if len(file_name) < 4:
+                #             continue
+                #         price_code = file_name[:4]
+                #         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file}")
+                #                                                           ).strftime("%Y-%m-%d %H:%M:%S")
+                #
+                #         req = select(PriceReport.updated_at).where(PriceReport.price_code == price_code)
+                #         last_update_tile = sess.execute(req).scalar()
+                #         if last_update_tile and str(last_update_tile) == new_update_time:
+                #             continue
+                #
+                #         req = select(SupplierPriceSettings.standard).where(SupplierPriceSettings.price_code == price_code)
+                #         standard = sess.execute(req).scalar()
+                #         if not standard:
+                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
+                #                                  updated_at=new_update_time))
+                #             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
+                #                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
+                #             continue
+                #         elif str(standard).upper() != 'ДА':
+                #             # req = update(PriceReport).where(PriceReport.file_name == file).values(info_message="Не указана стандартизация",
+                #             #                                                                       updated_at=new_update_time)
+                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                #             sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
+                #                                  updated_at=new_update_time))
+                #             sess.execute(req)
+                #             self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
+                #                          f"<span style='color:{colors.orange_log_color};"
+                #                          f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
+                #             continue
+                #
+                #         save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
+                #         if not save or str(save).upper() != 'ДА':
+                #             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                #             sess.add(PriceReport(file_name=file, price_code=price_code,
+                #                                  info_message="Не указано сохранение",
+                #                                  updated_at=new_update_time))
+                #             sess.execute(req)
+                #             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
+                #                          f"<span style='color:{colors.orange_log_color};"
+                #                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
+                #             continue
+                #
+                #         if not last_update_tile:
+                #             new_files.append(file)
+                #             continue
+                #         if str(last_update_tile) < new_update_time:
+                #             new_files.append(file)
+                #
+                #     # Удаление неактуальных прайсов (сохранение != ДА)
+                #     loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
+                #     actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
+                #     useless_prices = (loaded_prices-actual_prices)
+                #     if useless_prices:
+                #         self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
+                #         cur_time = datetime.datetime.now()
+                #         sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                #         self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                #     sess.commit()
 
                 # print(f"{new_files=}")
                 # return
@@ -150,9 +150,11 @@ class MainWorker(QThread):
                 #              "1IMP IMPEKS_KRD.xlsx"]
                 # new_files = ["АСИ1 price.xls"]
                 # new_files = ["MKOZ остатки_ИМ.xls"]
+                new_files = ["1ГУД Прайс ШСН.xlsx"]
+                # new_files = ["TKTZ Печать.xls"]
 
                 if new_files:
-                    self.log.add(LOG_ID, "Начало обработки")
+                    self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
                     cur_time = datetime.datetime.now()
                     # with session() as sess:
                     #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
@@ -222,12 +224,12 @@ def multi_calculate(args):
             if not is_report_exists:
                 sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-            if not check_price_time(price_code, file_name, sender, sess):
-                sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
-                    info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                sess.commit()
-                add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, price_code, color)
-                return
+            # if not check_price_time(price_code, file_name, sender, sess):
+            #     sess.execute(update(PriceReport).where(PriceReport.file_name == file_name).values(
+            #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+            #     sess.commit()
+            #     add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, price_code, color)
+            #     return
 
             req = select(FileSettings).where(FileSettings.price_code == price_code)
             price_table_settings = sess.execute(req).scalars().all()
@@ -378,24 +380,7 @@ def multi_calculate(args):
                          .values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W", "", 'g')))
 
             # 20ИслючитьИзПрайса
-            cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s, "Производитель поставщика": Price_1.brand_s,
-                         "Наименование поставщика": Price_1.name_s, " ВалютаП": Price_1.currency_s, "Примечание поставщика": Price_1.notice_s,
-                         }
-            check_types = {"Начинается с": lambda col, x: col.startswith(x), #'^{}'],
-                            "Содержит": lambda col, x: col.contains(x), #'{}'],
-                            "Не содержит": lambda col, x: not_(col.contains(x)), # '{}'],
-                            "Заканчивается на": lambda col, x: col.endswith(x), #'{}$'],
-            }
-            words = sess.execute(select(WordsOfException).where(WordsOfException.price_code == price_code)).scalars().all()
-            for w in words:
-                # print(f"{w.colunm_name}|{w.condition}|{w.text}")
-                check = check_types.get(f"{w.condition}", None)
-                col = cols_dict.get(w.colunm_name, None)
-                # print(check, col)
-                if check and col:
-                    # print(check, col)
-                    sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, check(col, w.text)))
-                             .values(_20exclude=w.text))
+            words_except(sess, Price_1, price_code)
 
             # 17КодУникальности
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
@@ -520,6 +505,30 @@ def multi_calculate(args):
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+
+                children_prices = sess.execute(select(SupplierPriceSettings.price_code)
+                                               .where(and_(SupplierPriceSettings.parent_code == price_code,
+                                                           func.upper(SupplierPriceSettings.standard) == 'ДА'))).scalars().all()
+                print(f"{children_prices=}")
+                if children_prices:
+                    cols_for_total.pop(Price_1.id)
+                    cols_for_total.pop(Price_1._07supplier_code)
+                    cols_for_total.pop(Price_1._20exclude)
+
+                    for children_price in children_prices:
+                        # print(children_price)
+                        sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == children_price).delete()
+                        dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+                        sess.execute(insert(TotalPrice_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
+                        words_except(sess, TotalPrice_1, children_price)
+                        sender.send(["log", LOG_ID, f"+ {children_price} (родитель: {price_code}) готов!",
+                                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                                     f"{children_price}</span> (родитель: <span style='background-color:hsl({color[0]}, "
+                                     f"{color[1]}%, {color[2]}%);'>{price_code})</span> готов!"])
+                        # print(cols_for_total)
+                        # break
+
 
                 # УДАЛИТЬ ИЗ БД
                 sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
@@ -909,7 +918,7 @@ def suppliers_goods_compare(price_code, sett, sess):
     article_brand_conditions = and_(Price_1._07supplier_code == price_code, SupplierGoodsFix.import_setting == price_code,
                                     Price_1.article_s == SupplierGoodsFix.article_s, Price_1.brand_s == SupplierGoodsFix.brand_s)
     article_name_conditions = and_(Price_1._07supplier_code == price_code, SupplierGoodsFix.import_setting == price_code,
-                                   Price_1.article_s == SupplierGoodsFix.article_s, Price_1.name_s == SupplierGoodsFix.name)
+                                   Price_1.article_s == SupplierGoodsFix.article_s, Price_1.name_s == SupplierGoodsFix.name_s)
     compare_vars = {"Ключ": key_conditions, "Артикул + Бренд": article_brand_conditions,
                     "Артикул + НаименованиеП": article_name_conditions}
 
@@ -920,6 +929,31 @@ def suppliers_goods_compare(price_code, sett, sess):
                                              _05price=SupplierGoodsFix.price_s, _06mult=SupplierGoodsFix.mult_s,
                                              _20exclude=SupplierGoodsFix.sales_ban)
         sess.execute(req)
+
+def words_except(sess, table, price_code):
+    cols_dict = {"Ключ1 поставщика": table.key1_s, "Артикул поставщика": table.article_s,
+                 "Производитель поставщика": table.brand_s,
+                 "Наименование поставщика": table.name_s, " Валюта поставщика": table.currency_s,
+                 "Примечание поставщика": table.notice_s,
+                 "Ключ1П": table.key1_s, "АртикулП": table.article_s, "ПроизводительП": table.brand_s,
+                 "НаименованиеП": table.name_s, " ВалютаП": table.currency_s, "ПримечаниеП": table.notice_s,
+                 }
+    check_types = {"Начинается с": lambda col, x: col.startswith(x),  # '^{}'],
+                   "Содержит": lambda col, x: col.contains(x),  # '{}'],
+                   "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
+                   "Заканчивается на": lambda col, x: col.endswith(x),  # '{}$'],
+                   }
+    words = sess.execute(select(WordsOfException).where(WordsOfException.price_code == price_code)).scalars().all()
+
+    for w in words:
+        # print(f"{w.colunm_name}|{w.condition}|{w.text}")
+        check = check_types.get(f"{w.condition}", None)
+        col = cols_dict.get(w.colunm_name, None)
+        # print(check, col)
+        if check and col:
+            # print(check, col)
+            sess.execute(update(table).where(and_(table._07supplier_code == price_code, check(col, w.text)))
+                         .values(_20exclude=w.text))
 
 class PriceReportUpdate(QThread):
     UpdateInfoTableSignal = Signal(list)

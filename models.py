@@ -21,6 +21,7 @@ class SupplierPriceSettings(Base):
     costs: Mapped[real]
     # Код_поставщика varchar(10),
     supplier_code: Mapped[str_x(10)]
+    parent_code: Mapped[str_x(10)]
     # Можем_купить varchar(20),
     buy: Mapped[str_x(20)]
     # Работаем varchar(20),
@@ -621,7 +622,7 @@ class SupplierGoodsFix(Base):
     __tablename__ = "supplier_goods_fix"
     __table_args__ = (Index("supplier_goods_fix_key1_index", "key1"),
                       Index("supplier_goods_fix_article_brand_index", "article_s", "brand_s"),
-                      Index("supplier_goods_fix_article_name_index", "article_s", "name"),)
+                      Index("supplier_goods_fix_article_name_index", "article_s", "name_s"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     supplier: Mapped[str_x(500)]
     import_setting: Mapped[str_x(20)]
@@ -639,6 +640,7 @@ class SupplierGoodsFix(Base):
     put_away_count: Mapped[intgr]
     nomenclature: Mapped[str_x(500)]
     mult_s: Mapped[intgr]
+    name_s: Mapped[str_x(500)]
 
 class ExchangeRate(Base):
     __tablename__ = "exchange_rate"
