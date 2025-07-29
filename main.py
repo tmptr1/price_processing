@@ -30,7 +30,7 @@ from models import Base, AppSettings
 settings_data = setting.get_vars()
 
 import Logs
-from PriceReader import MainWorker, PriceReportUpdate#, get_correct_df
+from PriceReader import MainWorker, PriceReportUpdate
 import MailParser
 from Timer import MyTimer
 from PipeListener import PipeListener
@@ -41,40 +41,6 @@ Log.start()
 
 MAX_LOG_ROWS_IN_TEXT_BROWSER = 200
 DEFAULT_THREAD_COUNT = settings_data["thread_count"]
-
-# def test_mp():
-#     pass
-#
-# class LoopThread(QThread):
-#     SetButtonEnabledSignal = Signal(bool)
-#     UpdateinfoTableSignal = Signal(int, str, int, str, bool)
-#     isPause = None
-#
-#     def __init__(self, parent=None):
-#         QThread.__init__(self, parent)
-#
-#     def run(self):
-#         # while not self.isPause:
-#         #     print('c')
-#         #     time.sleep(1)
-#         self.SetButtonEnabledSignal.emit(False)
-#         try:
-#             while not self.isPause:
-#                 print('T start')
-#                 # time.sleep(1)
-#                 mng = mp.Manager()
-#                 obj = mng.Value('cnt', 0)
-#                 # f = [1, 2]
-#                 f = [[1, obj], [2, obj]]
-#                 with mp.Pool(processes=2) as p:
-#                     p.map(test_mp, f)
-#                 # print(1/0)
-#                 # time.sleep(2)
-#                 print('T stop')
-#         except Exception as ex:
-#              print(ex)
-#         self.SetButtonEnabledSignal.emit(True)
-
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -104,10 +70,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CurrencyUpdateTable = CatalogUpdate.CurrencyUpdateTable(log=Log)
         self.CurrencyUpdateTable.CurrencyInfoSignal.connect(lambda x:self.add_item_to_currency_table(x))
         self.CurrencyUpdateTable.TimeUpdateSetSignal.connect(lambda x:self.CurrencyTable_TimeLabel2.setText(x))
-        # try:
-        #     self.MailReportUpdate.start()
-        # except:
-        #     pass
+
         self.PriceReportUpdate = PriceReportUpdate(log=Log)
         self.PriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_1_report_table)
         self.PriceReportUpdate.UpdatePriceReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_1.setText(x))
@@ -177,9 +140,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.NotMatchedTableView_1.setEditTriggers(QTableView.NoEditTriggers)
         self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
-        # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
 
@@ -324,8 +284,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def add_log_to_text_browser(self, id_console_log, text):
         self.consoles[id_console_log].append(text)
 
-    def stop_timer(self, r):
+    def stop_timer(self, r, new_children_price):
         self.doneFiles += 1
+        if new_children_price:
+            self.totalFiles += 1
         self.ProgressLabel_1.setText(f"{self.doneFiles}/{self.totalFiles}")
         self.progressBar_1.setValue(self.doneFiles/self.totalFiles*100)
         self.timers[r] = None
@@ -417,22 +379,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while self.model_1.rowCount() > 0:
             self.model_1.removeRow(self.model_1.rowCount() - 1)
 
-    def add_text_to_list(self):
-        self.x += 1
-        self.ConsoleTextBrowser_1.append(f"Лог номер <span style='color:red; font-weight:bold;'>{self.x}</span>. ок")
-
-    def set_row_count(self):
-        self.x += 1
-        d = [f"{self.x}", 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
-        items = [QStandardItem(i) for i in d]
-        self.model_1.appendRow(items)
-
-    def add_row(self):
-        # d = ['1', 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
-        # self.items = [QStandardItem(i) for i in d]
-        # self.model.appendRow(self.items)
-
-        self.model_1.setData(self.model_1.index(0,1), 'ffffffffffffffg')
+    # def add_text_to_list(self):
+    #     self.x += 1
+    #     self.ConsoleTextBrowser_1.append(f"Лог номер <span style='color:red; font-weight:bold;'>{self.x}</span>. ок")
+    #
+    # def set_row_count(self):
+    #     self.x += 1
+    #     d = [f"{self.x}", 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
+    #     items = [QStandardItem(i) for i in d]
+    #     self.model_1.appendRow(items)
+    #
+    # def add_row(self):
+    #     # d = ['1', 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
+    #     # self.items = [QStandardItem(i) for i in d]
+    #     # self.model.appendRow(self.items)
+    #
+    #     self.model_1.setData(self.model_1.index(0,1), 'ffffffffffffffg')
 
     def setPause(self, state, some_class):
         if some_class:
@@ -447,34 +409,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         chb.setEnabled(not enabled)
         if enabled:
             chb.setChecked(False)
-
-
-    # def db_test(self):
-    #     table_name = 'data07'
-    #     cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-    #             "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
-    #             "max_decline": ["Макс снижение от базовой цены"],
-    #             "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
-    #             "min_markup": ["Мин наценка"], "markup_wholesale": ["Наценка на оптовые товары"],
-    #             "grad_step": ["Шаг градаци"],
-    #             "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
-    #     if not self.dbWorker:
-    #         self.dbWorker = DBWorker(path_to_file="3.0 Условия1.xlsx", cols=cols, table_name=table_name, sheet_name="07Данные")
-    #     if self.dbWorker.isRunning():
-    #         print('уже запущено')
-    #         return
-    #     # Base.metadata.drop_all(engine)
-    #     # Base.metadata.create_all(engine)
-    #     self.dbWorker.start()
-        # return
-
-        # df = self.dbWorker.get_correct_df("3.0 Условия1.xlsx", cols, table_name, sheet_name="07Данные")
-        # print(df)
-        # df = df[df['code'] != None]
-        # print(df['code'])
-        # df['markup_opt'] = np.float64(df['markup_opt'])
-        # df.to_sql(name=table_name, con=engine, if_exists='append', index=False, index_label=False, chunksize=1000)
-        # print(df)
 
 
 def main():

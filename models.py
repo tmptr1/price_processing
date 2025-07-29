@@ -21,7 +21,6 @@ class SupplierPriceSettings(Base):
     costs: Mapped[real]
     # Код_поставщика varchar(10),
     supplier_code: Mapped[str_x(10)]
-    parent_code: Mapped[str_x(10)]
     # Можем_купить varchar(20),
     buy: Mapped[str_x(20)]
     # Работаем varchar(20),
@@ -497,6 +496,7 @@ class FileSettings(Base):
     id: Mapped[intpk]
     # 	Прайс varchar(20),
     price_code: Mapped[str_x(20)]
+    parent_code: Mapped[str_x(10)]
     # Сохраняем varchar(20),
     save: Mapped[str_x(20)]
     email: Mapped[str_x(256)]
@@ -587,10 +587,11 @@ class FileSettings(Base):
     change_price_val: Mapped[str_x(50)]
 
 
-class ArticleFix(Base):
-    __tablename__ = "article_fix"
+class ColsFix(Base):
+    __tablename__ = "cols_fix"
     id: Mapped[int] = mapped_column(primary_key=True)
     price_code: Mapped[str_x(20)]
+    col_name: Mapped[str_x(50)]
     change_type: Mapped[str_x(50)]
     find: Mapped[str_x(500)]
     change: Mapped[str_x(500)]
@@ -685,7 +686,8 @@ class MassOffers(Base):
 class PriceReport(Base):
     __tablename__ = "price_report"
     # Полное_название varchar(256),
-    file_name: Mapped[str] = mapped_column(String(256), primary_key=True)
+    id: Mapped[uuidpk]
+    file_name: Mapped[str_x(256)] #= mapped_column(String(256), primary_key=True)
     # Название_файла varchar(256),
     price_code: Mapped[str_x(256)]
     # Время_изменения varchar(256)

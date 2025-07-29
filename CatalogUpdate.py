@@ -10,7 +10,7 @@ from sqlalchemy import text, select, delete, insert, update, Sequence, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
-                    ArticleFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, AppSettings, ExchangeRate)
+                    ColsFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, AppSettings, ExchangeRate)
 import colors
 
 import setting
@@ -121,7 +121,7 @@ class CatalogUpdate(QThread):
 
                 table_name = 'file_settings'
                 table_class = FileSettings
-                cols = {"price_code": ["Прайс"], "save": ["Сохраняем"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
+                cols = {"price_code": ["Прайс"], "parent_code": ["Прайс родитель"], "save": ["Сохраняем"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
                         "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
                         "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
                         "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
@@ -160,7 +160,7 @@ class CatalogUpdate(QThread):
 
                 table_name = 'supplier_price_settings'
                 table_class = SupplierPriceSettings
-                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"], "parent_code": ["Прайс родитель"],
+                cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
@@ -179,11 +179,11 @@ class CatalogUpdate(QThread):
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
 
-                table_name = 'article_fix'
-                table_class = ArticleFix
-                cols = {"price_code": ["Код прайса"], "change_type": ["Вариант исправления"], "find": ["Найти"],
-                        "change": ["Установить"], }
-                sheet_name = "Исправление Артикула"
+                table_name = 'cols_fix'
+                table_class = ColsFix
+                cols = {"price_code": ["Код прайса"], "col_name": ["Столбец исправления"], "change_type": ["Вариант исправления"],
+                        "find": ["Найти"], "change": ["Установить"], }
+                sheet_name = "Исправление Номенклатуры"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 # sess.query(ArticleFix).filter(ArticleFix.price_code == None).delete()
 

@@ -4,7 +4,7 @@ class PipeListener(QThread):
     UpdateinfoTableSignal = Signal(int, str, int, str, bool)
     SetNewRowSignal = Signal(bool)
     ResetTableSignal = Signal(int)
-    StopTimerSignal = Signal(int)
+    StopTimerSignal = Signal(int, bool)
 
     def __init__(self, listener, log, parent=None):
         self.listener = listener
@@ -35,9 +35,9 @@ class PipeListener(QThread):
                 self.RowIdDict = dict()
                 conuter = 1
             elif action_type == "end":
-                name = other[0]
+                name, new_children_price = other
                 if self.RowIdDict.get(name, None):
-                    self.StopTimerSignal.emit(self.RowIdDict[name]-1)
+                    self.StopTimerSignal.emit(self.RowIdDict[name]-1, new_children_price)
             elif action_type == "log":
                 id_console_log, log_text, _ = other
                 # print(_)
