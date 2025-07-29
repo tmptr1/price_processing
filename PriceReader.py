@@ -155,6 +155,7 @@ class MainWorker(QThread):
                 # new_files = ["TKTZ Печать.xls"]
                 # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
                 # new_files = ["1VTT инструмент.xlsx"]
+                # new_files = ["MI13 mikado_price_nalch.csv"]
 
                 if new_files:
                     self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
@@ -449,6 +450,10 @@ def multi_calculate(args):
             children_prices = sess.execute(select(distinct(FileSettings.price_code))
                                            .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
                                                        func.upper(FileSettings.save) == 'ДА'))).scalars().all()
+            # УДАЛИТЬ ИЗ БД
+            sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+
+            sess.commit()
             # print(f"{children_prices=}")
             if children_prices:
                 for children_price in children_prices:
@@ -505,11 +510,6 @@ def multi_calculate(args):
                     # print(cols_for_total)
                     # break
 
-
-            # УДАЛИТЬ ИЗ БД
-            sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-
-            sess.commit()
             # sess.rollback()
 
 
@@ -598,7 +598,7 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
             continue
 
         max_col = int(max(cols))
-        max_row = int(max(rows))
+        max_row = int(max(rows)) or 1
         # print(f"{max_row=} {max_col=}")
 
         table = pd.DataFrame
@@ -611,7 +611,6 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
             if table.empty:
                 try:
                     table = pd.read_excel(path_to_price, header=None, nrows=max_row)
-                    print('2')
                 except Exception as read_ex_2:
                     pass
 
