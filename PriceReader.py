@@ -155,7 +155,7 @@ class MainWorker(QThread):
                 # new_files = ["TKTZ Печать.xls"]
                 # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
                 # new_files = ["1VTT инструмент.xlsx"]
-                # new_files = ["MI13 mikado_price_nalch.csv"]
+                # new_files = ["1LAM Прайс-лист.xls"]
 
                 if new_files:
                     self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
@@ -310,8 +310,8 @@ def multi_calculate(args):
 
             # 02Производитель
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(brand_s_low=func.lower(Price_1.brand_s)))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.brand_s_low == Brands.brand_low)
-                                        ).values(_02brand=Brands.correct_brand))
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.brand_s_low == Brands.brand_low,
+                                                    Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
 
             # 14Производитель заполнен
             sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(_14brand_filled_in=Price_1.brand_s))
@@ -857,6 +857,7 @@ def suppliers_goods_compare(price_code, sett, sess):
         # sess.execute(req)
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.article != None)).values(_01article=SupplierGoodsFix.article))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(_02brand=SupplierGoodsFix.brand))
+        print('BRAND CH')
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(_03name=SupplierGoodsFix.name))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.put_away_count != 0)).values(_04count=SupplierGoodsFix.put_away_count))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(_05price=SupplierGoodsFix.price_s))
