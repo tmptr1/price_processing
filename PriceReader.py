@@ -857,7 +857,6 @@ def suppliers_goods_compare(price_code, sett, sess):
         # sess.execute(req)
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.article != None)).values(_01article=SupplierGoodsFix.article))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(_02brand=SupplierGoodsFix.brand))
-        print('BRAND CH')
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(_03name=SupplierGoodsFix.name))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.put_away_count != 0)).values(_04count=SupplierGoodsFix.put_away_count))
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(_05price=SupplierGoodsFix.price_s))
