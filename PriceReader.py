@@ -155,7 +155,7 @@ class MainWorker(QThread):
                 # new_files = ["TKTZ Печать.xls"]
                 # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
                 # new_files = ["1VTT инструмент.xlsx"]
-                # new_files = ["1LAM Прайс-лист.xls"]
+                # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
 
                 if new_files:
                     self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
@@ -973,23 +973,24 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
                 loaded).limit(limit)
             df = pd.read_sql_query(req, sess.connection(), index_col=None)
             df_len = len(df)
+
             if not df_len:
                 break
             df.to_csv(fr"{settings_data['exit_1_dir']}/{price_code}.csv", mode='a',
                       sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
             loaded += df_len
             # print(df)
-            add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
+        add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
 
-            total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-            sender.send(["log", LOG_ID, f"+ {price_code} готов! {add_text} [{total_price_calc_time}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                         f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                         f"{price_code}</span> готов! {add_text} [{total_price_calc_time}]"])
-            cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
-            sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
-                         .values(info_message="Ок", updated_at=new_update_time, row_count=cnt))
-            return True
+        total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
+        sender.send(["log", LOG_ID, f"+ {price_code} готов! {add_text} [{total_price_calc_time}]",
+                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                     f"{price_code}</span> готов! {add_text} [{total_price_calc_time}]"])
+        cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
+        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
+                     .values(info_message="Ок", updated_at=new_update_time, row_count=cnt))
+        return True
     except PermissionError:
         sender.send(["log", LOG_ID, f"Не удалось сформировать прайс {price_code} {add_text}",
                      f"<span style='color:{colors.orange_log_color};'>Не удалось сформировать прайс</span> "
