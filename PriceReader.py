@@ -418,11 +418,11 @@ def multi_calculate(args):
                 and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0))
 
             sess.execute(insert(SumTable).from_select(['id_compare', 'price_code', 'prev_sum'], subq))
+            sess.flush()
 
             sess.execute(update(Price_1).where(Price_1.id_compare == SumTable.id_compare).values(_13grad=SumTable.prev_sum))
             sess.query(SumTable).where(SumTable.price_code == price_code).delete()
 
-            sess.flush()
             add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
 
             csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
