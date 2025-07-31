@@ -586,7 +586,7 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="ResetMailReportButton_1">
+                 <widget class="QPushButton" name="ResetPriceReportButton_1">
                   <property name="text">
                    <string>Обнулить отчёт</string>
                   </property>

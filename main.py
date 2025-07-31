@@ -30,7 +30,7 @@ from models import Base, AppSettings
 settings_data = setting.get_vars()
 
 import Logs
-from PriceReader import MainWorker, PriceReportUpdate
+from PriceReader import MainWorker, PriceReportUpdate, PriceReportReset
 import MailParser
 from Timer import MyTimer
 from PipeListener import PipeListener
@@ -74,6 +74,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate = PriceReportUpdate(log=Log)
         self.PriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_1_report_table)
         self.PriceReportUpdate.UpdatePriceReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_1.setText(x))
+        self.PriceReportReset = PriceReportReset(log=Log)
         self.CU = CatalogUpdate.CatalogUpdate(log=Log)
         self.CU.StartTablesUpdateSignal.connect(self.update_catalogs_update_time_table)
         self.CU.StartTablesUpdateSignal.connect(self.update_currency_table)
@@ -108,7 +109,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.LogButton_1.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[1]}"))
         self.LogButton_1.setToolTip("Открыть файл с логами")
         self.ToFilesDirButton_1.clicked.connect(lambda _: self.open_dir(settings_data['exit_1_dir']))
+        self.ToReportDirButton_1.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
         self.UpdateReportButton_1.clicked.connect(self.update_price_1_report_table)
+        self.ResetPriceReportButton_1.clicked.connect(self.reset_price_1_report)
+        self.OpenReportButton_1.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         # self.pushButton_2.clicked.connect(self.start_mult)  # start mult
 
         # взять паузу
@@ -236,6 +240,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             while self.model_1_1.rowCount() > 0:
                 self.model_1_1.removeRow(self.model_1_1.rowCount() - 1)
             self.PriceReportUpdate.start()
+
+    def reset_price_1_report(self):
+        if not self.PriceReportReset.isRunning():
+            self.PriceReportReset.start()
 
     def add_item_to_price_1_report_table(self, report):
         if report:

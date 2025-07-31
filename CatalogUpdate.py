@@ -10,7 +10,8 @@ from sqlalchemy import text, select, delete, insert, update, Sequence, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
-                    ColsFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, AppSettings, ExchangeRate)
+                    ColsFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, AppSettings, ExchangeRate, Data07,
+                    Data07_14, Data15, Data09, Buy_for_OS, Reserve)
 import colors
 
 import setting
@@ -42,7 +43,8 @@ class CatalogUpdate(QThread):
             start_cycle_time = datetime.datetime.now()
             try:
                 self.update_currency()
-                self.update_price_settings_catalog()
+                self.update_price_settings_catalog_4_0()
+                # self.update_price_settings_catalog_3_0()
                 # self.update_base_price()
                 if datetime.datetime.now().hour != last_update_h:
                     last_update_h = datetime.datetime.now().hour
@@ -105,7 +107,7 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "update_currency Error", ex_text)
 
-    def update_price_settings_catalog(self):
+    def update_price_settings_catalog_4_0(self):
         try:
             path_to_file = fr"{settings_data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
             base_name = os.path.basename(path_to_file)
@@ -234,7 +236,83 @@ class CatalogUpdate(QThread):
             raise db_ex
         except Exception as ex:
             ex_text = traceback.format_exc()
-            self.log.error(LOG_ID, f"update_price_settings_catalog Error", ex_text)
+            self.log.error(LOG_ID, f"update_price_settings_catalog_4_0 Error", ex_text)
+
+
+    def update_price_settings_catalog_3_0(self):
+        try:
+            path_to_file = fr"{settings_data['catalogs_dir']}\3.0 Условия.xlsx"
+            base_name = os.path.basename(path_to_file)
+            new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime("%Y-%m-%d %H:%M:%S")
+            with session() as sess:
+                req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
+                res = sess.execute(req).scalar()
+                if res and str(res) >= new_update_time:
+                    return
+                cur_time = datetime.datetime.now()
+                self.log.add(LOG_ID, f"Обновление {base_name} ...",
+                             f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
+
+                table_name = 'data07_14'
+                table_class = Data07_14
+                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+                        "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
+                        "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
+                sheet_name = "07&14Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'data07'
+                table_class = Data07
+                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+                        "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
+                        "max_decline": ["Макс снижение от базовой цены"],
+                        "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
+                        "min_markup": ["Мин наценка"], "markup_wholesale": ["Наценка на оптовые товары"],
+                        "grad_step": ["Шаг градаци"],
+                        "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
+                sheet_name = "07Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'data15'
+                table_class = Data15
+                cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
+                sheet_name = "15Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'data09'
+                table_class = Data09
+                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+                sheet_name = "09Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'buy_for_os'
+                table_class = Buy_for_OS
+                cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
+                sheet_name = "Закупки для ОС"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'reserve'
+                table_class = Reserve
+                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+                sheet_name = "Резерв_да"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+
+
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
+                sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
+
+                sess.commit()
+
+            self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
+                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
+
 
     def update_base_price(self, check=True):
         '''Формирование справочника  Базовая цен'''
@@ -250,7 +328,8 @@ class CatalogUpdate(QThread):
                 # if len(m) == 1:
                 #     m = f"0{m}"
                 # cur_time = datetime.datetime.now()  # .strftime("%Y-%m-%d %H:%M:%S")
-                cur_time = datetime.datetime(2025, 7, 24, 1, 51,  0)
+                # cur_time = datetime.datetime(2025, 7, 24, 1, 51,  0)
+                cur_time = datetime.datetime.now()
                 # next_update_time = datetime.datetime.strptime(f"{cur_time.year}-{cur_time.month}-{cur_time.day} {h}:{m}:00",
                 #                                               "%Y-%m-%d %H:%M:%S")
                 last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == catalog_name)).scalar()

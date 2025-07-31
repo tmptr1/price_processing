@@ -341,12 +341,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_10.addWidget(self.UpdateReportButton_1)
 
-        self.ResetMailReportButton_1 = QPushButton(self.tab)
-        self.ResetMailReportButton_1.setObjectName(u"ResetMailReportButton_1")
-        self.ResetMailReportButton_1.setIcon(icon3)
-        self.ResetMailReportButton_1.setIconSize(QSize(15, 15))
+        self.ResetPriceReportButton_1 = QPushButton(self.tab)
+        self.ResetPriceReportButton_1.setObjectName(u"ResetPriceReportButton_1")
+        self.ResetPriceReportButton_1.setIcon(icon3)
+        self.ResetPriceReportButton_1.setIconSize(QSize(15, 15))
 
-        self.horizontalLayout_10.addWidget(self.ResetMailReportButton_1)
+        self.horizontalLayout_10.addWidget(self.ResetPriceReportButton_1)
 
 
         self.verticalLayout.addLayout(self.horizontalLayout_10)
@@ -786,7 +786,7 @@ class Ui_MainWindow(object):
         self.OpenReportButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.ToReportDirButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043e\u0442\u0447\u0451\u0442\u043e\u043c", None))
         self.UpdateReportButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.ResetMailReportButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.ResetPriceReportButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.progressBar_1.setFormat(QCoreApplication.translate("MainWindow", u"%p%", None))
         self.ProgressLabel_1.setText(QCoreApplication.translate("MainWindow", u"0/0", None))
         self.TotalTimeLabel.setText(QCoreApplication.translate("MainWindow", u"[0:00:00]", None))
