@@ -90,7 +90,7 @@ class MailReport(Base):
 class SumTable(Base):
     __tablename__ = "sum_table"
     __table_args__ = (#Index("sum_table_id_compare_index", "id_compare"),
-                        Index("sum_table_id_compare_index", "id_compare"),#, postgresql_using="hash"),
+                        Index("sum_table_id_compare_index", "id_compare", postgresql_using="hash"),
                       )
     id: Mapped[uuidpk]
     # id: Mapped[intpk]
@@ -103,7 +103,7 @@ class SumTable(Base):
 class Price_1(Base):
     __tablename__ = "price_1"
     __table_args__ = (Index("price_1_brand_s_low_index", "brand_s_low"),
-                      Index("price_1_id_compare_index", "id_compare"),#, postgresql_using="hash"),
+                      Index("price_1_id_compare_index", "id_compare", postgresql_using="hash"),
                       Index("price_1_key1_index", "key1_s"),
                       Index("price_1_05_price_index", "_05price"),
                       Index("price_1_07_index", "_07supplier_code"),
