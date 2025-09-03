@@ -162,6 +162,7 @@ class MainWorker(QThread):
                 # new_files = ["TKTZ Печать.xls"]
                 # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
                 # new_files = ["2ССС web-parts SIMF.xlsx"]
+<<<<<<< HEAD
                 # new_files = ["1АСК Прайс.xlsx"]
                 # new_files = ["1РЕФ Прайс.xlsx", "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ["TKTZ Печать.xls"]
@@ -169,6 +170,9 @@ class MainWorker(QThread):
                 # new_files = ["1МТЗ Прайс.xlsx"]
                 # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
+=======
+                # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
+>>>>>>> origin/master
 
                 if new_files:
                     self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
@@ -223,6 +227,7 @@ class MainWorker(QThread):
             self.SetButtonEnabledSignal.emit(True)
 
 
+<<<<<<< HEAD
     def multi_calculate(self, args):
         file_name, sender, custom_price_code = args
         color = [random.randrange(0, 360), random.randrange(55, 100), 90]
@@ -230,6 +235,79 @@ class MainWorker(QThread):
         try:
             if not custom_price_code:
                 price_code = file_name[:4]
+=======
+def multi_calculate(args):
+    file_name, sender, custom_price_code = args
+    color = [random.randrange(0, 360), random.randrange(55, 100), 90]
+    children_prices = None
+    try:
+        if not custom_price_code:
+            price_code = file_name[:4]
+        else:
+            price_code = custom_price_code
+        sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
+
+        path_to_price = fr"{settings_data['mail_files_dir']}/{file_name}"
+        frmt = file_name.split('.')[-1]
+        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_price)).strftime("%Y-%m-%d %H:%M:%S")
+
+        start_calc_price_time = datetime.datetime.now()
+        cur_time = datetime.datetime.now()
+        with session() as sess:
+        # sess = session()
+            # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+
+            req = select(PriceReport).where(PriceReport.price_code == price_code)
+            is_report_exists = sess.execute(req).scalar()
+            if not is_report_exists:
+                sess.add(PriceReport(file_name=file_name, price_code=price_code))
+
+            if not check_price_time(price_code, file_name, sender, sess):
+                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                    info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                sess.commit()
+                add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, price_code, color)
+                return
+
+            req = select(FileSettings).where(FileSettings.price_code == price_code)
+            price_table_settings = sess.execute(req).scalars().all()
+            if not price_table_settings:
+                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                    info_message="Нет настроек", updated_at=new_update_time))
+                sess.commit()
+                add_log_cf(LOG_ID, "Нет настроек", sender, price_code, color)
+                return
+
+            # сопоставление столлцов
+            try:
+                id_settig, rc_dict, new_frmt = get_setting_id(price_table_settings, frmt, path_to_price)
+                if not id_settig:
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Нет подходящих настроек столбцов", updated_at=new_update_time))
+                    sess.commit()
+                    add_log_cf(LOG_ID, "Нет подходящих настроек столбцов", sender, price_code, color)
+                    return
+            except ValueError as val_ex:
+                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                    info_message="Ошибка формата", updated_at=new_update_time))
+                sess.commit()
+                # add_log_cf(LOG_ID, "Ошибка формата", sender, price_code, color)
+                sender.send(["log", LOG_ID, f"{price_code} Ошибка формата",
+                             f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                             f"{price_code}</span> Ошибка формата  "])
+                raise val_ex
+                # return
+
+            # Удаление старой версии
+            # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+
+            # загрузка сырых данных
+            sett = sess.get(FileSettings, {'id': id_settig})
+
+
+            if new_frmt == 'xml':
+                loaded = load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess)
+>>>>>>> origin/master
             else:
                 price_code = custom_price_code
             sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
@@ -251,10 +329,15 @@ class MainWorker(QThread):
                 sess.query(SumTable).delete() # FOR 1 THREAD
                 sess.commit()
 
+<<<<<<< HEAD
                 req = select(PriceReport).where(PriceReport.price_code == price_code)
                 is_report_exists = sess.execute(req).scalar()
                 if not is_report_exists:
                     sess.add(PriceReport(file_name=file_name, price_code=price_code))
+=======
+            sess.flush()
+            add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
+>>>>>>> origin/master
 
                 if not check_price_time(price_code, file_name, sender, sess):
                     self.cur_file_count += 1
@@ -264,6 +347,7 @@ class MainWorker(QThread):
                     add_log_cf(LOG_ID, f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
                     return
 
+<<<<<<< HEAD
                 req = select(FileSettings).where(FileSettings.price_code == price_code)
                 price_table_settings = sess.execute(req).scalars().all()
                 if not price_table_settings:
@@ -275,6 +359,83 @@ class MainWorker(QThread):
                     return
 
                 # сопоставление столлцов
+=======
+            # замена пустых бренд п на значение по умолчанию
+            if sett.replace_brand_s:
+                sess.execute(update(Price_1).where(and_(Price_1._07supplier_code==price_code, Price_1.brand_s==None))
+                             .values(brand_s=sett.replace_brand_s))
+
+            # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
+            suppliers_goods_compare(price_code, sett, sess)
+
+            # замена ; на ,
+            text_cols = [Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s, Price_1.currency_s, Price_1.notice_s]
+            for c in text_cols:
+                sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, c != None))
+                             .values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
+
+            # Исправление Номенклатуры
+            cols_fix(price_code, sess)
+
+            # 01Артикул
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._01article == None)
+                                        ).values(_01article=Price_1.article_s))
+            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
+                                        .values(_01article=Price_1._01article.regexp_replace(' +', ' ', 'g')
+                                                 .regexp_replace('^ | $', '', 'g')))
+
+            # 02Производитель
+            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
+                         .values(brand_s=Price_1.brand_s.regexp_replace('^ | $', '', 'g')))
+            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(brand_s_low=func.lower(Price_1.brand_s)))
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.brand_s_low == Brands.brand_low,
+                                                    Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
+
+            # 14Производитель заполнен
+            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
+                         .values(_14brand_filled_in=func.coalesce(Price_1._02brand, Price_1.brand_s)))
+            # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
+            #              .values(_14brand_filled_in=Price_1._02brand))
+
+            # 03Наименование
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._03name == None))
+                         .values(_03name=Price_1.name_s))
+            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
+                         .values(_03name=Price_1._03name.regexp_replace(' +', ' ', 'g')
+                                 .regexp_replace('^ | $', '', 'g')))
+
+            # 04Количество
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._04count != None))
+                         .values(_04count=Price_1.count_s-Price_1._04count))
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._04count == None))
+                         .values(_04count=Price_1.count_s))
+
+            sess.flush()
+            add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
+
+            cur_time = datetime.datetime.now()
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
+
+            # 05Цена
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._05price == None))
+                         .values(_05price=Price_1.price_s))
+
+            # для валют
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.currency_s != None,
+                                                    ExchangeRate.code == func.upper(Price_1.currency_s)))
+                         .values(_05price=Price_1._05price * ExchangeRate.rate))
+
+            # 12Сумма
+            numeric_max = 9999999999
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
+                                                    Price_1.count_s * Price_1._05price < numeric_max)).values(_12sum=Price_1.count_s * Price_1._05price))
+            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
+                                                    Price_1.count_s * Price_1._05price >= numeric_max)).values(_12sum=numeric_max))
+
+            # Настройка строк: Вариант изменения цены
+            if sett.change_price_type in ("- X %", "+ X %"):
+                percent = None
+>>>>>>> origin/master
                 try:
                     id_settig, rc_dict, new_frmt, reason = get_setting_id(price_table_settings, frmt, path_to_price)
                     if not id_settig:
@@ -316,8 +477,14 @@ class MainWorker(QThread):
                     add_log_cf(LOG_ID, f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
                     return
 
+<<<<<<< HEAD
                 sess.commit() #sess.flush()
                 add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
+=======
+
+            # 20ИслючитьИзПрайса
+            words_except(sess, Price_1, price_code)
+>>>>>>> origin/master
 
                 cur_time = datetime.datetime.now()
                 sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
@@ -337,6 +504,7 @@ class MainWorker(QThread):
                 # sess.execute(text("update price_1 set brand_s = NULL where brand_s like ''"))
                 # sess.execute(update(Price_1).where(Price_1.brand_s.is_('')).values(brand_s=None))
 
+<<<<<<< HEAD
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(Price_1).where(func.trim(Price_1.brand_s) == '').values(brand_s=None))
                 if sett.replace_brand_s:
@@ -422,6 +590,13 @@ class MainWorker(QThread):
 
                 # 20ИсключитьИзПрайса
                 words_except(sess, price_code)
+=======
+            sess.flush()
+            add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
+
+            cur_time = datetime.datetime.now()
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
+>>>>>>> origin/master
 
                 # 17КодУникальности
                 sess.execute(update(Price_1).values(_17code_unique=func.upper(Price_1._07supplier_code + Price_1._15code_optt + "ДАSS")))
@@ -429,8 +604,13 @@ class MainWorker(QThread):
                 # 18КороткоеНаименование
                 sess.execute(update(Price_1).values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
+<<<<<<< HEAD
                 sess.commit()#sess.flush()
                 add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
+=======
+            sess.execute(insert(SumTable).from_select(['id_compare', 'price_code', 'prev_sum'], subq))
+            sess.flush()
+>>>>>>> origin/master
 
                 cur_time = datetime.datetime.now()
                 sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
@@ -439,12 +619,29 @@ class MainWorker(QThread):
                 total_sum = sess.execute(
                     select(func.sum(Price_1._05price))).scalar()
 
+<<<<<<< HEAD
                 subq = select(Price_1.id, Price_1._07supplier_code,
                               func.floor((total_sum - func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id))) / (total_sum / 100))).where(
                     and_(Price_1._20exclude == None, Price_1._05price > 0))
 
                 sess.execute(insert(SumTable).from_select(['id', 'price_code', 'prev_sum'], subq))
                 sess.commit()#sess.flush()
+=======
+            csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
+                             "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
+                             "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
+                             "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
+                             "Примечание поставщика": Price_1.notice_s, "01Артикул": Price_1._01article,
+                             "02Производитель": Price_1._02brand,
+                             "14Производитель заполнен": Price_1._14brand_filled_in,
+                             "03Наименование": Price_1._03name, "04Количество": Price_1._04count,
+                             "05Цена": Price_1._05price, "12Сумма": Price_1._12sum, "06Кратность": Price_1._06mult,
+                             "15КодТутОптТорг": Price_1._15code_optt, "07Код поставщика": Price_1._07supplier_code,
+                             "20ИслючитьИзПрайса": Price_1._20exclude, "13Градация": Price_1._13grad,
+                             "17КодУникальности": Price_1._17code_unique,
+                             "18КороткоеНаименование": Price_1._18short_name,
+                             }
+>>>>>>> origin/master
 
                 sess.execute(update(Price_1).where(Price_1.id == SumTable.id).values(_13grad=SumTable.prev_sum))
                 sess.query(SumTable).where(SumTable.price_code == price_code).delete()
@@ -472,6 +669,7 @@ class MainWorker(QThread):
                                   self.total_file_count, self.cur_file_count):
                     return
 
+<<<<<<< HEAD
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
 
@@ -494,6 +692,63 @@ class MainWorker(QThread):
 
                 sess.commit()
             # print(f"{children_prices=}")
+=======
+            sess.commit()
+        # print(f"{children_prices=}")
+
+
+                # csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
+            #                      "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
+            #                      "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
+            #                      "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
+            #                      "Примечание поставщика": Price_1.notice_s,
+            #                      }
+            #     cols_for_total.pop(Price_1.id)
+            #     cols_for_total.pop(Price_1._07supplier_code)
+            #     cols_for_total.pop(Price_1._20exclude)
+            #
+                # for children_price in children_prices:
+                #     # print(children_price)
+            #         dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+            #         sess.execute(insert(Price_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
+            #         words_except(sess, Price_1, children_price)
+            #
+            #         sess.query(Price_1).where(
+            #             and_(Price_1._07supplier_code == children_price, Price_1._20exclude != None)).delete()
+            #
+            #         create_children_csv(sess, sender, children_price, csv_cols_dict, color, price_code)
+            #
+            #         sess.query(Price_1).where(Price_1._07supplier_code == children_price).delete()
+
+                    # start_calc_price_time = datetime.datetime.now()
+                    # req = select(PriceReport).where(PriceReport.price_code == children_price)
+                    # is_report_exists = sess.execute(req).scalar()
+                    # if not is_report_exists:
+                    #     sess.add(PriceReport(file_name=file_name, price_code=children_price))
+                    #
+                    # # if not check_price_time(price_code, file_name, sender, sess):
+                    # #     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                    # #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                    # #     sess.commit()
+                    # #     add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, children_price, color)
+                    # #     continue
+                    #
+                    # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == children_price).delete()
+                    # dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+                    # sess.execute(insert(TotalPrice_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
+                    # words_except(sess, TotalPrice_1, children_price)
+                    # sess.query(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == children_price, TotalPrice_1._20exclude != None)).delete()
+                    #
+                    #
+                    #
+                    # create_csv(sess, sender, children_price, csv_cols_dict, color, start_calc_price_time,
+                    #            datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), add_text=f"(родитель: {price_code})")
+
+                    # print(cols_for_total)
+                    # break
+
+            # sess.rollback()
+>>>>>>> origin/master
 
 
                     # csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
@@ -519,6 +774,7 @@ class MainWorker(QThread):
                 #
                 #         sess.query(Price_1).where(Price_1._07supplier_code == children_price).delete()
 
+<<<<<<< HEAD
                         # start_calc_price_time = datetime.datetime.now()
                         # req = select(PriceReport).where(PriceReport.price_code == children_price)
                         # is_report_exists = sess.execute(req).scalar()
@@ -560,6 +816,12 @@ class MainWorker(QThread):
                 # print(children_price)
                 self.total_file_count += 1
                 self.multi_calculate([file_name, sender, children_price])
+=======
+    if children_prices:
+        for children_price in children_prices:
+            # print(children_price)
+            multi_calculate([file_name, sender, children_price])
+>>>>>>> origin/master
 
 def check_price_time(price_code, file_name, sender, sess):
     '''Расчёт рабочих дней с последнего изменения прайса'''
@@ -1111,7 +1373,7 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
             df.to_csv(fr"{settings_data['exit_1_dir']}/{price_code}.csv", mode='a',
                       sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
             loaded += df_len
-            # print(df)
+            # print(df) SSANG YONG
         add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
 
         total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
