@@ -20,11 +20,12 @@ import openpyxl
 import xml.etree.ElementTree as ET
 import warnings
 warnings.filterwarnings('ignore')
+# from decimal import Decimal, ROUND_FLOOR
 # mp.freeze_support()
 
 import colors
-from models import (Base, PriceReport, Price_1, BasePrice, MassOffers, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
-                    ColsFix, Brands, PriceChange, WordsOfException, SupplierGoodsFix, ExchangeRate, SumTable, TotalPrice_1)
+from models import (PriceReport, Price_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
+                    ExchangeRate, SumTable, TotalPrice_1)
 from Logs import add_log_cf
 import setting
 engine = setting.get_engine()
@@ -42,6 +43,8 @@ class MainWorker(QThread):
     SetButtonEnabledSignal = Signal(bool)
     UpdateReportSignal = Signal(bool)
     isPause = None
+    total_file_count = 0
+    cur_file_count = 0
 
     def __init__(self, log=None, sender=None, threads_count=None, parent=None):
         self.log = log
@@ -56,6 +59,9 @@ class MainWorker(QThread):
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
+
+            self.threads_count = 1
+
             # time.sleep(1)
             # print('C')
             try:
@@ -71,7 +77,7 @@ class MainWorker(QThread):
                 files = os.listdir(settings_data["mail_files_dir"])
                 new_files = []
                 # engine.echo=True
-                with (session() as sess):
+                with session() as sess:
                     for file in files:
                         if file.startswith('~$'):
                             continue
@@ -144,8 +150,9 @@ class MainWorker(QThread):
                 # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
                 # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
-                # new_files = ['1ROS 155889.xlsx', '4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
+                # new_files = ['1ROS 155889.xlsx', '1FAV FAVORIT.xlsx']
                 # new_files = ["1ROS 155889.xlsx"]
+                # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
                 # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['MI21 mikado_price_vlgd.csv', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx", "VTTE электроинструмент.xlsx",
                 #              "1IMP IMPEKS_KRD.xlsx"]
@@ -154,8 +161,14 @@ class MainWorker(QThread):
                 # new_files = ["1ГУД Прайс ШСН.xlsx"]
                 # new_files = ["TKTZ Печать.xls"]
                 # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
-                # new_files = ["1VTT инструмент.xlsx"]
-                # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
+                # new_files = ["2ССС web-parts SIMF.xlsx"]
+                # new_files = ["1АСК Прайс.xlsx"]
+                # new_files = ["1РЕФ Прайс.xlsx", "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
+                # new_files = ["TKTZ Печать.xls"]
+                # new_files = ["1IMP IMPEKS_KRD.xlsx"]
+                # new_files = ["1МТЗ Прайс.xlsx"]
+                # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
+                #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
 
                 if new_files:
                     self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
@@ -171,9 +184,13 @@ class MainWorker(QThread):
                     self.StartTotalTimeSignal.emit(True)
                     self.sender.send(["new", len(new_files)])
 
-                    with mp.Pool(processes=self.threads_count) as pool:
-                        args = [[file, self.sender, False] for file in new_files]
-                        pool.map(multi_calculate, args)
+                    # with mp.Pool(processes=self.threads_count) as pool:
+                    #     args = [[file, self.sender, False] for file in new_files]
+                    #     pool.map(multi_calculate, args)
+                    self.total_file_count = len(new_files)
+                    self.cur_file_count = 0
+                    for file in new_files:
+                        self.multi_calculate([file, self.sender, False])
                     # multi_calculate(args=['1ROS 155889.xlsx', self.sender])
 
                     self.log.add(LOG_ID, f"Обработка закончена [{str(datetime.datetime.now() - cur_time)[:7]}]")
@@ -206,319 +223,343 @@ class MainWorker(QThread):
             self.SetButtonEnabledSignal.emit(True)
 
 
-def multi_calculate(args):
-    file_name, sender, custom_price_code = args
-    color = [random.randrange(0, 360), random.randrange(55, 100), 90]
-    try:
-        if not custom_price_code:
-            price_code = file_name[:4]
-        else:
-            price_code = custom_price_code
-        sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
-
-        path_to_price = fr"{settings_data['mail_files_dir']}/{file_name}"
-        frmt = file_name.split('.')[-1]
-        new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_price)).strftime("%Y-%m-%d %H:%M:%S")
-
-        start_calc_price_time = datetime.datetime.now()
-        cur_time = datetime.datetime.now()
-        with (session() as sess):
-            # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-
-            req = select(PriceReport).where(PriceReport.price_code == price_code)
-            is_report_exists = sess.execute(req).scalar()
-            if not is_report_exists:
-                sess.add(PriceReport(file_name=file_name, price_code=price_code))
-
-            if not check_price_time(price_code, file_name, sender, sess):
-                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                    info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                sess.commit()
-                add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, price_code, color)
-                return
-
-            req = select(FileSettings).where(FileSettings.price_code == price_code)
-            price_table_settings = sess.execute(req).scalars().all()
-            if not price_table_settings:
-                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                    info_message="Нет настроек", updated_at=new_update_time))
-                sess.commit()
-                add_log_cf(LOG_ID, "Нет настроек", sender, price_code, color)
-                return
-
-            # сопоставление столлцов
-            try:
-                id_settig, rc_dict, new_frmt = get_setting_id(price_table_settings, frmt, path_to_price)
-                if not id_settig:
-                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                        info_message="Нет подходящих настроек столбцов", updated_at=new_update_time))
-                    sess.commit()
-                    add_log_cf(LOG_ID, "Нет подходящих настроек столбцов", sender, price_code, color)
-                    return
-            except ValueError as val_ex:
-                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                    info_message="Ошибка формата", updated_at=new_update_time))
-                sess.commit()
-                # add_log_cf(LOG_ID, "Ошибка формата", sender, price_code, color)
-                sender.send(["log", LOG_ID, f"{price_code} Ошибка формата",
-                             f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                             f"{price_code}</span> Ошибка формата  "])
-                raise val_ex
-                # return
-
-            # Удаление старой версии
-            # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-
-            # загрузка сырых данных
-            sett = sess.get(FileSettings, {'id': id_settig})
-
-
-            if new_frmt == 'xml':
-                loaded = load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess)
+    def multi_calculate(self, args):
+        file_name, sender, custom_price_code = args
+        color = [random.randrange(0, 360), random.randrange(55, 100), 90]
+        children_prices = None
+        try:
+            if not custom_price_code:
+                price_code = file_name[:4]
             else:
-                loaded = load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
-            if not loaded:
-                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                    info_message="Настройки столбцов не подошли", updated_at=new_update_time))
+                price_code = custom_price_code
+            sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
+
+            path_to_price = fr"{settings_data['mail_files_dir']}/{file_name}"
+            frmt = file_name.split('.')[-1]
+            new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_price)).strftime("%Y-%m-%d %H:%M:%S")
+
+            start_calc_price_time = datetime.datetime.now()
+            cur_time = datetime.datetime.now()
+            with session() as sess:
+            # sess = session()
+                # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+                sess.execute(text(f"REINDEX TABLE {Price_1.__tablename__}"))
+                sess.execute(text(f"REINDEX TABLE {SumTable.__tablename__}"))
+                sess.execute(text(f"ALTER SEQUENCE {Price_1.__tablename__}_id_seq restart 1"))
+                sess.execute(text(f"ALTER SEQUENCE {SumTable.__tablename__}_id_seq restart 1"))
+                sess.query(Price_1).delete() # FOR 1 THREAD
+                sess.query(SumTable).delete() # FOR 1 THREAD
                 sess.commit()
-                add_log_cf(LOG_ID, "Настройки столбцов не подошли", sender, price_code, color)
-                return
 
-            add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
+                req = select(PriceReport).where(PriceReport.price_code == price_code)
+                is_report_exists = sess.execute(req).scalar()
+                if not is_report_exists:
+                    sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-            cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
+                if not check_price_time(price_code, file_name, sender, sess):
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                    sess.commit()
+                    add_log_cf(LOG_ID, f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                    return
 
-            # замена пустых бренд п
-            if sett.replace_brand_s:
-                sess.execute(update(Price_1).where(and_(Price_1._07supplier_code==price_code, Price_1.brand_s==None))
-                             .values(brand_s=sett.replace_brand_s))
+                req = select(FileSettings).where(FileSettings.price_code == price_code)
+                price_table_settings = sess.execute(req).scalars().all()
+                if not price_table_settings:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message=f"Нет настроек", updated_at=new_update_time))
+                    sess.commit()
+                    add_log_cf(LOG_ID, f"Нет настроек ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                    return
 
-            # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
-            suppliers_goods_compare(price_code, sett, sess)
-
-            # Исправление Номенклатуры
-            cols_fix(price_code, sess)
-
-            # 01Артикул
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._01article == None)
-                                        ).values(_01article=Price_1.article_s))
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                                        .values(_01article=Price_1._01article.regexp_replace(' +', ' ', 'g')
-                                                 .regexp_replace('^ | $', '', 'g')))
-
-
-            # 02Производитель
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(brand_s_low=func.lower(Price_1.brand_s)))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.brand_s_low == Brands.brand_low,
-                                                    Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
-
-            # 14Производитель заполнен
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code).values(_14brand_filled_in=Price_1.brand_s))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
-                         .values(_14brand_filled_in=Price_1._02brand))
-
-            # 03Наименование
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._03name == None))
-                         .values(_03name=Price_1.name_s))
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                         .values(_03name=Price_1._03name.regexp_replace(' +', ' ', 'g')
-                                 .regexp_replace('^ | $', '', 'g')))
-
-            # 04Количество
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._04count == None))
-                         .values(_04count=Price_1.count_s-Price_1._04count))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._04count == None))
-                         .values(_04count=Price_1.count_s))
-
-            add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
-
-            # sess.commit()
-
-            cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
-
-            # 05Цена
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._05price == None))
-                         .values(_05price=Price_1.price_s))
-
-            # для валют
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1.currency_s != None,
-                                                    ExchangeRate.code == func.upper(Price_1.currency_s)))
-                         .values(_05price=Price_1._05price * ExchangeRate.rate))
-
-            # 12Сумма
-            numeric_max = 9999999999
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
-                                                    Price_1.count_s * Price_1._05price < numeric_max)).values(_12sum=Price_1.count_s * Price_1._05price))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code,
-                                                    Price_1.count_s * Price_1._05price >= numeric_max)).values(_12sum=numeric_max))
-
-            # Настройка строк: Вариант изменения цены
-            if sett.change_price_type in ("- X %", "+ X %"):
-                percent = None
+                # сопоставление столлцов
                 try:
-                    percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
-                except:
-                    pass
-                if percent:
-                    sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                        .values(_05price=Price_1._05price * (1+percent)))
+                    id_settig, rc_dict, new_frmt, reason = get_setting_id(price_table_settings, frmt, path_to_price)
+                    if not id_settig:
+                        self.cur_file_count += 1
+                        if reason:
+                            reason = f"({reason[:200]})"
+                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                            info_message=f"Нет подходящих настроек столбцов {reason}", updated_at=new_update_time))
+                        sess.commit()
+                        add_log_cf(LOG_ID, f"Нет подходящих настроек столбцов {reason} ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                        return
+                except ValueError as val_ex:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Ошибка формата", updated_at=new_update_time))
+                    sess.commit()
+                    # add_log_cf(LOG_ID, "Ошибка формата", sender, price_code, color)
+                    sender.send(["log", LOG_ID, f"{price_code} Ошибка формата ({self.cur_file_count}/{self.total_file_count})",
+                                 f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                                 f"{price_code}</span> Ошибка формата  "])
+                    raise val_ex
+                    # return
 
-            # Изменение цены по условиям
-            discounts = sess.execute(select(PriceChange).where(PriceChange.price_code == price_code)).scalars().all()
-            for dscnt in discounts:
-                sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._14brand_filled_in == dscnt.brand))
-                             .values(_05price=Price_1._05price * (1 - dscnt.discount)))
+                # Удаление старой версии
+                # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
 
-            # 06Кратность
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._06mult == None))
-                         .values(_06mult=Price_1.mult_s))
-            sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, or_(Price_1._06mult == None,
-                                                                            Price_1._06mult < 1))).values(_06mult=1))
+                # загрузка сырых данных
+                sett = sess.get(FileSettings, {'id': id_settig})
 
-            # 15КодТутОптТорг
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                         .values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W|_", "", 'g')))
+                if new_frmt == 'xml':
+                    loaded = load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess)
+                else:
+                    loaded = load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
+                if not loaded:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Настройки столбцов не подошли", updated_at=new_update_time))
+                    sess.commit()
+                    add_log_cf(LOG_ID, f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                    return
 
-            # 20ИслючитьИзПрайса
-            words_except(sess, Price_1, price_code)
+                sess.commit() #sess.flush()
+                add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
 
-            # 17КодУникальности
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                         .values(_17code_unique=func.upper(Price_1._07supplier_code + Price_1._15code_optt + "ДАSS")))
+                cur_time = datetime.datetime.now()
+                sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
 
-            # 18КороткоеНаименование
-            sess.execute(update(Price_1).where(Price_1._07supplier_code == price_code)
-                         .values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
+                # sess.execute(update(Price_1).where(func.nullif(Price_1.article_s, '')).values(article_s=None))
+                # sess.execute(update(Price_1).where(Price_1.brand_s.like('')).values(brand_s=None))
+                # sess.execute(update(Price_1).where(func.length(Price_1.brand_s) == 0).values(brand_s=None))
+                # sess.execute(update(Price_1).where(Price_1.brand_s == ' ').values(brand_s=None))
+                # sess.execute(update(Price_1).where(func.trim(Price_1.brand_s) == '').values(brand_s=None))
+                # x_null = sess.query(Price_1).filter(Price_1.name_s == 'Отвертка 3-х лучевая, 6мм.').all()
+                # x_null = sess.query(Price_1).where(func.length(Price_1.brand_s) == 1).all()
+                # print(len(x_null))
+                # print(f"|{x_null[0].brand_s}|")
+                # regexp_replace(';', ',', 'g')
+                # sess.execute(text(f"update {Price_1.__tablename__} set brand_s = NULL where brand_s = ''"))
+                # sess.execute(text(f"update {Price_1.__tablename__} set brand_s = NULL where brand_s = ''"))
+                # sess.execute(text("update price_1 set brand_s = NULL where brand_s like ''"))
+                # sess.execute(update(Price_1).where(Price_1.brand_s.is_('')).values(brand_s=None))
 
-            add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
+                # замена пустых бренд п на значение по умолчанию
+                sess.execute(update(Price_1).where(func.trim(Price_1.brand_s) == '').values(brand_s=None))
+                if sett.replace_brand_s:
+                    sess.execute(update(Price_1).where(Price_1.brand_s==None).values(_02brand=sett.replace_brand_s))
+
+                # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
+                suppliers_goods_compare(price_code, sett, sess)
+
+                # замена ; на ,
+                text_cols = [Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s, Price_1.currency_s, Price_1.notice_s]
+                for c in text_cols:
+                    sess.execute(update(Price_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
+
+                # Исправление Номенклатуры
+                cols_fix(price_code, sess)
+
+                # 01Артикул
+                sess.execute(update(Price_1).where(Price_1._01article == None).values(_01article=Price_1.article_s))
+                sess.execute(update(Price_1).values(_01article=Price_1._01article.regexp_replace(' +', ' ', 'g')
+                                                     .regexp_replace('^ | $', '', 'g')))
+
+                # 02Производитель
+                sess.execute(update(Price_1).values(brand_s_low=func.lower(Price_1.brand_s)))
+                sess.execute(update(Price_1).where(and_(Price_1.brand_s_low == Brands.brand_low,
+                                                        Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
+
+                # 14Производитель заполнен
+                sess.execute(update(Price_1).values(_14brand_filled_in=func.coalesce(Price_1._02brand, Price_1.brand_s)))
+                # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
+                #              .values(_14brand_filled_in=Price_1._02brand))
+
+                # Изменение цены по условиям (Цена поставщика)
+                # apply_discount(sess, price_code, 'Цена поставщика')
+
+                # 03Наименование
+                sess.execute(update(Price_1).where(Price_1._03name == None).values(_03name=Price_1.name_s))
+                sess.execute(update(Price_1).values(_03name=Price_1._03name.regexp_replace(' +', ' ', 'g')
+                                     .regexp_replace('^ | $', '', 'g')))
+
+                # 04Количество
+                sess.execute(update(Price_1).where(Price_1._04count != None).values(_04count=Price_1.count_s-Price_1._04count))
+                sess.execute(update(Price_1).where(Price_1._04count == None).values(_04count=Price_1.count_s))
+
+                sess.commit()#sess.flush()
+                add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
+
+                cur_time = datetime.datetime.now()
+                sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
+
+                # 05Цена
+                sess.execute(update(Price_1).where(Price_1._05price == None).values(_05price=Price_1.price_s))
+
+                # для валют
+                sess.execute(update(Price_1).where(
+                    and_(Price_1.currency_s != None, ExchangeRate.code == func.upper(Price_1.currency_s)))
+                             .values(_05price=Price_1._05price * ExchangeRate.rate))
+
+                # 12Сумма
+                numeric_max = 9999999999 # numeric 12,2
+                sess.execute(update(Price_1).where(Price_1.count_s * Price_1.price_s < numeric_max).values(_12sum=Price_1.count_s * Price_1.price_s))
+                sess.execute(update(Price_1).where(Price_1.count_s * Price_1.price_s >= numeric_max).values(_12sum=numeric_max))
+
+                # Настройка строк: Вариант изменения цены
+                if sett.change_price_type in ("- X %", "+ X %"):
+                    percent = None
+                    try:
+                        percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
+                    except:
+                        pass
+                    if percent:
+                        sess.execute(update(Price_1).values(_05price=Price_1._05price * (1+percent)))
+
+                # Изменение цены по условиям (05Цена)
+                apply_discount(sess, price_code, '05Цена')
+
+                # 06Кратность
+                sess.execute(update(Price_1).where(Price_1._06mult == None).values(_06mult=Price_1.mult_s))
+                sess.execute(update(Price_1).where(or_(Price_1._06mult == None, Price_1._06mult < 1)).values(_06mult=1))
+
+                # 15КодТутОптТорг
+                sess.execute(update(Price_1).values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W|_", "", 'g')))
 
 
-            cur_time = datetime.datetime.now()
-            sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
+                # 20ИсключитьИзПрайса
+                words_except(sess, price_code)
 
-            # 13Градация
-            total_sum = sess.execute(
-                select(func.sum(Price_1._05price)).where(Price_1._07supplier_code == price_code)).scalar()
+                # 17КодУникальности
+                sess.execute(update(Price_1).values(_17code_unique=func.upper(Price_1._07supplier_code + Price_1._15code_optt + "ДАSS")))
 
-            subq = select(Price_1.id_compare, Price_1._07supplier_code,
-                          func.floor((total_sum - func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id))) / (total_sum / 100))).where(
-                and_(Price_1._07supplier_code == price_code, Price_1._20exclude == None, Price_1._05price > 0))
+                # 18КороткоеНаименование
+                sess.execute(update(Price_1).values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
-            sess.execute(insert(SumTable).from_select(['id_compare', 'price_code', 'prev_sum'], subq))
+                sess.commit()#sess.flush()
+                add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
 
-            sess.execute(update(Price_1).where(Price_1.id_compare == SumTable.id_compare).values(_13grad=SumTable.prev_sum))
-            sess.query(SumTable).where(SumTable.price_code == price_code).delete()
+                cur_time = datetime.datetime.now()
+                sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
 
-            add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
+                # 13Градация
+                total_sum = sess.execute(
+                    select(func.sum(Price_1._05price))).scalar()
 
+                subq = select(Price_1.id, Price_1._07supplier_code,
+                              func.floor((total_sum - func.sum(Price_1._05price).over(order_by=(Price_1._05price, Price_1.id))) / (total_sum / 100))).where(
+                    and_(Price_1._20exclude == None, Price_1._05price > 0))
 
-            csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
-                             "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
-                             "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
-                             "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
-                             "Примечание поставщика": Price_1.notice_s, "01Артикул": Price_1._01article,
-                             "02Производитель": Price_1._02brand,
-                             "14Производитель заполнен": Price_1._14brand_filled_in,
-                             "03Наименование": Price_1._03name, "04Количество": Price_1._04count,
-                             "05Цена": Price_1._05price, "12Сумма": Price_1._12sum, "06Кратность": Price_1._06mult,
-                             "15КодТутОптТорг": Price_1._15code_optt, "07Код поставщика": Price_1._07supplier_code,
-                             "20ИслючитьИзПрайса": Price_1._20exclude, "13Градация": Price_1._13grad,
-                             "17КодУникальности": Price_1._17code_unique,
-                             "18КороткоеНаименование": Price_1._18short_name,
-                             }
+                sess.execute(insert(SumTable).from_select(['id', 'price_code', 'prev_sum'], subq))
+                sess.commit()#sess.flush()
 
-            # to csv
-            if not create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_time, new_update_time):
-                return
+                sess.execute(update(Price_1).where(Price_1.id == SumTable.id).values(_13grad=SumTable.prev_sum))
+                sess.query(SumTable).where(SumTable.price_code == price_code).delete()
 
-            # перенос данных в total
-            sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
+                add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
 
-            cols_for_total = [Price_1.id, Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s,
-                              Price_1.count_s, Price_1.price_s, Price_1.currency_s, Price_1.mult_s, Price_1.notice_s,
-                              Price_1._01article, Price_1._02brand, Price_1._14brand_filled_in, Price_1._03name,
-                              Price_1._04count, Price_1._05price, Price_1._12sum, Price_1._06mult,
-                              Price_1._15code_optt, Price_1._07supplier_code, Price_1._20exclude, Price_1._13grad,
-                              Price_1._17code_unique, Price_1._18short_name]
-            cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
-            total = select(*cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
-            sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+                csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
+                                 "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
+                                 "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
+                                 "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
+                                 "Примечание поставщика": Price_1.notice_s, "01Артикул": Price_1._01article,
+                                 "02Производитель": Price_1._02brand,
+                                 "14Производитель заполнен": Price_1._14brand_filled_in,
+                                 "03Наименование": Price_1._03name, "04Количество": Price_1._04count,
+                                 "05Цена": Price_1._05price, "12Сумма": Price_1._12sum, "06Кратность": Price_1._06mult,
+                                 "15КодТутОптТорг": Price_1._15code_optt, "07Код поставщика": Price_1._07supplier_code,
+                                 "20ИсключитьИзПрайса": Price_1._20exclude, "13Градация": Price_1._13grad,
+                                 "17КодУникальности": Price_1._17code_unique,
+                                 "18КороткоеНаименование": Price_1._18short_name,
+                                 }
 
-            # дочерние прайсы
-            children_prices = sess.execute(select(distinct(FileSettings.price_code))
-                                           .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
-                                                       func.upper(FileSettings.save) == 'ДА'))).scalars().all()
-            # УДАЛИТЬ ИЗ БД
-            sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+                self.cur_file_count += 1
+                # to csv
+                if not create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_time, new_update_time,
+                                  self.total_file_count, self.cur_file_count):
+                    return
 
-            sess.commit()
+                # перенос данных в total
+                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
+
+                cols_for_total = [Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s,
+                                  Price_1.count_s, Price_1.price_s, Price_1.currency_s, Price_1.mult_s, Price_1.notice_s,
+                                  Price_1._01article, Price_1._02brand, Price_1._14brand_filled_in, Price_1._03name,
+                                  Price_1._04count, Price_1._05price, Price_1._12sum, Price_1._06mult,
+                                  Price_1._15code_optt, Price_1._07supplier_code, Price_1._20exclude, Price_1._13grad,
+                                  Price_1._17code_unique, Price_1._18short_name]
+                cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
+                total = select(*cols_for_total.keys())
+                sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+
+                # дочерние прайсы
+                children_prices = sess.execute(select(distinct(FileSettings.price_code))
+                                               .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
+                                                           func.upper(FileSettings.save) == 'ДА'))).scalars().all()
+                # УДАЛИТЬ ИЗ БД
+                sess.query(Price_1).delete()
+
+                sess.commit()
             # print(f"{children_prices=}")
-            if children_prices:
-                for children_price in children_prices:
-                    # print(children_price)
-                    multi_calculate([file_name, sender, children_price])
-
-                # csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
-            #                      "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
-            #                      "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
-            #                      "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
-            #                      "Примечание поставщика": Price_1.notice_s,
-            #                      }
-            #     cols_for_total.pop(Price_1.id)
-            #     cols_for_total.pop(Price_1._07supplier_code)
-            #     cols_for_total.pop(Price_1._20exclude)
-            #
-                # for children_price in children_prices:
-                #     # print(children_price)
-            #         dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
-            #         sess.execute(insert(Price_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
-            #         words_except(sess, Price_1, children_price)
-            #
-            #         sess.query(Price_1).where(
-            #             and_(Price_1._07supplier_code == children_price, Price_1._20exclude != None)).delete()
-            #
-            #         create_children_csv(sess, sender, children_price, csv_cols_dict, color, price_code)
-            #
-            #         sess.query(Price_1).where(Price_1._07supplier_code == children_price).delete()
-
-                    # start_calc_price_time = datetime.datetime.now()
-                    # req = select(PriceReport).where(PriceReport.price_code == children_price)
-                    # is_report_exists = sess.execute(req).scalar()
-                    # if not is_report_exists:
-                    #     sess.add(PriceReport(file_name=file_name, price_code=children_price))
-                    #
-                    # # if not check_price_time(price_code, file_name, sender, sess):
-                    # #     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                    # #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                    # #     sess.commit()
-                    # #     add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, children_price, color)
-                    # #     continue
-                    #
-                    # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == children_price).delete()
-                    # dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
-                    # sess.execute(insert(TotalPrice_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
-                    # words_except(sess, TotalPrice_1, children_price)
-                    # sess.query(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == children_price, TotalPrice_1._20exclude != None)).delete()
-                    #
-                    #
-                    #
-                    # create_csv(sess, sender, children_price, csv_cols_dict, color, start_calc_price_time,
-                    #            datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), add_text=f"(родитель: {price_code})")
-
-                    # print(cols_for_total)
-                    # break
-
-            # sess.rollback()
 
 
-    except Exception as ex:
-        ex_text = traceback.format_exc()
-        sender.send(["error", LOG_ID, f"M ERROR ({file_name})", ex_text])
-    finally:
-        sender.send(["end", mp.current_process().name, True if custom_price_code else False])
+                    # csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
+                #                      "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
+                #                      "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
+                #                      "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
+                #                      "Примечание поставщика": Price_1.notice_s,
+                #                      }
+                #     cols_for_total.pop(Price_1.id)
+                #     cols_for_total.pop(Price_1._07supplier_code)
+                #     cols_for_total.pop(Price_1._20exclude)
+                #
+                    # for children_price in children_prices:
+                    #     # print(children_price)
+                #         dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+                #         sess.execute(insert(Price_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
+                #         words_except(sess, Price_1, children_price)
+                #
+                #         sess.query(Price_1).where(
+                #             and_(Price_1._07supplier_code == children_price, Price_1._20exclude != None)).delete()
+                #
+                #         create_children_csv(sess, sender, children_price, csv_cols_dict, color, price_code)
+                #
+                #         sess.query(Price_1).where(Price_1._07supplier_code == children_price).delete()
 
+                        # start_calc_price_time = datetime.datetime.now()
+                        # req = select(PriceReport).where(PriceReport.price_code == children_price)
+                        # is_report_exists = sess.execute(req).scalar()
+                        # if not is_report_exists:
+                        #     sess.add(PriceReport(file_name=file_name, price_code=children_price))
+                        #
+                        # # if not check_price_time(price_code, file_name, sender, sess):
+                        # #     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        # #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                        # #     sess.commit()
+                        # #     add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, children_price, color)
+                        # #     continue
+                        #
+                        # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == children_price).delete()
+                        # dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
+                        # sess.execute(insert(TotalPrice_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
+                        # words_except(sess, TotalPrice_1, children_price)
+                        # sess.query(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == children_price, TotalPrice_1._20exclude != None)).delete()
+                        #
+                        #
+                        #
+                        # create_csv(sess, sender, children_price, csv_cols_dict, color, start_calc_price_time,
+                        #            datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), add_text=f"(родитель: {price_code})")
+
+                        # print(cols_for_total)
+                        # break
+
+                # sess.rollback()
+
+
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            sender.send(["error", LOG_ID, f"ERROR ({file_name})", ex_text])
+        finally:
+            sender.send(["end", mp.current_process().name, True if custom_price_code else False])
+
+        if children_prices:
+            for children_price in children_prices:
+                # print(children_price)
+                self.total_file_count += 1
+                self.multi_calculate([file_name, sender, children_price])
 
 def check_price_time(price_code, file_name, sender, sess):
     '''Расчёт рабочих дней с последнего изменения прайса'''
@@ -566,6 +607,7 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
     id_settig = None
     rc_dict = dict()
     new_frmt = None
+    reason = ''
     for sett in price_table_settings:
         # print(sett.id)
         rc_dict = {"key1_s": [sett.r_key_s, sett.c_key_s, sett.name_key_s],
@@ -605,13 +647,19 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
         if frmt in ('xls', 'xlsx'):
             pandas_monkeypatch()
             try:
-                table = pd.read_excel(path_to_price, header=None, engine='calamine', nrows=max_row)
+                table = pd.read_excel(path_to_price, header=None, engine='openpyxl', nrows=max_row)
+                # print(f"{table=}")
             except Exception as read_ex:
                 pass
             if table.empty:
                 try:
                     table = pd.read_excel(path_to_price, header=None, nrows=max_row)
                 except Exception as read_ex_2:
+                    pass
+            if table.empty:
+                try:
+                    table = pd.read_excel(path_to_price, header=None, engine='calamine', nrows=max_row)
+                except Exception as read_ex_3:
                     pass
 
         elif frmt == 'csv':
@@ -649,7 +697,8 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
                 pass
 
         if table.empty:
-            # print(f"Неизвестный формат")
+            print(f"Неизвестный формат")
+            reason = "Неизвестный формат"
             break
 
         if len(table.columns) < max_col:
@@ -661,6 +710,7 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
                 continue
             # print(r, c, name, name in table.loc[r-1, c -1])
             if name not in str(table.loc[r - 1, c - 1]):
+                reason = name
                 brk = True
                 break
 
@@ -669,7 +719,7 @@ def get_setting_id(price_table_settings, frmt, path_to_price):
 
             break
 
-    return id_settig, rc_dict, new_frmt
+    return id_settig, rc_dict, new_frmt, reason
 
 def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
     try:
@@ -679,31 +729,47 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
         # print(f"{rc_dict}")
         cols = [int(i[1] - 1) for i in rc_dict.values()]
         # print(f"{cols=}")
-        cols_len_1 = len(cols)
+        # cols_len_1 = len(cols)
         cols = set(cols)
-        cols_len_2 = len(cols)
-        if cols_len_1 != cols_len_2:
-            return False
+        # cols_len_2 = len(cols)
+        # if cols_len_1 != cols_len_2:
+        #     return False
 
         # print(f"{rc_dict=}")
-        new_cols_name = {rc_dict[k][1] - 1: k for k in rc_dict}
+        dup_cols = dict()
+        new_cols_name = dict() #{rc_dict[k][1] - 1: k for k in rc_dict}
+        for k in rc_dict:
+            if not new_cols_name.get(rc_dict[k][1]-1, None):
+                new_cols_name[rc_dict[k][1]-1] = k
+            else:
+                dup_cols[k] = rc_dict[k][1]-1
 
+        # print(f"{new_cols_name=}")
+        # print(f"{dup_cols=}")
         while True:
+            table = pd.DataFrame
             if frmt in ('xls', 'xlsx'):
                 pandas_monkeypatch()
 
-                table = pd.DataFrame
                 try:
                     table = pd.read_excel(path_to_price, usecols=[*cols], header=None,
-                                          nrows=r_limit, skiprows=loaded_rows, engine='calamine', na_filter=False)
+                                          nrows=r_limit, skiprows=loaded_rows, engine='openpyxl', na_filter=False)
                     method = 1
-                except Exception as ex:
-                    print(ex)
+                except Exception as ex1:
+                    # print(ex1)
+                    pass
+                try:
+                    if table.empty and not method:
+                        table = pd.read_excel(path_to_price, usecols=[*cols], header=None, nrows=r_limit, skiprows=loaded_rows,
+                                              na_filter=False)
+                        method = 2
+                except Exception as ex2:
+                    # print(ex2)
                     pass
 
-                if table.empty and method != 1:
+                if table.empty and not method:
                     table = pd.read_excel(path_to_price, usecols=[*cols], header=None, nrows=r_limit, skiprows=loaded_rows,
-                                          na_filter=False)
+                                          na_filter=False, engine='calamine')
             elif frmt == 'csv':
                 try:
                     table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251',
@@ -711,9 +777,9 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
                 except pd.errors.EmptyDataError:
                     break
 
-            table_size = len(table)
-            if not table_size:
+            if table.empty:
                 break
+            table_size = len(table)
 
             loaded_rows += table_size
 
@@ -722,13 +788,15 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
                 if frmt in ('xls', 'xlsx'):
                     pandas_monkeypatch()
                     last = pd.DataFrame
-                    try:
+                    if method == 1:
                         last = pd.read_excel(path_to_price, usecols=[*cols], header=None,
-                                             nrows=sett.pass_down, skiprows=loaded_rows, engine='calamine', na_filter=False)
-                    except:
-                        pass
+                                             nrows=sett.pass_down, skiprows=loaded_rows, engine='openpyxl', na_filter=False)
+                    elif method == 2:
+                        if last.empty:
+                            last = pd.read_excel(path_to_price, usecols=[*cols], header=None,
+                                                 nrows=sett.pass_down, skiprows=loaded_rows, na_filter=False)
                     if last.empty:
-                        last = pd.read_excel(path_to_price, usecols=[*cols], header=None,
+                        last = pd.read_excel(path_to_price, usecols=[*cols], header=None, engine='calamine',
                                              nrows=sett.pass_down, skiprows=loaded_rows, na_filter=False)
 
                     last = len(last)
@@ -752,15 +820,21 @@ def load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess):
             table['_07supplier_code'] = [price_code] * len(table)
 
             empty_cols_dict = {k: 1 for k in rc_dict}
-            # print(f"{table=}")
+            for i in dup_cols:
+                empty_cols_dict.pop(i)
+            # print(f"{empty_cols_dict=}")
+            # print(f"{table['article_s']=}")
             table = get_correct_df(table, empty_cols_dict, sess.connection())
+            for i in dup_cols:
+                table[i] = table[new_cols_name[dup_cols[i]]]
             # print(f"2 {table=}")
 
             table.to_sql(name=Price_1.__tablename__, con=sess.connection(), if_exists='append', index=False)
         return True
-    except KeyError:
-        # raise ke
-        return False
+    except KeyError as ke:
+        # print(ke)
+        raise ke
+        # return False
 
 def load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess):
     try:
@@ -815,36 +889,51 @@ def get_correct_df(df, cols, con):
         char_limit = cols[c]
         if char_limit:  # str
             df[c] = df[c].apply(lambda x: str(x)[:char_limit] or None)
-        else:  # float/int
-            df[c] = df[c].apply(to_float)
+        elif c in ('count_s', 'mult_s'):  # float/int
+            df[c] = df[c].apply(to_int)
+        elif c == 'price_s':
+            df[c] = df[c].apply(to_numeric)
             # df[c] = df[c].replace('', 0)
             # df = df[df[c].apply(is_float)]
             # df[c] = np.float64(df[c])
         if c in pk:  # для PK
             df = df[df[c].notna()]
+    # print(df['price_s'])
+    # df.to_csv('test.csv', sep=';', decimal=',', encoding="windows-1251", index=False)
     return df
-    # print(df)
     # df.to_sql(name=table_name, con=con, if_exists='append', index=False, index_label=False, chunksize=CHUNKSIZE)
 
-def to_float(x):
+def to_int(x):
     try:
-        x = float(str(x).replace(',', '.'))
+        x = int(re.search(r'\d+', f"{x}").group(0))
         if math.isnan(x) or math.isinf(x):
             return 0
-        if 1E+37 < x < 1E-37:  # real
+        if 2147483647 < x < -2147483648:  # int
             return 0
         return x
     except:
         return 0
 
+def to_numeric(x):
+    try:
+        # x = Decimal(str(x).replace(',', '.')).quantize(Decimal("1.00"), ROUND_FLOOR)
+        x = float(str(x).replace(',', '.'))
+        if math.isnan(x) or math.isinf(x):
+            return 0
+        if -9999999999 < x < 9999999999:  # numeric 12,2
+            return x
+        return 0
+    except:
+        return 0
+
+
 
 def suppliers_goods_compare(price_code, sett, sess):
-    key_conditions = and_(Price_1._07supplier_code == price_code, SupplierGoodsFix.import_setting == price_code,
-                          Price_1.key1_s == SupplierGoodsFix.key1)
-    article_brand_conditions = and_(Price_1._07supplier_code == price_code, SupplierGoodsFix.import_setting == price_code,
-                                    Price_1.article_s == SupplierGoodsFix.article_s, Price_1.brand_s == SupplierGoodsFix.brand_s)
-    article_name_conditions = and_(Price_1._07supplier_code == price_code, SupplierGoodsFix.import_setting == price_code,
-                                   Price_1.article_s == SupplierGoodsFix.article_s, Price_1.name_s == SupplierGoodsFix.name_s)
+    key_conditions = and_(SupplierGoodsFix.import_setting == price_code, Price_1.key1_s == SupplierGoodsFix.key1)
+    article_brand_conditions = and_(SupplierGoodsFix.import_setting == price_code, Price_1.article_s == SupplierGoodsFix.article_s,
+                                    Price_1.brand_s == SupplierGoodsFix.brand_s)
+    article_name_conditions = and_(SupplierGoodsFix.import_setting == price_code, Price_1.article_s == SupplierGoodsFix.article_s,
+                                   Price_1.name_s == SupplierGoodsFix.name_s)
     compare_vars = {"Ключ": key_conditions, "Артикул + Бренд": article_brand_conditions,
                     "Артикул + НаименованиеП": article_name_conditions}
 
@@ -864,15 +953,8 @@ def suppliers_goods_compare(price_code, sett, sess):
         sess.execute(update(Price_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(_20exclude=SupplierGoodsFix.sales_ban))
 
 def cols_fix(price_code, sess):
-    req = select(ColsFix).where(ColsFix.price_code == price_code)
-    article_settings = sess.execute(req).scalars().all()  # Price_1.article_s
-    change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
-                    "Содержит": [lambda tb, x: tb.contains(x), '{}'],
-                    "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
-                    "Добавить в конце": True,
-                    "Добавить в начале": True,
-                    }
-    cols_name = {"01Артикул": [Price_1.article_s, "_01article"], "03Наименование": [Price_1.name_s, "_03name"]}
+    cols_name = {"01Артикул": [Price_1.article_s, "_01article"], "03Наименование": [Price_1.name_s, "_03name"],
+                 "Примечание поставщика": [Price_1.notice_s, "notice_s"], "02Производитель": [Price_1.brand_s, "_02brand"]}
     custom_cols = {"Ключ1 поставщика": Price_1.key1_s.__dict__['name'],
                    "Артикул поставщика": Price_1.article_s.__dict__['name'],
                    "Производитель поставщика": Price_1.brand_s.__dict__['name'],
@@ -880,13 +962,25 @@ def cols_fix(price_code, sess):
                    "Количество поставщика": Price_1.count_s.__dict__['name'],
                    "Цена поставщика": Price_1.price_s.__dict__['name'],
                    "Валюта поставщика": Price_1.currency_s.__dict__['name'], }
-    for a in article_settings:
-        # print(f"{a.col_name}|{a.change_type}|{a.find}|{a.change}|{cols_name[a.col_name]}")
-        change_type = change_types.get(a.change_type, None)
-        col_name = cols_name.get(a.col_name, None)
+    change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
+                    "Содержит": [lambda tb, x: tb.contains(x), '{}'],
+                    "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
+                    "Равно": [lambda tb, x: tb == x, '{}$'],
+                    "Не равно": [lambda tb, x: tb != x, '{}$'],
+                    "Добавить в конце": True,
+                    "Добавить в начале": True,
+                    }
+    req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name.keys())))
+    cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
+
+    for cs in cols_settings:
+        # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
+        change_type = change_types.get(cs.change_type, None)
+        col_name = cols_name.get(cs.col_change, None)
+        # print(f"{change_type}|{col_name}")
         if change_type and col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
-            if a.change_type in ("Добавить в конце", "Добавить в начале"):
-                change = a.change
+            if cs.change_type in ("Добавить в конце", "Добавить в начале"):
+                change = cs.set
                 not_null_check = "and "
 
                 for c in custom_cols:
@@ -909,12 +1003,12 @@ def cols_fix(price_code, sess):
                 else:
                     not_null_check = ''
 
-                if a.change_type == "Добавить в конце":
-                    add_order = f"{cols_name[a.col_name][0].__dict__['name']}, {change}"
+                if cs.change_type == "Добавить в конце":
+                    add_order = f"{cols_name[cs.col_change][0].__dict__['name']}, {change}"
                 else:
-                    add_order = f"{change},{cols_name[a.col_name][0].__dict__['name']}"
+                    add_order = f"{change},{cols_name[cs.col_change][0].__dict__['name']}"
 
-                sess.execute(text(f"update {Price_1.__tablename__} set {cols_name[a.col_name][1]} = "
+                sess.execute(text(f"update {Price_1.__tablename__} set {cols_name[cs.col_change][1]} = "
                                   f"CONCAT({add_order}) "
                                   f"where _07supplier_code = '{price_code}' {not_null_check}"))
                 # return
@@ -928,36 +1022,74 @@ def cols_fix(price_code, sess):
                 sess.execute(req)
             else:
                 req = update(Price_1).where(
-                    and_(Price_1._07supplier_code == price_code, change_type[0](cols_name[a.col_name][0], a.find))
-                    ).values({cols_name[a.col_name][1]: cols_name[a.col_name][0].
-                             regexp_replace(change_type[1].format(a.find), "" if not a.change else a.change)})
+                    and_(Price_1._07supplier_code == price_code, change_type[0](cols_name[cs.col_change][0], cs.find))
+                ).values({cols_name[cs.col_change][1]: cols_name[cs.col_change][0].
+                         regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
                 sess.execute(req)
 
-def words_except(sess, table, price_code):
-    cols_dict = {"Ключ1 поставщика": table.key1_s, "Артикул поставщика": table.article_s,
-                 "Производитель поставщика": table.brand_s,
-                 "Наименование поставщика": table.name_s, " Валюта поставщика": table.currency_s,
-                 "Примечание поставщика": table.notice_s,
-                 "Ключ1П": table.key1_s, "АртикулП": table.article_s, "ПроизводительП": table.brand_s,
-                 "НаименованиеП": table.name_s, " ВалютаП": table.currency_s, "ПримечаниеП": table.notice_s,
+def words_except(sess, price_code):
+    cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
+                 "Производитель поставщика": Price_1.brand_s,
+                 "Наименование поставщика": Price_1.name_s, " Валюта поставщика": Price_1.currency_s,
+                 "Примечание поставщика": Price_1.notice_s,
+                 "Ключ1П": Price_1.key1_s, "АртикулП": Price_1.article_s, "ПроизводительП": Price_1.brand_s,
+                 "НаименованиеП": Price_1.name_s, " ВалютаП": Price_1.currency_s, "ПримечаниеП": Price_1.notice_s,
                  }
     check_types = {"Начинается с": lambda col, x: col.startswith(x),  # '^{}'],
                    "Содержит": lambda col, x: col.contains(x),  # '{}'],
                    "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
                    "Заканчивается на": lambda col, x: col.endswith(x),  # '{}$'],
+                   "Равно": lambda col, x: col == x,
+                   "Не равно": lambda col, x: col != x,
                    }
-    words = sess.execute(select(WordsOfException).where(WordsOfException.price_code == price_code)).scalars().all()
+    words = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
+                                                    ColsFix.col_change == '20ИсключитьИзПрайса'))).scalars().all()
 
+    not_like = dict()
     for w in words:
-        # print(f"{w.colunm_name}|{w.condition}|{w.text}")
-        check = check_types.get(f"{w.condition}", None)
-        col = cols_dict.get(w.colunm_name, None)
+        # print(f"{w.col_find}|{w.change_type}|{w.set}")
+        check = check_types.get(f"{w.change_type}", None)
+        col = cols_dict.get(w.col_find, None)
         # print(check, col)
         if check and col:
-            sess.execute(update(table).where(and_(table._07supplier_code == price_code, check(col, w.text), Price_1._20exclude==None))
-                         .values(_20exclude=w.text))
+            if w.change_type == 'Не содержит':
+                # not_like.append([col, w.find])
+                if not_like.get(w.col_find, None):
+                    not_like[w.col_find].append(w.find)
+                else:
+                    not_like[w.col_find] = [w.find]
+                continue
+            sess.execute(update(Price_1).where(and_(check(col, w.find), Price_1._20exclude==None))
+                         .values(_20exclude=w.set))
 
-def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_time, new_update_time, add_text=''):
+    if not_like:
+        # print(not_like)
+        for i in not_like:
+            cond = []
+            values = ''
+            not_like_cols = set(not_like[i])
+            for c in not_like_cols:
+                # print(c)
+                values += f"{c}, "
+                cond.append(cols_dict[i].contains(c))
+            values = values[:-2]
+            # print(cond)
+            sess.execute(
+                update(Price_1).where(and_(not_(or_(*cond)), Price_1._20exclude == None))
+                .values(_20exclude=values[:50]))
+
+
+def apply_discount(sess, price_code, col):
+    discounts = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
+                                                        ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])))).scalars().all()
+    price_cols = {'05Цена': Price_1._05price, 'Цена поставщика': Price_1._05price} # price_s
+    for dscnt in discounts:
+        # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
+        sess.execute(update(Price_1).where(Price_1._14brand_filled_in == dscnt.find).values(
+            {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
+
+
+def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_time, new_update_time, total_file_count, cur_file_count):
     cur_time = datetime.datetime.now()
     sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
 
@@ -969,7 +1101,7 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
         limit = CHUNKSIZE
         loaded = 0
         while True:
-            req = select(*[csv_cols_dict[k].label(k) for k in csv_cols_dict]).order_by(Price_1._17code_unique).offset(
+            req = select(*[csv_cols_dict[k].label(k) for k in csv_cols_dict]).order_by(Price_1.id).offset(
                 loaded).limit(limit)
             df = pd.read_sql_query(req, sess.connection(), index_col=None)
             df_len = len(df)
@@ -983,19 +1115,20 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
         add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
 
         total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-        sender.send(["log", LOG_ID, f"+ {price_code} готов! {add_text} [{total_price_calc_time}]",
+        sender.send(["log", LOG_ID, f"+ {price_code} готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]",
                      f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
                      f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                     f"{price_code}</span> готов! {add_text} [{total_price_calc_time}]"])
+                     f"{price_code}</span> готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]"])
         cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
+        cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
         sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
-                     .values(info_message="Ок", updated_at=new_update_time, row_count=cnt))
+                     .values(info_message="Ок", updated_at=new_update_time, row_count=cnt, row_wo_article=cnt_wo_article))
         return True
     except PermissionError:
-        sender.send(["log", LOG_ID, f"Не удалось сформировать прайс {price_code} {add_text}",
+        sender.send(["log", LOG_ID, f"Не удалось сформировать прайс {price_code} ({cur_file_count}/{total_file_count})",
                      f"<span style='color:{colors.orange_log_color};'>Не удалось сформировать прайс</span> "
                      f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                     f"{price_code}</span> {add_text}"])
+                     f"{price_code}</span> ({cur_file_count}/{total_file_count})"])
         return False
 
 def create_children_csv(sess, sender, price_code, csv_cols_dict, color, parent_price_code):
@@ -1010,8 +1143,7 @@ def create_children_csv(sess, sender, price_code, csv_cols_dict, color, parent_p
         limit = CHUNKSIZE
         loaded = 0
         while True:
-            req = (select(*[csv_cols_dict[k].label(k) for k in csv_cols_dict]).where(Price_1._07supplier_code==price_code).
-                   order_by(Price_1._17code_unique).offset(loaded).limit(limit))
+            req = (select(*[csv_cols_dict[k].label(k) for k in csv_cols_dict]).order_by(Price_1._17code_unique).offset(loaded).limit(limit))
             df = pd.read_sql_query(req, sess.connection(), index_col=None)
             df_len = len(df)
             if not df_len:
@@ -1029,12 +1161,13 @@ def create_children_csv(sess, sender, price_code, csv_cols_dict, color, parent_p
 class PriceReportUpdate(QThread):
     UpdateInfoTableSignal = Signal(list)
     UpdatePriceReportTime = Signal(str)
+
     def __init__(self, log=None, parent=None):
         self.log = log
         QThread.__init__(self, parent)
     def run(self):
         try:
-            with (session() as sess):
+            with session() as sess:
                 reports = []
                 req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
                                               PriceReport.updated_at.label("Время")).where(PriceReport.info_message!='Ок'
@@ -1050,9 +1183,14 @@ class PriceReportUpdate(QThread):
                     reports.append(r)
                 for r in reports:
                     self.UpdateInfoTableSignal.emit(r)
-                req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус"),
-                             PriceReport.updated_at.label("Время")).order_by(PriceReport.price_code)
+
                 self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
+                req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус стандартизации"),
+                             PriceReport.row_count.label("Кол-во позиций"), PriceReport.row_wo_article.label("Позиций с пустым артикулом"),
+                             PriceReport.updated_at.label("Время (1)"), PriceReport.info_message2.label("Статус обработки"),
+                             PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.row_count_2.label("Итоговое кол-во"),
+                             PriceReport.del_pos.label("Удалено")).order_by(PriceReport.price_code)
+                # (func.round(PriceReport.del_pos / (PriceReport.row_count_2 + PriceReport.del_pos), 2)).label("Процент удалённых позиций"))
                 df = pd.read_sql(req, engine)
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
                           index=False, header=True, errors='ignore')
@@ -1061,3 +1199,19 @@ class PriceReportUpdate(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "PriceReportUpdate Error", ex_text)
+
+
+class PriceReportReset(QThread):
+    def __init__(self, log=None, parent=None):
+        self.log = log
+        QThread.__init__(self, parent)
+    def run(self):
+        try:
+            with session() as sess:
+                sess.query(PriceReport).delete()
+                sess.commit()
+            self.log.add(LOG_ID, f"Отчёт обнулён", f"<span style='color:{colors.green_log_color};'>Отчёт обнулён</span>  ")
+
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "PriceReportReset Error", ex_text)

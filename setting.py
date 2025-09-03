@@ -2,8 +2,9 @@ from sqlalchemy import create_engine, URL, text
 import os
 import time
 
-properties = ["ip:", "user:", "password:", "db_name:", "thread_count:", "chunk_size:", "mail_login:", "mail_imap_password:",
-              "mail_files_dir:", "mail_files_dir_copy:", "catalogs_dir:", "server_logs_dir:", "exit_1_dir:"]
+properties = ["ip:", "user:", "password:", "db_name:", "chunk_size:", "mail_login:", "mail_imap_password:",
+              "mail_files_dir:", "mail_files_dir_copy:", "catalogs_dir:", "3_cond_dir:", "server_logs_dir:", "exit_1_dir:",
+              "exit_2_dir:"]
 
 def check_settings_file():
     if not 'Settings.txt' in os.listdir():
@@ -34,8 +35,10 @@ def get_vars():
         # print(f"{data=}")
         return data
 
-def create_dirs():
-    dirs = [r'logs', r'Archives']
+def create_dirs(data):
+    dirs = ['logs', 'Archives', fr"{data['catalogs_dir']}/pre Справочник Базовая цена", fr"{data['catalogs_dir']}/Справочник Базовая цена",
+            fr"{data['catalogs_dir']}/pre Справочник Предложений в опте", fr"{data['catalogs_dir']}/Справочник Предложений в опте",
+            fr"{data['catalogs_dir']}/pre Итог", fr"{data['catalogs_dir']}/Итог"]
     for d in dirs:
         if not os.path.exists(d):
             os.mkdir(d)

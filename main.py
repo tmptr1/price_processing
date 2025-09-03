@@ -12,7 +12,6 @@ from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
 import setting
-setting.create_dirs()
 # print(os.getpid())
 
 setting.check_settings_file()
@@ -28,26 +27,28 @@ from models import Base, AppSettings
 # Base.metadata.create_all(engine)
 
 settings_data = setting.get_vars()
+setting.create_dirs(settings_data)
 
 import Logs
-from PriceReader import MainWorker, PriceReportUpdate
+from PriceReader import MainWorker, PriceReportUpdate, PriceReportReset
 import MailParser
 from Timer import MyTimer
 from PipeListener import PipeListener
 import CatalogUpdate # import CatalogUpdate, SaveTime, get_catalogs_time_update, CatalogsUpdateTable
+from Calculate import CalculateClass, PriceReportUpdate_2
 
 Log = Logs.LogClass()
 Log.start()
 
 MAX_LOG_ROWS_IN_TEXT_BROWSER = 200
-DEFAULT_THREAD_COUNT = settings_data["thread_count"]
+# DEFAULT_THREAD_COUNT = settings_data["thread_count"]
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
 
-        self.ThreadSpinBox.setProperty("value", DEFAULT_THREAD_COUNT)
+        # self.ThreadSpinBox.setProperty("value", DEFAULT_THREAD_COUNT)
 
         self.sender, self.listener = Pipe()
         self.PipeL = PipeListener(self.listener, Log)
@@ -74,18 +75,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate = PriceReportUpdate(log=Log)
         self.PriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_1_report_table)
         self.PriceReportUpdate.UpdatePriceReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_1.setText(x))
+        self.PriceReportReset = PriceReportReset(log=Log)
         self.CU = CatalogUpdate.CatalogUpdate(log=Log)
         self.CU.StartTablesUpdateSignal.connect(self.update_catalogs_update_time_table)
         self.CU.StartTablesUpdateSignal.connect(self.update_currency_table)
+        self.CU.CreateTotalCsvSignal.connect(self.start_create_total_csv)
+        # self.CU.CreateBasePriceSignal.connect(lambda b: self.CreateBasePriceButton_2.setEnabled(b))
+        # self.CU.CreateMassOffersSignal.connect(lambda b: self.CreateMassOffersButton_2.setEnabled(b))
+
+        self.Calculate = CalculateClass(log=Log)
+        self.CreateTotalCsv = CatalogUpdate.CreateTotalCsv(log=Log)
+        self.PriceReportUpdate_2 = PriceReportUpdate_2(log=Log)
+        self.PriceReportUpdate_2.UpdateInfoTableSignal.connect(self.add_item_to_price_2_report_table)
+        self.PriceReportUpdate_2.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_3.setText(x))
+        self.PriceReportUpdate_2.ResetPriceReportTime.connect(lambda _: self.update_price_2_report_table)
 
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
         self.StartButton_0.clicked.connect(self.start_mail_parser)
         self.ToMailReportDirButton_0.clicked.connect(lambda _:self.open_dir(settings_data['catalogs_dir']))
         self.ToMailFilesDirButton_0.clicked.connect(lambda _:self.open_dir(settings_data['mail_files_dir']))
-        self.OpenReportButton_0.clicked.connect(lambda _:self.open_dir(fr".{settings_data['catalogs_dir']}/mail_repotr.csv"))
+        self.OpenReportButton_0.clicked.connect(lambda _:self.open_dir(fr"{settings_data['catalogs_dir']}/mail_report.csv"))
         self.ResetMailReportButton_0.clicked.connect(
-            lambda _:self.confirmed_message_box('Обнуление отчёта','Обнулить отчёт?', self.reset_mail_report_confirmed))
+            lambda _: self.confirmed_message_box('Обнуление отчёта', 'Обнулить отчёт?', self.reset_mail_report_confirmed))
         self.UpdateReportButton_0.clicked.connect(self.start_update_mail_report_table)
         self.LogButton_0.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[0]}"))
         self.LogButton_0.setToolTip("Открыть файл с логами")
@@ -94,7 +106,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MailReportUpdate.UpdateMailReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_0.setText(x))
 
         self.model_0 = QStandardItemModel()
-        self.model_0.setHorizontalHeaderLabels(['Sender', 'File name', 'Date'])
+        self.model_0.setHorizontalHeaderLabels(['Price code', 'Sender', 'File name', 'Date'])
         self.MailStatusTable_0.setModel(self.model_0)
         self.MailStatusTable_0.verticalHeader().hide()
         self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
@@ -108,7 +120,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.LogButton_1.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[1]}"))
         self.LogButton_1.setToolTip("Открыть файл с логами")
         self.ToFilesDirButton_1.clicked.connect(lambda _: self.open_dir(settings_data['exit_1_dir']))
+        self.ToReportDirButton_1.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
         self.UpdateReportButton_1.clicked.connect(self.update_price_1_report_table)
+        self.ResetPriceReportButton_1.clicked.connect(self.reset_price_1_report)
+        self.OpenReportButton_1.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         # self.pushButton_2.clicked.connect(self.start_mult)  # start mult
 
         # взять паузу
@@ -116,9 +131,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.LThread.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_1, self.PauseCheckBox_1))
         # self.LThread.isPause = self.PauseCheckBox_1.isChecked()
         # self.LThread.UpdateinfoTableSignal.connect(self.update_table)
-        self.PauseCheckBox_0.checkStateChanged.connect(lambda b:self.setPause(b, self.MP))
-        self.PauseCheckBox_1.checkStateChanged.connect(lambda b:self.setPause(b, self.MW))
-        self.PauseCheckBox_2.checkStateChanged.connect(lambda b:self.setPause(b, self.CU))
+        self.PauseCheckBox_0.checkStateChanged.connect(lambda b: self.setPause(b, self.MP))
+        self.PauseCheckBox_1.checkStateChanged.connect(lambda b: self.setPause(b, self.MW))
+        self.PauseCheckBox_2.checkStateChanged.connect(lambda b: self.setPause(b, self.CU))
+        self.PauseCheckBox_3.checkStateChanged.connect(lambda b: self.setPause(b, self.Calculate))
 
         self.model_1 = QStandardItemModel()
         self.model_1.setHorizontalHeaderLabels(['Code', 'Status', 'Time', 'Total Time'])
@@ -171,7 +187,49 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda _: self.confirmed_message_box('Обнуление БД', 'Обнулить данные в БД?', self.reset_db))
         self.CatalogUpdateTimeTableUpdateButton_2.clicked.connect(self.update_catalogs_update_time_table)
         self.CurrencyTableUpdateButton_2.clicked.connect(self.update_currency_table)
+        self.CreateBasePriceButton_2.clicked.connect(self.update_base_price)
+        self.CreateMassOffersButton_2.clicked.connect(self.update_mass_offers)
+        self.CreateTotalCsv_2.clicked.connect(self.start_create_total_csv)
+        self.OpenPriceStatusButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
+        self.ResetPriceStatusButton_2.clicked.connect(self.reset_price_1_report)
+        self.CreatePriceStatusButton_2.clicked.connect(self.update_price_1_report_table)
+        self.OpenMailReporButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/mail_report.csv"))
+        self.ResetMailReporButton_2.clicked.connect(lambda _: self.confirmed_message_box('Обнуление отчёта', 'Обнулить отчёт?', self.reset_mail_report_confirmed))
+        self.CreateMailReporButton_2.clicked.connect(self.start_update_mail_report_table)
 
+
+
+        self.model_3_1 = QStandardItemModel()
+        self.model_3_1.setHorizontalHeaderLabels(['Code', 'Info', 'Time'])
+        self.NotMatchedTableView_3.setModel(self.model_3_1)
+        self.NotMatchedTableView_3.verticalHeader().hide()
+        self.NotMatchedTableView_3.setEditTriggers(QTableView.NoEditTriggers)
+        self.NotMatchedTableView_3.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        self.model_3 = QStandardItemModel()
+        self.model_3.setHorizontalHeaderLabels(['Code', 'Status', 'Time', 'Total Time'])
+        items = [QStandardItem('') for _ in range(self.model_3.columnCount())]
+        self.model_3.appendRow(items)
+        self.PriceStatusTableView_3.setModel(self.model_3)
+        self.PriceStatusTableView_3.verticalHeader().hide()
+        self.PriceStatusTableView_3.setEditTriggers(QTableView.NoEditTriggers)
+        self.PriceStatusTableView_3.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
+        self.LogButton_3.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[3]}"))
+        self.ToFilesDirButton_3.clicked.connect(lambda _: self.open_dir(settings_data['exit_2_dir']))
+        self.StartButton_3.clicked.connect(self.start_calculate)
+        self.UpdateReportButton_3.clicked.connect(self.update_price_2_report_table)
+        self.ToReportDirButton_3.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
+        self.OpenReportButton_3.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
+        self.ResetPriceReportButton_3.clicked.connect(self.reset_price_1_report)
+        self.Calculate.SetButtonEnabledSignal.connect(
+            lambda _: self.set_enabled_start_buttons(_, self.StartButton_3, self.PauseCheckBox_3))
+        self.Calculate.UpdatePriceStatusTableSignal.connect(lambda p, s, t: self.update_status_table_3(p, s, t))
+        self.Calculate.UpdatePriceReportTableSignal.connect(self.update_price_2_report_table)
+        self.Calculate.ResetPriceStatusTableSignal.connect(self.reset_model_3)
+        self.Calculate.TotalCountSignal.connect(lambda c: self.TotalCountLabel_2.setText("Всего позиций: {:,d}".format(c)))
+        self.Calculate.SetTotalTome.connect(self.set_total_time_3)
+        self.Calculate.SetProgressBarValue.connect(self.set_value_in_prigress_bar_3)
 
         times = CatalogUpdate.get_catalogs_time_update()
         time_edits = {"base_price_update": self.BasePriceTimeEdit_2, "mass_offers_update": self.MassOffersTimeEdit_2}
@@ -189,12 +247,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.doneFiles = 0
 
         # self.statusBar.showMessage("sb")
-        self.progressBar_1.setStyleSheet('background-color: lightblue;')
+        # self.progressBar_1.setStyleSheet('background-color: lightblue;')
 
         self.ConsoleTextBrowser_0.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_1.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_2.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
-        self.consoles = {0: self.ConsoleTextBrowser_0, 1: self.ConsoleTextBrowser_1, 2: self.ConsoleTextBrowser_2}
+        self.ConsoleTextBrowser_3.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
+        self.consoles = {0: self.ConsoleTextBrowser_0, 1: self.ConsoleTextBrowser_1, 2: self.ConsoleTextBrowser_2, 3: self.ConsoleTextBrowser_3}
         self.set_old_logs()
 
         self.x = 0
@@ -210,9 +269,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def reset_db(self, btn):
         if btn.text() == 'OK':
             try:
-                Base.metadata.drop_all(engine)
-                Base.metadata.create_all(engine)
                 with sessionmaker(engine)() as sess:
+                    # sess.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+                    # sess.commit()
+                    Base.metadata.drop_all(engine)
+                    Base.metadata.create_all(engine)
                     sess.add_all([AppSettings(param="base_price_update", var="0 15"), AppSettings(param="mass_offers_update", var="0 15")])
                     sess.commit()
                 print('БД обновлена')
@@ -237,10 +298,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.model_1_1.removeRow(self.model_1_1.rowCount() - 1)
             self.PriceReportUpdate.start()
 
+    def update_price_2_report_table(self):
+        if not self.PriceReportUpdate_2.isRunning():
+            while self.model_3_1.rowCount() > 0:
+                self.model_3_1.removeRow(self.model_3_1.rowCount() - 1)
+            self.PriceReportUpdate_2.start()
+
+    def reset_price_1_report(self):
+        if not self.PriceReportReset.isRunning():
+            self.PriceReportReset.start()
+
     def add_item_to_price_1_report_table(self, report):
         if report:
             items = [QStandardItem(f"{r}") for r in report]
             self.model_1_1.appendRow(items)
+
+    def add_item_to_price_2_report_table(self, report):
+        if report:
+            items = [QStandardItem(f"{r}") for r in report]
+            self.model_3_1.appendRow(items)
 
     def start_update_mail_report_table(self):
         if not self.MailReportUpdate.isRunning():
@@ -366,6 +442,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             items = [QStandardItem(f"{i}") for i in [info.code, info.rate]]
             self.model_2_2.appendRow(items)
 
+    def update_base_price(self):
+        if not self.CU.isRunning():
+            self.CU.update_base_price(force_update=True)
+
+    def update_mass_offers(self):
+        if not self.CU.isRunning():
+            self.CU.update_mass_offers(force_update=True)
+
     def add_new_row(self):
         # d = [None, None, None]
         items = [QStandardItem('') for i in range(4)]
@@ -379,6 +463,57 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         while self.model_1.rowCount() > 0:
             self.model_1.removeRow(self.model_1.rowCount() - 1)
 
+    def start_calculate(self):
+        if not self.Calculate.isRunning():
+            self.Calculate.start()
+
+    def start_create_total_csv(self):
+        if not self.CreateTotalCsv.isRunning():
+            self.CreateTotalCsv.start()
+
+    def update_status_table_3(self, price_code, status, total_timer):
+        # price_code, status, total_timer = info
+        # self.model_3.removeRow(0)
+        # self.model_3.appendRow([QStandardItem(f"{price_code}"), QStandardItem(f"{status}")])
+        # self.model_3.appendRow()
+        self.model_3.setData(self.model_3.index(0, 0), f"{price_code}")
+        self.model_3.setData(self.model_3.index(0, 1), f"{status}")
+        # self.model_3.setData(self.model_3.index(0, 2), self.timers[r])
+        self.timer_3 = MyTimer(0, 2)
+        self.model_3.setData(self.model_3.index(0, 2), self.timer_3)
+        self.timer_3.SetTimeInTableSignal.connect(self.set_time_3)
+        if total_timer:
+            self.total__table_timer_3 = MyTimer(0, 3)
+            self.model_3.setData(self.model_3.index(0, 3), self.total__table_timer_3)
+            self.total__table_timer_3.SetTimeInTableSignal.connect(self.set_time_3)
+
+    def set_time_3(self, r, c, str_time):
+        self.model_3.setData(self.model_3.index(r, c), str_time)
+
+    def reset_model_3(self):
+        self.timer_3 = None
+        self.total__table_timer_3 = None
+        self.model_3.removeRow(0)
+        items = [QStandardItem('') for _ in range(self.model_3.columnCount())]
+        self.model_3.appendRow(items)
+
+    def set_value_in_prigress_bar_3(self, cur, total):
+        self.ProgressLabel_3.setText(f"{cur}/{total}")
+        self.progressBar_3.setValue(cur/total*100)
+
+    def set_total_time_3(self, start):
+        if start:
+            self.total_timer_3 = MyTimer()
+            self.total_timer_3.SetTimeSignal.connect(lambda t: self.set_text_to_label(self.TotalTimeLabel_3, t))
+        else:
+            self.total_timer_3 = None
+            self.TotalTimeLabel_3.setText(self.TotalTimeLabel_3.text())
+    # def stop_total_time_3(self):
+    #     self.total_timer_3 = None
+    #     self.TotalTimeLabel_3.setText('[0:00:00]')
+
+    def set_text_to_label(self, label, text):
+        label.setText(text)
     # def add_text_to_list(self):
     #     self.x += 1
     #     self.ConsoleTextBrowser_1.append(f"Лог номер <span style='color:red; font-weight:bold;'>{self.x}</span>. ок")
