@@ -214,9 +214,9 @@ class CalculateClass(QThread):
                 # print(data7_set.setting, data7_set.markup_os, data7_set.delay)
                 sess.execute(update(Price_2).values(delay=data7_set.delay, sell_for_OS=data7_set.sell_os,
                     markup_os=data7_set.markup_os, max_decline=data7_set.max_decline, markup_holidays=data7_set.markup_holidays,
-                    markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, markup_wh_goods=data7_set.markup_wholesale,
-                    grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step, access_pp=data7_set.access_pp,
-                    unload_percent=data7_set.unload_percent))
+                    markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, min_wholesale_markup=data7_set.min_wholesale_markup,
+                    markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
+                    access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
 
                 sess.execute(update(Price_2).where(Price_2._09code_supl_goods==Data09.code_09).
                              values(put_away_zp=Data09.put_away_zp))
@@ -280,7 +280,7 @@ class CalculateClass(QThread):
                                   Price_2._20exclude,
                                   Price_2.delay, Price_2.sell_for_OS, Price_2.markup_os, Price_2.max_decline,
                                   Price_2.markup_holidays, Price_2.markup_R, Price_2.min_markup,
-                                  Price_2.markup_wh_goods,
+                                  Price_2.min_wholesale_markup, Price_2.markup_wh_goods,
                                   Price_2.grad_step, Price_2.wh_step, Price_2.access_pp, Price_2.unload_percent,
                                   Price_2.put_away_zp, Price_2.offers_wh, Price_2.price_b, Price_2.low_price,
                                   Price_2.count, Price_2.markup_pb, Price_2.code_pb_p, Price_2._06mult_new,

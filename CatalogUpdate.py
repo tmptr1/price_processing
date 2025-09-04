@@ -297,8 +297,8 @@ class CatalogUpdate(QThread):
                         "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
                         "max_decline": ["Макс снижение от базовой цены"],
                         "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
-                        "min_markup": ["Мин наценка"], "markup_wholesale": ["Наценка на оптовые товары"],
-                        "grad_step": ["Шаг градаци"],
+                        "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
+                        "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градаци"],
                         "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
                 sheet_name = "07Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
@@ -940,9 +940,9 @@ class CreateTotalCsv(QThread):
                                            "09Код + Поставщик + Товар", "10Оригинал",
                                            "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
                                            "17КодУникальности", "18КороткоеНаименование",
-                                           "19МинЦенаПоПрайсу", "20ИслючитьИзПрайса", "Отсрочка", "Продаём для ОС",
-                                           "Наценка для ОС", "Наценка Р",
-                                           "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градаци",
+                                           "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
+                                           "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
+                                           "Наценка на оптовые товары", "Шаг градаци",
                                            "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
                                            "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
                                            "Количество закупок", "% Отгрузки",
@@ -958,7 +958,7 @@ class CreateTotalCsv(QThread):
                                   TotalPrice_2._10original, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
                                   TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._19min_price, TotalPrice_2._20exclude,
                                   TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
-                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.markup_wh_goods,
+                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
                                   TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                                   TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.code_pb_p,
                                   TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,

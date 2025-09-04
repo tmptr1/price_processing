@@ -307,6 +307,8 @@ class Price_2(Base):
     markup_R: Mapped[real]
     # Мин_наценка REAL,
     min_markup: Mapped[real]
+    # Мин опт наценка
+    min_wholesale_markup: Mapped[real]
     # Наценка_на_оптовые_товары REAL,
     markup_wh_goods: Mapped[real]
     # Шаг_градаци REAL,
@@ -490,6 +492,8 @@ class TotalPrice_2(Base):
     markup_R: Mapped[real]
     # Мин_наценка REAL,
     min_markup: Mapped[real]
+    # Мин опт наценка
+    min_wholesale_markup: Mapped[real]
     # Наценка_на_оптовые_товары REAL,
     markup_wh_goods: Mapped[real]
     # Шаг_градаци REAL,
@@ -668,6 +672,8 @@ class Data07(Base):
     markup_R: Mapped[real]
     # Мин_наценка REAL,
     min_markup: Mapped[real]
+    # Мин опт наценка
+    min_wholesale_markup: Mapped[real]
     # Наценка_на_оптовые_товары REAL,
     markup_wholesale: Mapped[real]
     # Шаг_градаци REAL,
