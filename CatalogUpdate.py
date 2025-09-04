@@ -910,7 +910,6 @@ class CreateTotalCsv(QThread):
 
     def run(self):
         try:
-            report_parts_count = 4
             cur_time = datetime.datetime.now()
             self.log.add(LOG_ID, f"Формирование Итога ...",
                          f"Формирование <span style='color:{colors.green_log_color};font-weight:bold;'>Итога</span> ...")
@@ -924,49 +923,52 @@ class CreateTotalCsv(QThread):
                 sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
 
                 sess.commit()
-
-                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
-                #     if file.startswith('Страница'):
-                #         os.remove(fr"{path_to_res}/{file}")
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
+                    if file.startswith('pre Итог'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
 
                 limit = 1_048_500
+                report_parts_count = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit
+                if report_parts_count < 1:
+                    report_parts_count = 1
+
                 loaded = 0
                 for i in range(1, report_parts_count + 1):
                     df = pd.DataFrame(columns=["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
-                                           "Наименование поставщика",
-                                           "Количество поставщика", "Цена поставщика", "Кратность поставщика",
-                                           "Примечание поставщика", "01Артикул", "02Производитель",
-                                           "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-                                           "09Код + Поставщик + Товар", "10Оригинал",
-                                           "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-                                           "17КодУникальности", "18КороткоеНаименование",
-                                           "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
-                                           "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
-                                           "Наценка на оптовые товары", "Шаг градаци",
-                                           "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
-                                           "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
-                                           "Количество закупок", "% Отгрузки",
-                                           "Мин. Цена", "Мин. Поставщик"])
+                                               "Наименование поставщика",
+                                               "Количество поставщика", "Цена поставщика", "Кратность поставщика",
+                                               "Примечание поставщика", "01Артикул", "02Производитель",
+                                               "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
+                                               "09Код + Поставщик + Товар", "10Оригинал",
+                                               "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
+                                               "17КодУникальности", "18КороткоеНаименование",
+                                               "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
+                                               "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
+                                               "Наценка на оптовые товары", "Шаг градаци",
+                                               "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
+                                               "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
+                                               "Количество закупок", "% Отгрузки",
+                                               "Мин. Цена", "Мин. Поставщик"])
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
                         sep=';', decimal='.',
                         encoding="windows-1251", index=False, errors='ignore')
                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
-                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
-                                  TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
-                                  TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
-                                  TotalPrice_2._10original, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-                                  TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._19min_price, TotalPrice_2._20exclude,
-                                  TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
-                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
-                                  TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
-                                  TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.code_pb_p,
-                                  TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
-                                  TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
-                                  ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
-                                  # TotalPrice_2.max_decline, TotalPrice_2.markup_holidays,
-                                  # TotalPrice_2.low_price,
-                                  # TotalPrice_2.reserve_count,
+                                 TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
+                                 TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
+                                 TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
+                                 TotalPrice_2._10original, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
+                                 TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._19min_price, TotalPrice_2._20exclude,
+                                 TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
+                                 TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
+                                 TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
+                                 TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.code_pb_p,
+                                 TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
+                                 TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
+                                 ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
+                    # TotalPrice_2.max_decline, TotalPrice_2.markup_holidays,
+                    # TotalPrice_2.low_price,
+                    # TotalPrice_2.reserve_count,
                     df = pd.read_sql_query(req, sess.connection(), index_col=None)
 
                     df.to_csv(
@@ -976,6 +978,10 @@ class CreateTotalCsv(QThread):
 
                     df_len = len(df)
                     loaded += df_len
+
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Итог"):
+                    if file.startswith('Итог'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/Итог/{file}")
 
                 for i in range(1, report_parts_count + 1):
                     shutil.copy(
