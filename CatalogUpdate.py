@@ -933,7 +933,7 @@ class CreateTotalCsv(QThread):
                     report_parts_count = 1
 
                 loaded = 0
-                for i in range(1, report_parts_count + 1):
+                for i in range(1, int(report_parts_count) + 1):
                     df = pd.DataFrame(columns=["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
                                                "Наименование поставщика",
                                                "Количество поставщика", "Цена поставщика", "Кратность поставщика",
