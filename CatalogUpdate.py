@@ -526,13 +526,17 @@ class CreateBasePrice(QThread):
 
     def run(self):
         self.CreateBasePriceSignal.emit(False)
+        limit = 1_048_500
         try:
             catalog_name = 'Базовая цена'
             with session() as sess:
                 # report_parts_count = sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar()
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
-                report_parts_count = 4
+                # report_parts_count = 4
+                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+                if report_parts_count < 1:
+                    report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "base_price_update")).scalar()
                 h, m = hm.split()
                 hm_time = datetime.time(int(h), int(m))
@@ -632,12 +636,10 @@ class CreateBasePrice(QThread):
                 # connection.close()
                 #
                 # Удаление старых данных
-                # delete_files_from_dir(fr"{path_to_catalogs}/pre Справочник Базовая цена")
-                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
-                #     if file.startswith('Справочник Базовая цена - страница'):
-                #         os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/{file}")
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
+                    if file.startswith('Справочник Базовая цена - страница'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/{file}")
 
-                limit = 1_048_500
                 loaded = 0
                 for i in range(1, report_parts_count + 1):
                     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'ЦенаБ', 'Мин. Цена', 'Мин. Поставщик'])
@@ -664,6 +666,10 @@ class CreateBasePrice(QThread):
                 #                         as "Мин. Поставщик" FROM base_price ORDER BY Бренд OFFSET {} LIMIT {}""",
                 #                    host, user, password, db_name, report_parts_count)
                 #
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена"):
+                    if file.startswith('Справочник Базовая цена - страница'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/{file}")
+
                 for i in range(1, report_parts_count + 1):
                     shutil.copy(
                         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
@@ -697,13 +703,17 @@ class CreateMassOffers(QThread):
 
     def run(self):
         self.CreateMassOffersSignal.emit(False)
+        limit = 1_048_500
         try:
             catalog_name = 'Предложений в опте'
             with session() as sess:
                 # report_parts_count = sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar()
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
-                report_parts_count = 4
+                # report_parts_count = 4
+                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+                if report_parts_count < 1:
+                    report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "mass_offers_update")).scalar()
                 h, m = hm.split()
                 hm_time = datetime.time(int(h), int(m))
@@ -801,7 +811,10 @@ class CreateMassOffers(QThread):
 
                 sess.commit()
 
-                limit = 1_048_500
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте"):
+                    if file.startswith('Справочник Предложений в опте - страница'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/{file}")
+
                 loaded = 0
                 for i in range(1, report_parts_count + 1):
                     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'Предложений в опте'])
@@ -819,6 +832,10 @@ class CreateMassOffers(QThread):
 
                     df_len = len(df)
                     loaded += df_len
+
+                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте"):
+                    if file.startswith('Справочник Предложений в опте - страница'):
+                        os.remove(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/{file}")
 
                 for i in range(1, report_parts_count + 1):
                     shutil.copy(
@@ -924,16 +941,16 @@ class CreateTotalCsv(QThread):
 
                 sess.commit()
                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
-                    if file.startswith('pre Итог'):
+                    if file.startswith('pre Итог - страница'):
                         os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
 
                 limit = 1_048_500
-                report_parts_count = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit
+                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
                 if report_parts_count < 1:
                     report_parts_count = 1
 
                 loaded = 0
-                for i in range(1, int(report_parts_count) + 1):
+                for i in range(1, report_parts_count + 1):
                     df = pd.DataFrame(columns=["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
                                                "Наименование поставщика",
                                                "Количество поставщика", "Цена поставщика", "Кратность поставщика",
@@ -980,7 +997,7 @@ class CreateTotalCsv(QThread):
                     loaded += df_len
 
                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/Итог"):
-                    if file.startswith('Итог'):
+                    if file.startswith('Итог - страница'):
                         os.remove(fr"{settings_data['catalogs_dir']}/Итог/{file}")
 
                 for i in range(1, report_parts_count + 1):
