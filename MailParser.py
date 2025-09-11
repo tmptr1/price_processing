@@ -53,6 +53,8 @@ class MailParserClass(QThread):
                 # self.get_mail("86693", mail)
                 # self.get_mail("86422", mail)
                 # self.get_mail("86854", mail)
+                # self.get_mail("94946", mail)
+                # self.get_mail("94730", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -114,7 +116,18 @@ class MailParserClass(QThread):
             _, res = mail.uid('fetch', id, "(RFC822)")
             raw_email = res[0][1]
             msg = email.message_from_string(raw_email.decode("utf-8"))
-            if msg['X-Envelope-From']:
+            # msg = email.message_from_bytes(raw_email)
+            # print(msg.__dict__)
+            sender = None
+            try:
+            # if msg['From']:
+                sender = msg['From'].split(' ')[-1][1:-1]
+            except:
+                pass
+
+            if sender:
+                pass
+            elif msg['X-Envelope-From']:
                 sender = msg['X-Envelope-From']
             else:
                 sender = msg['Return-path']
@@ -166,15 +179,15 @@ class MailParserClass(QThread):
             #         f"SELECT Имя_файла, Условие_имени_файла, Код_прайса FROM Настройки_прайса_поставщика WHERE LOWER(Почта) = LOWER('{sender}') and Сохраняем = 'ДА'")
             #     data = cur.fetchall()
             # connection.close()
-            if not db_data:
-                # logger.info('Не подходит')
-                # logger.info('=' * 20)
-                self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span><br>"
-                                                               f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]{'*'*35}")
-                return
+                if not db_data:
+                    # logger.info('Не подходит')
+                    # logger.info('=' * 20)
+                    self.log.add(LOG_ID, f"Не подходит\n{'*'*35}", f"<span style='color:{colors.orange_log_color};'>Не подходит</span><br>"
+                                                                   f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]{'*'*35}")
+                    return
 
-            # print(data)
-            self.load_content(msg, tmp_archive_dir, tmp_dir, db_data, sender, received_time)
+                # print(data)
+                self.load_content(msg, tmp_archive_dir, tmp_dir, db_data, sender, received_time)
 
             # logger.info('=' * 20)
             self.log.add(LOG_ID, "*" * 35)
