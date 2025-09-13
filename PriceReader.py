@@ -46,10 +46,10 @@ class MainWorker(QThread):
     total_file_count = 0
     cur_file_count = 0
 
-    def __init__(self, log=None, sender=None, threads_count=None, parent=None):
+    def __init__(self, log=None, sender=None, parent=None): # threads_count=None
         self.log = log
         self.sender = sender
-        self.threads_count = threads_count
+        # self.threads_count = threads_count
         QThread.__init__(self, parent)
 
 
@@ -60,7 +60,7 @@ class MainWorker(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
 
-            self.threads_count = 1
+            # self.threads_count = 1
 
             # time.sleep(1)
             # print('C')
@@ -171,15 +171,15 @@ class MainWorker(QThread):
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
 
                 if new_files:
-                    self.log.add(LOG_ID, f"Начало обработки (потоков: {self.threads_count})")
+                    self.log.add(LOG_ID, f"Начало обработки") # (потоков: {self.threads_count})
                     cur_time = datetime.datetime.now()
                     # with session() as sess:
                     #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
                     #     sess.execute(text(f"ALTER SEQUENCE price_1_id_seq restart 1"))
                     #     sess.commit()
 
-                    if len(new_files) < self.threads_count:
-                        self.threads_count = len(new_files)
+                    # if len(new_files) < self.threads_count:
+                    #     self.threads_count = len(new_files)
 
                     self.StartTotalTimeSignal.emit(True)
                     self.sender.send(["new", len(new_files)])
@@ -354,9 +354,9 @@ class MainWorker(QThread):
                 cols_fix(price_code, sess)
 
                 # 01Артикул
-                sess.execute(update(Price_1).where(Price_1._01article == None).values(_01article=Price_1.article_s))
-                sess.execute(update(Price_1).values(_01article=Price_1._01article.regexp_replace(' +', ' ', 'g')
-                                                     .regexp_replace('^ | $', '', 'g')))
+                sess.execute(update(Price_1).where(Price_1._01article == None).values(_01article=func.upper(Price_1.article_s)))
+                sess.execute(update(Price_1).values(_01article=func.upper(Price_1._01article.regexp_replace(' +', ' ', 'g')
+                                                     .regexp_replace('^ | $', '', 'g'))))
 
                 # 02Производитель
                 sess.execute(update(Price_1).values(brand_s_low=func.lower(Price_1.brand_s)))
@@ -364,7 +364,7 @@ class MainWorker(QThread):
                                                         Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
 
                 # 14Производитель заполнен
-                sess.execute(update(Price_1).values(_14brand_filled_in=func.coalesce(Price_1._02brand, Price_1.brand_s)))
+                sess.execute(update(Price_1).values(_14brand_filled_in=func.upper(func.coalesce(Price_1._02brand, Price_1.brand_s))))
                 # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
                 #              .values(_14brand_filled_in=Price_1._02brand))
 
@@ -417,7 +417,7 @@ class MainWorker(QThread):
                 sess.execute(update(Price_1).where(or_(Price_1._06mult == None, Price_1._06mult < 1)).values(_06mult=1))
 
                 # 15КодТутОптТорг
-                sess.execute(update(Price_1).values(_15code_optt=func.upper(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W|_", "", 'g')))
+                sess.execute(update(Price_1).values(_15code_optt=(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W|_", "", 'g'))) # func.upper
 
 
                 # 20ИсключитьИзПрайса

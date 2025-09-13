@@ -13,6 +13,8 @@ from sqlalchemy.orm import sessionmaker
 
 import setting
 # print(os.getpid())
+with open('pid.txt', 'w') as file:
+    file.write(f"{os.getpid()}")
 
 setting.check_settings_file()
 engine = setting.get_engine()
@@ -62,6 +64,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MP = None
         self.ST = None
         self.MailReportReset = MailParser.MailReportDelete(log=Log)
+        self.MailReportResetUnloaded = MailParser.MailReportUnloadedDelete(log=Log)
         self.MailReportUpdate = MailParser.MailReportUpdate(log=Log)
 
         self.CatalogsUpdateTable = CatalogUpdate.CatalogsUpdateTable(log=Log)
@@ -95,9 +98,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.StartButton_0.clicked.connect(self.start_mail_parser)
         self.ToMailReportDirButton_0.clicked.connect(lambda _:self.open_dir(settings_data['catalogs_dir']))
         self.ToMailFilesDirButton_0.clicked.connect(lambda _:self.open_dir(settings_data['mail_files_dir']))
-        self.OpenReportButton_0.clicked.connect(lambda _:self.open_dir(fr"{settings_data['catalogs_dir']}/mail_report.csv"))
+        self.OpenReportButton_0.clicked.connect(lambda _:self.open_dir(fr"{settings_data['catalogs_dir']}/mail_report_unloaded.csv"))
         self.ResetMailReportButton_0.clicked.connect(
             lambda _: self.confirmed_message_box('Обнуление отчёта', 'Обнулить отчёт?', self.reset_mail_report_confirmed))
+        self.ResetMailReportUnloadedButton_0.clicked.connect(
+            lambda _: self.confirmed_message_box('Обнуление отчёта', 'Обнулить отчёт?', self.reset_mail_report_unloaded_confirmed))
         self.UpdateReportButton_0.clicked.connect(self.start_update_mail_report_table)
         self.LogButton_0.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[0]}"))
         self.LogButton_0.setToolTip("Открыть файл с логами")
@@ -106,7 +111,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MailReportUpdate.UpdateMailReportTime.connect(lambda x:self.TimeOfLastReportUpdatelabel_0.setText(x))
 
         self.model_0 = QStandardItemModel()
-        self.model_0.setHorizontalHeaderLabels(['Price code', 'Sender', 'File name', 'Date'])
+        # self.model_0.setHorizontalHeaderLabels(['Price code', 'Sender', 'File name', 'Date'])
+        self.model_0.setHorizontalHeaderLabels(['Sender', 'File name', 'Date'])
         self.MailStatusTable_0.setModel(self.model_0)
         self.MailStatusTable_0.verticalHeader().hide()
         self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
@@ -264,6 +270,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.start_mail_parser()
             self.start_mult()
             self.start_catalog_update()
+            self.start_calculate()
 
 
     def reset_db(self, btn):
@@ -334,6 +341,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if not self.MailReportReset.isRunning():
                 self.MailReportReset.start()
 
+    def reset_mail_report_unloaded_confirmed(self, btn):
+        if btn.text() == 'OK':    # именно капсом
+            if not self.MailReportResetUnloaded.isRunning():
+                self.MailReportResetUnloaded.start()
+
     def confirmed_message_box(self, title, msg, function, icon_type=QMessageBox.Question): # reset_mail_report
         ConfirmMsgBox = QMessageBox()
         ConfirmMsgBox.setWindowTitle(title)#'Обнуление отчёта')
@@ -378,7 +390,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.MW.isRunning():
             self.create_worker()
     def create_worker(self):
-        self.MW = MainWorker(log=Log, sender=self.sender, threads_count=self.ThreadSpinBox.value())
+        self.MW = MainWorker(log=Log, sender=self.sender) # threads_count=self.ThreadSpinBox.value()
         self.MW.SetButtonEnabledSignal.connect(
             lambda _: self.set_enabled_start_buttons(_, self.StartButton_1, self.PauseCheckBox_1))
         self.MW.start()
@@ -394,6 +406,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def create_mail_parser_class(self):
         self.MP = MailParser.MailParserClass(log=Log)
         self.MP.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_0, self.PauseCheckBox_0))
+        self.MP.UpdateReportSignal.connect(self.start_update_mail_report_table)
         self.MP.start()
 
     def set_total_time(self, start):

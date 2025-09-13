@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
@@ -142,7 +142,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="ResetMailReportButton_0">
+             <widget class="QPushButton" name="ResetMailReportUnloadedButton_0">
               <property name="text">
                <string>Обнулить отчёт</string>
               </property>
@@ -154,6 +154,16 @@
                 <width>15</width>
                 <height>15</height>
                </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="ResetMailReportButton_0">
+              <property name="text">
+               <string>Обнулить информацию о письмах в БД</string>
+              </property>
+              <property name="icon">
+               <iconset theme="QIcon::ThemeIcon::EditDelete"/>
               </property>
              </widget>
             </item>
@@ -318,44 +328,6 @@
               </property>
               <property name="text">
                <string>Пауза</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_11">
-              <property name="orientation">
-               <enum>Qt::Orientation::Horizontal</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Policy::Minimum</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>50</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
-             <widget class="QLabel" name="ThreadLabel_1">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-               </font>
-              </property>
-              <property name="text">
-               <string>Потоки</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSpinBox" name="ThreadSpinBox">
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>10</number>
               </property>
              </widget>
             </item>

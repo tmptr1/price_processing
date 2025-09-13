@@ -18,9 +18,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QCheckBox, QFrame,
     QGridLayout, QGroupBox, QHBoxLayout, QHeaderView,
     QLabel, QMainWindow, QMenuBar, QProgressBar,
-    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
-    QStatusBar, QTabWidget, QTableView, QTextBrowser,
-    QTimeEdit, QVBoxLayout, QWidget)
+    QPushButton, QSizePolicy, QSpacerItem, QStatusBar,
+    QTabWidget, QTableView, QTextBrowser, QTimeEdit,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -101,11 +101,17 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_5.addWidget(self.UpdateReportButton_0)
 
+        self.ResetMailReportUnloadedButton_0 = QPushButton(self.tab_2)
+        self.ResetMailReportUnloadedButton_0.setObjectName(u"ResetMailReportUnloadedButton_0")
+        icon3 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.EditDelete))
+        self.ResetMailReportUnloadedButton_0.setIcon(icon3)
+        self.ResetMailReportUnloadedButton_0.setIconSize(QSize(15, 15))
+
+        self.horizontalLayout_5.addWidget(self.ResetMailReportUnloadedButton_0)
+
         self.ResetMailReportButton_0 = QPushButton(self.tab_2)
         self.ResetMailReportButton_0.setObjectName(u"ResetMailReportButton_0")
-        icon3 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.EditDelete))
         self.ResetMailReportButton_0.setIcon(icon3)
-        self.ResetMailReportButton_0.setIconSize(QSize(15, 15))
 
         self.horizontalLayout_5.addWidget(self.ResetMailReportButton_0)
 
@@ -204,25 +210,6 @@ class Ui_MainWindow(object):
         self.PauseCheckBox_1.setEnabled(False)
 
         self.horizontalLayout_2.addWidget(self.PauseCheckBox_1)
-
-        self.horizontalSpacer_11 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_11)
-
-        self.ThreadLabel_1 = QLabel(self.tab)
-        self.ThreadLabel_1.setObjectName(u"ThreadLabel_1")
-        font2 = QFont()
-        font2.setPointSize(10)
-        self.ThreadLabel_1.setFont(font2)
-
-        self.horizontalLayout_2.addWidget(self.ThreadLabel_1)
-
-        self.ThreadSpinBox = QSpinBox(self.tab)
-        self.ThreadSpinBox.setObjectName(u"ThreadSpinBox")
-        self.ThreadSpinBox.setMinimum(1)
-        self.ThreadSpinBox.setMaximum(10)
-
-        self.horizontalLayout_2.addWidget(self.ThreadSpinBox)
 
         self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -782,6 +769,8 @@ class Ui_MainWindow(object):
 
         self.BasePriceLabel_2 = QLabel(self.groupBox)
         self.BasePriceLabel_2.setObjectName(u"BasePriceLabel_2")
+        font2 = QFont()
+        font2.setPointSize(10)
         self.BasePriceLabel_2.setFont(font2)
 
         self.gridLayout_8.addWidget(self.BasePriceLabel_2, 0, 0, 1, 1)
@@ -987,7 +976,8 @@ class Ui_MainWindow(object):
         self.ToMailFilesDirButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
         self.TableLabel_0.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0430\u0431\u043b\u0438\u0446\u0430 \u0441 \u043d\u0435\u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u043c\u0438 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438:", None))
         self.UpdateReportButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.ResetMailReportButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.ResetMailReportUnloadedButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.ResetMailReportButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u044e \u043e \u043f\u0438\u0441\u044c\u043c\u0430\u0445 \u0432 \u0411\u0414", None))
         self.OpenReportButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.ToMailReportDirButton_0.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043e\u0442\u0447\u0451\u0442\u043e\u043c", None))
         self.Label_0.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043e\u0442\u0447\u0451\u0442\u0430:", None))
@@ -1008,7 +998,6 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0447\u0442\u0430", None))
         self.StartButton_1.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u043a", None))
         self.PauseCheckBox_1.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
-        self.ThreadLabel_1.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0442\u043e\u043a\u0438", None))
         self.ToFilesDirButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
         self.LogButton_1.setText("")
         self.NotMatchedLabel_1.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u043f\u0440\u0430\u0439\u0441\u043e\u0432:", None))

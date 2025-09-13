@@ -89,6 +89,16 @@ class MailReport(Base):
     # date: Mapped[str_x(256)]
     date: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
+class MailReportUnloaded(Base):
+    __tablename__ = "mail_report_unloaded"
+    id: Mapped[uuidpk]
+    # sender varchar(256),
+    sender: Mapped[str_x(256)]
+    # file_name varchar(256),
+    file_name: Mapped[str_x(256)]
+    # date: Mapped[str_x(256)]
+    date: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
 class SumTable(Base):
     __tablename__ = "sum_table"
     # __table_args__ = (#Index("sum_table_id_compare_index", "id_compare"),
@@ -237,7 +247,7 @@ class Price_2(Base):
     __tablename__ = "price_2"
     __table_args__ = (Index("price_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
-                      Index("price_2_07supplier_code_14brand_filled_in_low_index", "_07supplier_code", "_14brand_filled_in_low"),
+                      # Index("price_2_07supplier_code_14brand_filled_in_low_index", "_07supplier_code", "_14brand_filled_in_low"),
                       Index("price_2_15code_optt_index", "_15code_optt"),)
 
     id: Mapped[intpk]
@@ -280,7 +290,7 @@ class Price_2(Base):
     _13grad: Mapped[intgr]
     # _14Производитель_заполнен varchar(1000),
     _14brand_filled_in: Mapped[str_x(256)]
-    _14brand_filled_in_low: Mapped[str_x(256)]
+    # _14brand_filled_in_low: Mapped[str_x(256)]
     # _15КодТутОптТорг varchar(256),
     _15code_optt: Mapped[str_x(256)]
     # _17КодУникальности varchar(500),
@@ -687,7 +697,7 @@ class Data07(Base):
 #
 class Data07_14(Base):
     __tablename__ = "data07_14"
-    __table_args__ = (Index("data07_14_setting_correct_low_index", "setting", "correct_low"),)
+    __table_args__ = (Index("data07_14_setting_correct_index", "setting", "correct"),)
 
     # id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     id: Mapped[intpk]
@@ -701,7 +711,7 @@ class Data07_14(Base):
     max_decline: Mapped[real]
     # Правильное varchar(256),
     correct: Mapped[str_x(256)]
-    correct_low: Mapped[str_x(256)]
+    # correct_low: Mapped[str_x(256)]
     # Наценка_ПБ REAL,
     markup_pb: Mapped[real]
     # Код_ПБ_П varchar)

@@ -119,6 +119,10 @@ class CatalogUpdate(QThread):
                                                                  TotalPrice_1.currency_s != None)).values(
                         {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
 
+                    sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._14brand_filled_in == dscnt.find,
+                                                                 TotalPrice_2.currency_s != None)).values(
+                        {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
+
                 # для пересчёта прайсов, где указана валюта
                 prices_with_curr = sess.execute(select(distinct(TotalPrice_1._07supplier_code)).
                                                 where(TotalPrice_1.currency_s != None)).scalars().all()
@@ -215,6 +219,7 @@ class CatalogUpdate(QThread):
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
                 sheet_name = "ИсправНомПоУсл"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                sess.execute(update(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])).values(find=func.upper(ColsFix.find)))
                 # sess.query(ArticleFix).filter(ArticleFix.price_code == None).delete()
 
                 table_name = 'brands'
@@ -289,7 +294,7 @@ class CatalogUpdate(QThread):
                         "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
                 sheet_name = "07&14Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                sess.execute(update(Data07_14).values(correct_low=func.lower(Data07_14.correct)))
+                # sess.execute(update(Data07_14).values(correct_up=func.upper(Data07_14.correct)))
 
                 table_name = 'data07'
                 table_class = Data07
@@ -534,7 +539,7 @@ class CreateBasePrice(QThread):
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
                 # report_parts_count = 4
-                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
                 if report_parts_count < 1:
                     report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "base_price_update")).scalar()
@@ -711,7 +716,7 @@ class CreateMassOffers(QThread):
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
                 # report_parts_count = 4
-                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
                 if report_parts_count < 1:
                     report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "mass_offers_update")).scalar()
@@ -945,7 +950,7 @@ class CreateTotalCsv(QThread):
                         os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
 
                 limit = 1_048_500
-                report_parts_count = int(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
                 if report_parts_count < 1:
                     report_parts_count = 1
 

@@ -181,7 +181,7 @@ class CalculateClass(QThread):
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
                 sess.execute(insert(Price_2).from_select(cols_for_price.values(), price))
-                sess.execute(update(Price_2).values(_14brand_filled_in_low=Price_2._14brand_filled_in))
+                # sess.execute(update(Price_2).values(_14brand_filled_in_low=Price_2._14brand_filled_in))
 
                 # Удаление по первому условию
                 del_positions_1 = sess.query(Price_2).where(or_(Price_2._04count < 1, Price_2._04count == None, Price_2._05price <= 0,
@@ -240,7 +240,7 @@ class CalculateClass(QThread):
                 cur_time = datetime.datetime.now()
 
                 sess.execute(update(Price_2).where(and_(Price_2._07supplier_code == Data07_14.setting,
-                                                        Price_2._14brand_filled_in_low == Data07_14.correct_low))
+                                                        Price_2._14brand_filled_in == Data07_14.correct))
                              .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
 
                 self.add_log(price_code, 'data 07&14', cur_time)
