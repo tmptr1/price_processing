@@ -255,11 +255,13 @@ class CalculateClass(QThread):
                 sess.execute(update(Price_2).where(and_(Price_2._06mult_new == None,
                                                         Price_2.markup_holidays > Price_2._05price * Price_2._04count))
                              .values(_06mult_new=Price_2._04count))
+                # sess.execute(update(Price_2).where(Price_2._06mult_new == None)
+                #              .values(_06mult_new=func.ceil(func.greatest(Price_2._06mult, Price_2.markup_holidays / Price_2._05price) /
+                #                                            Price_2._06mult) * Price_2._06mult))
                 sess.execute(update(Price_2).where(Price_2._06mult_new == None)
-                             .values(_06mult_new=func.ceil(func.greatest(Price_2._06mult, Price_2.markup_holidays / Price_2._05price) /
-                                                           Price_2._06mult) * Price_2._06mult))
+                             .values(_06mult_new=func.ceil(func.greatest(Price_2._06mult, Price_2.markup_holidays / Price_2._05price))))
 
-                sess.execute(update(Price_2).where(Price_2.markup_holidays > Price_2._05price * Price_2._04count).values(_05price_plus=Price_2._05price))
+                sess.execute(update(Price_2).where(Price_2.markup_holidays > Price_2._05price * Price_2._04count).values(_05price_plus=Price_2.markup_holidays / Price_2._04count))
                 sess.execute(update(Price_2).where(Price_2._05price_plus == None).values(_05price_plus=Price_2._05price))
 
                 sess.execute(update(Price_2).where(Price_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))

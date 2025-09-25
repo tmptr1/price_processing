@@ -44,7 +44,8 @@ class MailParserClass(QThread):
         wait_sec = 180
 
         while not self.isPause:
-            self.UpdateReportSignal.emit(True)
+            # self.delete_irrelevant_prices()
+            # self.UpdateReportSignal.emit(True)
             start_cycle_time = datetime.datetime.now()
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
             self.now_time = datetime.datetime.now().strftime("%d-%b-%Y")
@@ -56,7 +57,8 @@ class MailParserClass(QThread):
                 # self.get_mail("86422", mail)
                 # self.get_mail("86854", mail)
                 # self.get_mail("94946", mail)
-                # self.get_mail("94730", mail)
+                # self.get_mail("97738", mail)
+                # self.get_mail("97739", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -103,6 +105,8 @@ class MailParserClass(QThread):
                 ex_text = traceback.format_exc()
                 self.log.error(LOG_ID, "ERROR", ex_text)
 
+            self.UpdateReportSignal.emit(True)
+
             # проверка на паузу
             finish_cycle_time = datetime.datetime.now()
             if wait_sec > (finish_cycle_time - start_cycle_time).seconds:
@@ -113,6 +117,20 @@ class MailParserClass(QThread):
         else:
             self.SetButtonEnabledSignal.emit(True)
 
+    # def delete_irrelevant_prices(self):
+    #     try:
+    #         with session() as sess:
+    #             price_list = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
+    #             # print(price_list)
+    #         for price in os.listdir(f"{settings_data['mail_files_dir']}"):
+    #             price_code = price[:4]
+    #             if price_code not in price_list:
+    #                 os.remove(fr"{settings_data['mail_files_dir']}\{price}")
+    #
+    #     except Exception as del_ip_ex:
+    #         ex_text = traceback.format_exc()
+    #         self.log.error(LOG_ID, "ERROR", ex_text)
+
     def get_mail(self, id, mail):
         try:
             _, res = mail.uid('fetch', id, "(RFC822)")
@@ -122,8 +140,11 @@ class MailParserClass(QThread):
             # print(msg.__dict__)
             sender = None
             try:
-            # if msg['From']:
-                sender = msg['From'].split(' ')[-1][1:-1]
+                msg_from = msg['From'].split(' ')
+                if len(msg_from) > 1:
+                    sender = msg_from[-1][1:-1]
+                else:
+                    sender = msg['From']
             except:
                 pass
 
