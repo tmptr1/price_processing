@@ -59,8 +59,8 @@ class MailParserClass(QThread):
                 # self.get_mail("94946", mail)
                 # self.get_mail("97738", mail)
                 # self.get_mail("97739", mail)
-                self.get_mail("97390", mail)
-                return
+                # self.get_mail("97390", mail)
+                # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
 
