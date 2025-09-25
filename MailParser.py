@@ -59,7 +59,8 @@ class MailParserClass(QThread):
                 # self.get_mail("94946", mail)
                 # self.get_mail("97738", mail)
                 # self.get_mail("97739", mail)
-                # return
+                self.get_mail("97390", mail)
+                return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
 
@@ -145,6 +146,11 @@ class MailParserClass(QThread):
                     sender = msg_from[-1][1:-1]
                 else:
                     sender = msg['From']
+                if len(sender) > 1 and sender[0] == '<':
+                    sender = sender[1:]
+                if len(sender) > 1 and sender[-1] == '>':
+                    sender = sender[:-1]
+                print(sender)
             except:
                 pass
 
