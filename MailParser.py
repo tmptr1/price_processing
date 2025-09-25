@@ -150,7 +150,7 @@ class MailParserClass(QThread):
                     sender = sender[1:]
                 if len(sender) > 1 and sender[-1] == '>':
                     sender = sender[:-1]
-                print(sender)
+                # print(sender)
             except:
                 pass
 
