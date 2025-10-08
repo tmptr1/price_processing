@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1107, 824)
+        MainWindow.resize(1107, 833)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -595,10 +595,10 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_4, "")
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
-        self.gridLayout_10 = QGridLayout(self.tab_3)
-        self.gridLayout_10.setObjectName(u"gridLayout_10")
-        self.verticalLayout_4 = QVBoxLayout()
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.gridLayout_13 = QGridLayout(self.tab_3)
+        self.gridLayout_13.setObjectName(u"gridLayout_13")
+        self.verticalLayout_3 = QVBoxLayout()
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.horizontalLayout_11 = QHBoxLayout()
         self.horizontalLayout_11.setObjectName(u"horizontalLayout_11")
         self.StartButton_2 = QPushButton(self.tab_3)
@@ -627,11 +627,11 @@ class Ui_MainWindow(object):
         self.horizontalLayout_11.addWidget(self.ToReportDirButton_2)
 
 
-        self.verticalLayout_4.addLayout(self.horizontalLayout_11)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_11)
 
         self.verticalSpacer_3 = QSpacerItem(20, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.verticalLayout_4.addItem(self.verticalSpacer_3)
+        self.verticalLayout_3.addItem(self.verticalSpacer_3)
 
         self.gridLayout_6 = QGridLayout()
         self.gridLayout_6.setObjectName(u"gridLayout_6")
@@ -718,14 +718,14 @@ class Ui_MainWindow(object):
         self.gridLayout_6.setColumnStretch(3, 10)
         self.gridLayout_6.setColumnStretch(4, 3)
 
-        self.verticalLayout_4.addLayout(self.gridLayout_6)
+        self.verticalLayout_3.addLayout(self.gridLayout_6)
 
         self.verticalSpacer_6 = QSpacerItem(20, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.verticalLayout_4.addItem(self.verticalSpacer_6)
+        self.verticalLayout_3.addItem(self.verticalSpacer_6)
 
-        self.gridLayout_9 = QGridLayout()
-        self.gridLayout_9.setObjectName(u"gridLayout_9")
+        self.gridLayout_10 = QGridLayout()
+        self.gridLayout_10.setObjectName(u"gridLayout_10")
         self.horizontalLayout_12 = QHBoxLayout()
         self.horizontalLayout_12.setObjectName(u"horizontalLayout_12")
         self.horizontalSpacer_16 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -739,20 +739,140 @@ class Ui_MainWindow(object):
         self.horizontalLayout_12.addWidget(self.LogButton_2)
 
 
-        self.gridLayout_9.addLayout(self.horizontalLayout_12, 0, 0, 1, 1)
+        self.gridLayout_10.addLayout(self.horizontalLayout_12, 0, 0, 1, 1)
 
         self.horizontalSpacer_19 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout_9.addItem(self.horizontalSpacer_19, 0, 1, 1, 1)
+        self.gridLayout_10.addItem(self.horizontalSpacer_19, 0, 1, 1, 1)
 
         self.ConsoleTextBrowser_2 = QTextBrowser(self.tab_3)
         self.ConsoleTextBrowser_2.setObjectName(u"ConsoleTextBrowser_2")
         self.ConsoleTextBrowser_2.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
-        self.gridLayout_9.addWidget(self.ConsoleTextBrowser_2, 1, 0, 1, 1)
+        self.gridLayout_10.addWidget(self.ConsoleTextBrowser_2, 1, 0, 1, 1)
 
-        self.verticalLayout_3 = QVBoxLayout()
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.gridLayout_9 = QGridLayout()
+        self.gridLayout_9.setObjectName(u"gridLayout_9")
+        self.verticalSpacer_11 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_9.addItem(self.verticalSpacer_11, 2, 1, 1, 1)
+
+        self.horizontalLayout_24 = QHBoxLayout()
+        self.horizontalLayout_24.setObjectName(u"horizontalLayout_24")
+        self.TgNotificationLabel_2 = QLabel(self.tab_3)
+        self.TgNotificationLabel_2.setObjectName(u"TgNotificationLabel_2")
+        font2 = QFont()
+        font2.setPointSize(10)
+        self.TgNotificationLabel_2.setFont(font2)
+
+        self.horizontalLayout_24.addWidget(self.TgNotificationLabel_2)
+
+        self.Tg_timeEdit_2 = QTimeEdit(self.tab_3)
+        self.Tg_timeEdit_2.setObjectName(u"Tg_timeEdit_2")
+
+        self.horizontalLayout_24.addWidget(self.Tg_timeEdit_2)
+
+        self.TgNTimeSaveButton_2 = QPushButton(self.tab_3)
+        self.TgNTimeSaveButton_2.setObjectName(u"TgNTimeSaveButton_2")
+
+        self.horizontalLayout_24.addWidget(self.TgNTimeSaveButton_2)
+
+
+        self.gridLayout_9.addLayout(self.horizontalLayout_24, 3, 0, 2, 2)
+
+        self.horizontalLayout_14 = QHBoxLayout()
+        self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
+        self.horizontalSpacer_20 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_14.addItem(self.horizontalSpacer_20)
+
+        self.ResetDBButton_2 = QPushButton(self.tab_3)
+        self.ResetDBButton_2.setObjectName(u"ResetDBButton_2")
+
+        self.horizontalLayout_14.addWidget(self.ResetDBButton_2)
+
+        self.horizontalSpacer_21 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_14.addItem(self.horizontalSpacer_21)
+
+
+        self.gridLayout_9.addLayout(self.horizontalLayout_14, 11, 0, 1, 2)
+
+        self.verticalSpacer_7 = QSpacerItem(20, 17, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_9.addItem(self.verticalSpacer_7, 10, 0, 1, 2)
+
+        self.horizontalLayout_23 = QHBoxLayout()
+        self.horizontalLayout_23.setObjectName(u"horizontalLayout_23")
+        self.horizontalSpacer_24 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_23.addItem(self.horizontalSpacer_24)
+
+        self.CreateTotalCsv_2 = QPushButton(self.tab_3)
+        self.CreateTotalCsv_2.setObjectName(u"CreateTotalCsv_2")
+
+        self.horizontalLayout_23.addWidget(self.CreateTotalCsv_2)
+
+        self.horizontalSpacer_31 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_23.addItem(self.horizontalSpacer_31)
+
+
+        self.gridLayout_9.addLayout(self.horizontalLayout_23, 8, 0, 1, 2)
+
+        self.verticalSpacer_5 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_9.addItem(self.verticalSpacer_5, 12, 0, 1, 2)
+
+        self.groupBox_2 = QGroupBox(self.tab_3)
+        self.groupBox_2.setObjectName(u"groupBox_2")
+        self.gridLayout_7 = QGridLayout(self.groupBox_2)
+        self.gridLayout_7.setObjectName(u"gridLayout_7")
+        self.OpenPriceStatusButton_2 = QPushButton(self.groupBox_2)
+        self.OpenPriceStatusButton_2.setObjectName(u"OpenPriceStatusButton_2")
+
+        self.gridLayout_7.addWidget(self.OpenPriceStatusButton_2, 1, 3, 1, 1)
+
+        self.CreatePriceStatusButton_2 = QPushButton(self.groupBox_2)
+        self.CreatePriceStatusButton_2.setObjectName(u"CreatePriceStatusButton_2")
+
+        self.gridLayout_7.addWidget(self.CreatePriceStatusButton_2, 1, 1, 1, 1)
+
+        self.ResetMailReporButton_2 = QPushButton(self.groupBox_2)
+        self.ResetMailReporButton_2.setObjectName(u"ResetMailReporButton_2")
+
+        self.gridLayout_7.addWidget(self.ResetMailReporButton_2, 2, 2, 1, 1)
+
+        self.OpenMailReporButton_2 = QPushButton(self.groupBox_2)
+        self.OpenMailReporButton_2.setObjectName(u"OpenMailReporButton_2")
+
+        self.gridLayout_7.addWidget(self.OpenMailReporButton_2, 2, 3, 1, 1)
+
+        self.MailReportLabel_2 = QLabel(self.groupBox_2)
+        self.MailReportLabel_2.setObjectName(u"MailReportLabel_2")
+        self.MailReportLabel_2.setFont(font2)
+
+        self.gridLayout_7.addWidget(self.MailReportLabel_2, 2, 0, 1, 1)
+
+        self.CreateMailReporButton_2 = QPushButton(self.groupBox_2)
+        self.CreateMailReporButton_2.setObjectName(u"CreateMailReporButton_2")
+
+        self.gridLayout_7.addWidget(self.CreateMailReporButton_2, 2, 1, 1, 1)
+
+        self.PriceStatusLabel_2 = QLabel(self.groupBox_2)
+        self.PriceStatusLabel_2.setObjectName(u"PriceStatusLabel_2")
+        self.PriceStatusLabel_2.setFont(font2)
+
+        self.gridLayout_7.addWidget(self.PriceStatusLabel_2, 1, 0, 1, 1)
+
+        self.ResetPriceStatusButton_2 = QPushButton(self.groupBox_2)
+        self.ResetPriceStatusButton_2.setObjectName(u"ResetPriceStatusButton_2")
+
+        self.gridLayout_7.addWidget(self.ResetPriceStatusButton_2, 1, 2, 1, 1)
+
+
+        self.gridLayout_9.addWidget(self.groupBox_2, 6, 0, 1, 2)
+
         self.groupBox = QGroupBox(self.tab_3)
         self.groupBox.setObjectName(u"groupBox")
         self.gridLayout_8 = QGridLayout(self.groupBox)
@@ -769,8 +889,6 @@ class Ui_MainWindow(object):
 
         self.BasePriceLabel_2 = QLabel(self.groupBox)
         self.BasePriceLabel_2.setObjectName(u"BasePriceLabel_2")
-        font2 = QFont()
-        font2.setPointSize(10)
         self.BasePriceLabel_2.setFont(font2)
 
         self.gridLayout_8.addWidget(self.BasePriceLabel_2, 0, 0, 1, 1)
@@ -802,7 +920,18 @@ class Ui_MainWindow(object):
         self.gridLayout_8.addWidget(self.OpenMassOffersButton_2, 1, 3, 1, 1)
 
 
-        self.verticalLayout_3.addWidget(self.groupBox)
+        self.gridLayout_9.addWidget(self.groupBox, 0, 0, 1, 2)
+
+        self.verticalSpacer_10 = QSpacerItem(20, 17, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_9.addItem(self.verticalSpacer_10, 7, 0, 1, 2)
+
+        self.TotalCountLabel_2 = QLabel(self.tab_3)
+        self.TotalCountLabel_2.setObjectName(u"TotalCountLabel_2")
+        self.TotalCountLabel_2.setFont(font)
+        self.TotalCountLabel_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.gridLayout_9.addWidget(self.TotalCountLabel_2, 9, 0, 1, 2)
 
         self.horizontalLayout_13 = QHBoxLayout()
         self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
@@ -822,131 +951,26 @@ class Ui_MainWindow(object):
         self.horizontalLayout_13.addItem(self.horizontalSpacer_18)
 
 
-        self.verticalLayout_3.addLayout(self.horizontalLayout_13)
+        self.gridLayout_9.addLayout(self.horizontalLayout_13, 1, 0, 1, 2)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.verticalSpacer_4 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.verticalLayout_3.addItem(self.verticalSpacer_4)
-
-        self.groupBox_2 = QGroupBox(self.tab_3)
-        self.groupBox_2.setObjectName(u"groupBox_2")
-        self.gridLayout_7 = QGridLayout(self.groupBox_2)
-        self.gridLayout_7.setObjectName(u"gridLayout_7")
-        self.ResetMailReporButton_2 = QPushButton(self.groupBox_2)
-        self.ResetMailReporButton_2.setObjectName(u"ResetMailReporButton_2")
-
-        self.gridLayout_7.addWidget(self.ResetMailReporButton_2, 1, 2, 1, 1)
-
-        self.CreateMailReporButton_2 = QPushButton(self.groupBox_2)
-        self.CreateMailReporButton_2.setObjectName(u"CreateMailReporButton_2")
-
-        self.gridLayout_7.addWidget(self.CreateMailReporButton_2, 1, 1, 1, 1)
-
-        self.MailReportLabel_2 = QLabel(self.groupBox_2)
-        self.MailReportLabel_2.setObjectName(u"MailReportLabel_2")
-        self.MailReportLabel_2.setFont(font2)
-
-        self.gridLayout_7.addWidget(self.MailReportLabel_2, 1, 0, 1, 1)
-
-        self.PriceStatusLabel_2 = QLabel(self.groupBox_2)
-        self.PriceStatusLabel_2.setObjectName(u"PriceStatusLabel_2")
-        self.PriceStatusLabel_2.setFont(font2)
-
-        self.gridLayout_7.addWidget(self.PriceStatusLabel_2, 0, 0, 1, 1)
-
-        self.CreatePriceStatusButton_2 = QPushButton(self.groupBox_2)
-        self.CreatePriceStatusButton_2.setObjectName(u"CreatePriceStatusButton_2")
-
-        self.gridLayout_7.addWidget(self.CreatePriceStatusButton_2, 0, 1, 1, 1)
-
-        self.ResetPriceStatusButton_2 = QPushButton(self.groupBox_2)
-        self.ResetPriceStatusButton_2.setObjectName(u"ResetPriceStatusButton_2")
-
-        self.gridLayout_7.addWidget(self.ResetPriceStatusButton_2, 0, 2, 1, 1)
-
-        self.OpenPriceStatusButton_2 = QPushButton(self.groupBox_2)
-        self.OpenPriceStatusButton_2.setObjectName(u"OpenPriceStatusButton_2")
-
-        self.gridLayout_7.addWidget(self.OpenPriceStatusButton_2, 0, 3, 1, 1)
-
-        self.OpenMailReporButton_2 = QPushButton(self.groupBox_2)
-        self.OpenMailReporButton_2.setObjectName(u"OpenMailReporButton_2")
-
-        self.gridLayout_7.addWidget(self.OpenMailReporButton_2, 1, 3, 1, 1)
+        self.gridLayout_9.addItem(self.verticalSpacer_4, 5, 0, 1, 1)
 
 
-        self.verticalLayout_3.addWidget(self.groupBox_2)
+        self.gridLayout_10.addLayout(self.gridLayout_9, 1, 1, 1, 1)
 
-        self.verticalSpacer_10 = QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.gridLayout_10.setColumnStretch(0, 5)
+        self.gridLayout_10.setColumnStretch(1, 3)
 
-        self.verticalLayout_3.addItem(self.verticalSpacer_10)
+        self.verticalLayout_3.addLayout(self.gridLayout_10)
 
-        self.horizontalLayout_23 = QHBoxLayout()
-        self.horizontalLayout_23.setObjectName(u"horizontalLayout_23")
-        self.horizontalSpacer_24 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.verticalLayout_3.setStretch(1, 1)
+        self.verticalLayout_3.setStretch(2, 25)
+        self.verticalLayout_3.setStretch(3, 1)
+        self.verticalLayout_3.setStretch(4, 40)
 
-        self.horizontalLayout_23.addItem(self.horizontalSpacer_24)
-
-        self.CreateTotalCsv_2 = QPushButton(self.tab_3)
-        self.CreateTotalCsv_2.setObjectName(u"CreateTotalCsv_2")
-
-        self.horizontalLayout_23.addWidget(self.CreateTotalCsv_2)
-
-        self.horizontalSpacer_31 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_23.addItem(self.horizontalSpacer_31)
-
-
-        self.verticalLayout_3.addLayout(self.horizontalLayout_23)
-
-        self.TotalCountLabel_2 = QLabel(self.tab_3)
-        self.TotalCountLabel_2.setObjectName(u"TotalCountLabel_2")
-        self.TotalCountLabel_2.setFont(font)
-        self.TotalCountLabel_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout_3.addWidget(self.TotalCountLabel_2)
-
-        self.verticalSpacer_7 = QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-
-        self.verticalLayout_3.addItem(self.verticalSpacer_7)
-
-        self.horizontalLayout_14 = QHBoxLayout()
-        self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
-        self.horizontalSpacer_20 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_14.addItem(self.horizontalSpacer_20)
-
-        self.ResetDBButton_2 = QPushButton(self.tab_3)
-        self.ResetDBButton_2.setObjectName(u"ResetDBButton_2")
-
-        self.horizontalLayout_14.addWidget(self.ResetDBButton_2)
-
-        self.horizontalSpacer_21 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_14.addItem(self.horizontalSpacer_21)
-
-
-        self.verticalLayout_3.addLayout(self.horizontalLayout_14)
-
-        self.verticalSpacer_5 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_3.addItem(self.verticalSpacer_5)
-
-
-        self.gridLayout_9.addLayout(self.verticalLayout_3, 1, 1, 1, 1)
-
-        self.gridLayout_9.setColumnStretch(0, 7)
-        self.gridLayout_9.setColumnStretch(1, 3)
-
-        self.verticalLayout_4.addLayout(self.gridLayout_9)
-
-        self.verticalLayout_4.setStretch(0, 3)
-        self.verticalLayout_4.setStretch(1, 1)
-        self.verticalLayout_4.setStretch(2, 20)
-        self.verticalLayout_4.setStretch(3, 1)
-        self.verticalLayout_4.setStretch(4, 40)
-
-        self.gridLayout_10.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
+        self.gridLayout_13.addLayout(self.verticalLayout_3, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_3, "")
 
@@ -1036,6 +1060,19 @@ class Ui_MainWindow(object):
         self.CatalogUpdateTime_TimeLabel2.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.CurrencyTable_TimeLabel2.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.LogButton_2.setText("")
+        self.TgNotificationLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0432 Telegram", None))
+        self.TgNTimeSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
+        self.ResetDBButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u0411\u0414", None))
+        self.CreateTotalCsv_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0438\u0442\u043e\u0433\u043e\u0432\u044b\u0439 \u043f\u0440\u0430\u0439\u0441", None))
+        self.groupBox_2.setTitle("")
+        self.OpenPriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
+        self.CreatePriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.ResetMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.OpenMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
+        self.MailReportLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u0447\u0451\u0442 \u043f\u043e\u0447\u0442\u0430", None))
+        self.CreateMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
+        self.PriceStatusLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043f\u0440\u0430\u0439\u0441\u043e\u0432", None))
+        self.ResetPriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.groupBox.setTitle("")
         self.CreateBasePriceButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))
         self.BasePriceLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0411\u0430\u0437\u043e\u0432\u0430\u044f \u0446\u0435\u043d\u0430", None))
@@ -1043,19 +1080,8 @@ class Ui_MainWindow(object):
         self.MassOffersLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0439 \u0432 \u043e\u043f\u0442\u0435", None))
         self.OpenBasePriceButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.OpenMassOffersButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
-        self.TimeSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432\u0440\u0435\u043c\u044f", None))
-        self.groupBox_2.setTitle("")
-        self.ResetMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.CreateMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.MailReportLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u0447\u0451\u0442 \u043f\u043e\u0447\u0442\u0430", None))
-        self.PriceStatusLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u043f\u0440\u0430\u0439\u0441\u043e\u0432", None))
-        self.CreatePriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.ResetPriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
-        self.OpenPriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
-        self.OpenMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
-        self.CreateTotalCsv_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0438\u0442\u043e\u0433\u043e\u0432\u044b\u0439 \u043f\u0440\u0430\u0439\u0441", None))
         self.TotalCountLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0441\u0435\u0433\u043e \u043f\u043e\u0437\u0438\u0446\u0438\u0439: -", None))
-        self.ResetDBButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u0411\u0414", None))
+        self.TimeSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432\u0440\u0435\u043c\u044f", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", u"\u0421\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438", None))
     # retranslateUi
 

@@ -8,7 +8,7 @@ import datetime
 import os
 from multiprocessing import Pipe
 import multiprocessing as mp
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.orm import sessionmaker
 
 import setting
@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MW = None
         self.MP = None
         self.ST = None
+        self.STT = None
         self.MailReportReset = MailParser.MailReportDelete(log=Log)
         self.MailReportResetUnloaded = MailParser.MailReportUnloadedDelete(log=Log)
         self.MailReportUpdate = MailParser.MailReportUpdate(log=Log)
@@ -244,7 +245,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 h, m = str(times[t]).split(" ")
                 time_edits[t].setTime(QTime(int(h), int(m)))
 
+        with sessionmaker(engine)() as sess:
+            req = select(AppSettings).where(AppSettings.param=='tg_notification_time')
+            tg_time = sess.execute(req).scalar()
+            h, m = map(int, str(tg_time.var).split())
+            self.Tg_timeEdit_2.setTime(QTime(h, m))
+
+
         self.TimeSaveButton_2.clicked.connect(self.save_catalogs_time_update)
+        self.TgNTimeSaveButton_2.clicked.connect(self.save_tg_time)
 
 
         self.timers = dict()
@@ -281,7 +290,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     # sess.commit()
                     Base.metadata.drop_all(engine)
                     Base.metadata.create_all(engine)
-                    sess.add_all([AppSettings(param="base_price_update", var="0 15"), AppSettings(param="mass_offers_update", var="0 15")])
+                    sess.add_all([AppSettings(param="base_price_update", var="0 15"), AppSettings(param="mass_offers_update", var="0 15"),
+                                  AppSettings(param="tg_notification_time", var="19 0"), AppSettings(param="last_tg_notification_time", var="2025-01-01 01:01:01")])
                     sess.commit()
                 print('БД обновлена')
             except Exception as ex:
@@ -298,6 +308,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif not self.ST.isRunning():
             self.ST = CatalogUpdate.SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
             self.ST.start()
+
+    def save_tg_time(self):
+        if not self.STT:
+            self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
+            self.STT.start()
+        elif not self.STT.isRunning():
+            self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
+            self.STT.start()
 
     def update_price_1_report_table(self):
         if not self.PriceReportUpdate.isRunning():

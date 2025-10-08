@@ -13,12 +13,17 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07,
                     Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport)
+from telebot import TeleBot
 import colors
+from tg_users_id import USERS, TG_TOKEN
 from PriceReader import apply_discount
+
 import setting
 engine = setting.get_engine()
 session = sessionmaker(engine)
 settings_data = setting.get_vars()
+
+tg_bot = TeleBot(TG_TOKEN)
 
 PARAM_LIST = ["base_price_update", "mass_offers_update"]
 CHUNKSIZE = int(settings_data["chunk_size"])
@@ -47,6 +52,7 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
+                self.send_tg_notification()
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
                 self.update_price_settings_catalog_3_0()
@@ -138,6 +144,55 @@ class CatalogUpdate(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "update_currency Error", ex_text)
+
+
+    def send_tg_notification(self):
+        try:
+            with session() as sess:
+                req = select(AppSettings).where(AppSettings.param == 'last_tg_notification_time')
+                last_tg_nt = sess.execute(req).scalar()
+
+                now = datetime.datetime.now()
+                last_tg_nt = datetime.datetime.strptime(f"{last_tg_nt.var[:10]} {now.hour}:{now.minute}:{now.second}",
+                                                        "%Y-%m-%d %H:%M:%S")
+                # print(last_tg_nt)
+                diff = now - last_tg_nt
+                if diff.days > 1:
+                    msg = ''
+                    problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
+                                                                                              PriceReport.info_message != None))).scalars().all()
+                    if problem_prices_1:
+                        problem_prices_1 = ', '.join(problem_prices_1)
+                    else:
+                        problem_prices_1 = '-'
+                    msg += f"Не прошли первый этап: {problem_prices_1}\n\n"
+
+                    problem_prices_2 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message2 != 'Ок',
+                                                                                              PriceReport.info_message2 != None))).scalars().all()
+                    if problem_prices_2:
+                        problem_prices_2 = ', '.join(problem_prices_2)
+                    else:
+                        problem_prices_2 = '-'
+                    msg += f"Не прошли Второй этап: {problem_prices_2}\n\n"
+
+                    total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
+                    msg += f'Всего позиций: {total_cnt}'
+
+                    for u in USERS:
+                        tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML')
+                    # print(msg)
+
+                    sess.query(AppSettings).where(AppSettings.param == 'last_tg_notification_time').delete()
+                    now = now.strftime("%Y-%m-%d %H:%M:%S")
+                    sess.add(AppSettings(param='last_tg_notification_time', var=f'{now}'))
+                    sess.commit()
+
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "send_tg_notification Error", ex_text)
+
 
     def update_price_settings_catalog_4_0(self):
         try:
@@ -882,6 +937,24 @@ class SaveTime(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"SaveTime Error", ex_text)
 
+
+class SaveTgTime(QThread):
+    def __init__(self, tg_time, log=None, parent=None):
+        self.log = log
+        self.tg_time = tg_time
+        QThread.__init__(self, parent)
+
+    def run(self):
+        try:
+            with session() as sess:
+                sess.query(AppSettings).filter(AppSettings.param=='tg_notification_time').delete()
+                sess.add(AppSettings(param='tg_notification_time', var=f"{self.tg_time.hour()} {self.tg_time.minute()}"))
+                sess.commit()
+            self.log.add(LOG_ID, f"Время сохранено", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Время сохранено</span>  ")
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"SaveTgTime Error", ex_text)
+
 class CatalogsUpdateTable(QThread):
     CatalogsInfoSignal = Signal(CatalogUpdateTime)
     TimeUpdateSetSignal = Signal(str)
@@ -1024,6 +1097,7 @@ def get_catalogs_time_update():
             req = select(AppSettings).where(AppSettings.param.in_(PARAM_LIST))
             times = sess.execute(req).scalars().all()
             times = {t.param: t.var for t in times}
+
             return times
     except:
         return None
