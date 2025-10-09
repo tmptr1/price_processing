@@ -151,9 +151,12 @@ class CatalogUpdate(QThread):
             with session() as sess:
                 req = select(AppSettings).where(AppSettings.param == 'last_tg_notification_time')
                 last_tg_nt = sess.execute(req).scalar()
+                req = select(AppSettings).where(AppSettings.param == 'tg_notification_time')
+                tg_nt_time = sess.execute(req).scalar()
+                h, m = tg_nt_time.var.split()
 
                 now = datetime.datetime.now()
-                last_tg_nt = datetime.datetime.strptime(f"{last_tg_nt.var[:10]} {now.hour}:{now.minute}:{now.second}",
+                last_tg_nt = datetime.datetime.strptime(f"{last_tg_nt.var[:10]} {h}:{m}:00",
                                                         "%Y-%m-%d %H:%M:%S")
                 # print(last_tg_nt)
                 diff = now - last_tg_nt
@@ -165,7 +168,7 @@ class CatalogUpdate(QThread):
                         problem_prices_1 = ', '.join(problem_prices_1)
                     else:
                         problem_prices_1 = '-'
-                    msg += f"Не прошли первый этап: {problem_prices_1}\n\n"
+                    msg += f"Не прошли Первый этап: {problem_prices_1}\n\n"
 
                     problem_prices_2 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message2 != 'Ок',
                                                                                               PriceReport.info_message2 != None))).scalars().all()
@@ -181,6 +184,7 @@ class CatalogUpdate(QThread):
                     for u in USERS:
                         tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML')
                     # print(msg)
+                    self.log.add(LOG_ID, "Уведомление отправлено", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Уведомление отправлено</span>  ")
 
                     sess.query(AppSettings).where(AppSettings.param == 'last_tg_notification_time').delete()
                     now = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -393,10 +397,41 @@ class CatalogUpdate(QThread):
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
 
                 sess.commit()
+                self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
+                             f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
 
-            self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                # Обновление данных в total по новым 3.0 Условия
+                cur_time = datetime.datetime.now()
+                self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
+                             f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
+
+                sess.execute(update(TotalPrice_2).values(delay=Data07.delay, sell_for_OS=Data07.sell_os,
+                                                    markup_os=Data07.markup_os, max_decline=Data07.max_decline,
+                                                    markup_holidays=Data07.markup_holidays,
+                                                    markup_R=Data07.markup_R, min_markup=Data07.min_markup,
+                                                    min_wholesale_markup=Data07.min_wholesale_markup,
+                                                    markup_wh_goods=Data07.markup_wholesale,
+                                                    grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
+                                                    access_pp=Data07.access_pp,
+                                                    unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
+
+                sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
+                             values(put_away_zp=Data09.put_away_zp))
+
+                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
+                                                        TotalPrice_2._14brand_filled_in == Data07_14.correct))
+                             .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
+
+                sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
+                    buy_count=Buy_for_OS.buy_count))
+
+                self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                          f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
+                          f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                sess.commit()
+
+
             self.CreateTotalCsvSignal.emit(True)
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex

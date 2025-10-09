@@ -142,7 +142,7 @@ class MailParserClass(QThread):
             sender = None
             try:
                 msg_from = msg['From'].split(' ')
-                print(msg_from)
+                # print(msg_from)
                 if len(msg_from) > 1:
                     sender = msg_from[-1][1:-1]
                 else:

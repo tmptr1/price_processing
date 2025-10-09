@@ -1,6 +1,5 @@
 from PySide6.QtCore import QThread, Signal
 import time
-import re
 import traceback
 import datetime
 import random
@@ -45,6 +44,7 @@ class CalculateClass(QThread):
     isPause = None
     total_file_count = 0
     cur_file_count = 0
+    # last_total_update_time = datetime.datetime(2025, 1, 1)
 
     def __init__(self, log=None, parent=None):
         self.log = log
@@ -61,6 +61,18 @@ class CalculateClass(QThread):
                 # print(os.listdir(settings_data['exit_1_dir']))
                 files = []
                 with session() as sess:
+                    # # total update
+                    # new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime(
+                    #     "%Y-%m-%d %H:%M:%S")
+                    # if (datetime.datetime.now().date() - self.last_total_update_time.date()).days > 1:
+                    #     self.UpdatePriceStatusTableSignal.emit(price_code, 'Ежедневный перерасчёт 3.0 Условий ...', True)
+                    #     req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
+                    #     res = sess.execute(req).scalar()
+                    #     if res and str(res) < new_update_time:
+                    #
+                    #         self.last_total_update_time = datetime.datetime.now()
+
+                    # check new prices
                     for file in os.listdir(settings_data['exit_1_dir']):
                         price_code = '.'.join(file.split('.')[:-1])
 
@@ -161,7 +173,6 @@ class CalculateClass(QThread):
             self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
 
             with session() as sess:
-
                 self.UpdatePriceStatusTableSignal.emit(price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
                 cur_time = datetime.datetime.now()
 
