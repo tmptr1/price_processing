@@ -99,7 +99,7 @@ class CatalogUpdate(QThread):
                         return
 
                 sess.query(ExchangeRate).delete()
-                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js').json()
+                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js', timeout=15).json()
                 valute_dict = dict()
                 for c in valute_data['Valute']:
                     info = valute_data['Valute'][c]
@@ -160,7 +160,7 @@ class CatalogUpdate(QThread):
                                                         "%Y-%m-%d %H:%M:%S")
                 # print(last_tg_nt)
                 diff = now - last_tg_nt
-                if diff.days > 1:
+                if diff.days >= 1:
                     msg = ''
                     problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
                                                                                               PriceReport.info_message != None))).scalars().all()
@@ -353,7 +353,7 @@ class CatalogUpdate(QThread):
                         "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
                 sheet_name = "07&14Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                # sess.execute(update(Data07_14).values(correct_up=func.upper(Data07_14.correct)))
+                sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
 
                 table_name = 'data07'
                 table_class = Data07

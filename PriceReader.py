@@ -164,7 +164,7 @@ class MainWorker(QThread):
                 # new_files = ["2ССС web-parts SIMF.xlsx"]
                 # new_files = ["1АСК Прайс.xlsx"]
                 # new_files = ["1РЕФ Прайс.xlsx", "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
-                # new_files = ["TKTZ Печать.xls"]
+                # new_files = ["3МСК rostov_.xlsx"]
                 # new_files = ["1IMP IMPEKS_KRD.xlsx"]
                 # new_files = ["1МТЗ Прайс.xlsx"]
                 # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
@@ -337,48 +337,66 @@ class MainWorker(QThread):
                 # sess.execute(text("update price_1 set brand_s = NULL where brand_s like ''"))
                 # sess.execute(update(Price_1).where(Price_1.brand_s.is_('')).values(brand_s=None))
 
+                # n_dt = datetime.datetime.now()
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(Price_1).where(func.trim(Price_1.brand_s) == '').values(brand_s=None))
                 if sett.replace_brand_s:
                     sess.execute(update(Price_1).where(Price_1.brand_s==None).values(_02brand=sett.replace_brand_s))
+                # print(f"замена пустых бренд {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
                 suppliers_goods_compare(price_code, sett, sess)
+                # print(f"исправление товаров поставщиков {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # замена ; на ,
                 text_cols = [Price_1.key1_s, Price_1.article_s, Price_1.brand_s, Price_1.name_s, Price_1.currency_s, Price_1.notice_s]
                 for c in text_cols:
                     sess.execute(update(Price_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
+                # print(f"замена ; на , {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # Исправление Номенклатуры
                 cols_fix(price_code, sess)
+                # print(f"Исправление Номенклатуры {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 01Артикул
                 sess.execute(update(Price_1).where(Price_1._01article == None).values(_01article=func.upper(Price_1.article_s)))
                 sess.execute(update(Price_1).values(_01article=func.upper(Price_1._01article.regexp_replace(' +', ' ', 'g')
                                                      .regexp_replace('^ | $', '', 'g'))))
+                # print(f"01Артикул {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 02Производитель
                 sess.execute(update(Price_1).values(brand_s_low=func.lower(Price_1.brand_s)))
                 sess.execute(update(Price_1).where(and_(Price_1.brand_s_low == Brands.brand_low,
                                                         Price_1._02brand == None)).values(_02brand=Brands.correct_brand))
+                # print(f"02Производитель {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 14Производитель заполнен
                 sess.execute(update(Price_1).values(_14brand_filled_in=func.upper(func.coalesce(Price_1._02brand, Price_1.brand_s))))
+                # print(f"14Производитель заполнен {datetime.datetime.now() - n_dt}")
                 # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
                 #              .values(_14brand_filled_in=Price_1._02brand))
 
                 # Изменение цены по условиям (Цена поставщика)
                 # apply_discount(sess, price_code, 'Цена поставщика')
 
+                # n_dt = datetime.datetime.now()
                 # 03Наименование
                 sess.execute(update(Price_1).where(Price_1._03name == None).values(_03name=Price_1.name_s))
                 sess.execute(update(Price_1).values(_03name=Price_1._03name.regexp_replace(' +', ' ', 'g')
                                      .regexp_replace('^ | $', '', 'g')))
+                # print(f"03Наименование {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 04Количество
                 sess.execute(update(Price_1).where(Price_1._04count != None).values(_04count=Price_1.count_s-Price_1._04count))
                 sess.execute(update(Price_1).where(Price_1._04count == None).values(_04count=Price_1.count_s))
+                # print(f"04Количество {datetime.datetime.now() - n_dt}")
 
                 sess.commit()#sess.flush()
                 add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
@@ -386,19 +404,26 @@ class MainWorker(QThread):
                 cur_time = datetime.datetime.now()
                 sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
 
+                # n_dt = datetime.datetime.now()
                 # 05Цена
                 sess.execute(update(Price_1).where(Price_1._05price == None).values(_05price=Price_1.price_s))
+                # print(f"05Цена {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # для валют
                 sess.execute(update(Price_1).where(
                     and_(Price_1.currency_s != None, ExchangeRate.code == func.upper(Price_1.currency_s)))
                              .values(_05price=Price_1._05price * ExchangeRate.rate))
+                # print(f"для валют {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 12Сумма
                 numeric_max = 9999999999 # numeric 12,2
                 sess.execute(update(Price_1).where(Price_1.count_s * Price_1.price_s < numeric_max).values(_12sum=Price_1.count_s * Price_1.price_s))
                 sess.execute(update(Price_1).where(Price_1.count_s * Price_1.price_s >= numeric_max).values(_12sum=numeric_max))
+                # print(f"12Сумма {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # Настройка строк: Вариант изменения цены
                 if sett.change_price_type in ("- X %", "+ X %"):
                     percent = None
@@ -408,26 +433,38 @@ class MainWorker(QThread):
                         pass
                     if percent:
                         sess.execute(update(Price_1).values(_05price=Price_1._05price * (1+percent)))
+                # print(f"Настройка строк {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # Изменение цены по условиям (05Цена)
                 apply_discount(sess, price_code, '05Цена')
+                # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 06Кратность
                 sess.execute(update(Price_1).where(Price_1._06mult == None).values(_06mult=Price_1.mult_s))
                 sess.execute(update(Price_1).where(or_(Price_1._06mult == None, Price_1._06mult < 1)).values(_06mult=1))
+                # print(f"06Кратность {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 15КодТутОптТорг
                 sess.execute(update(Price_1).values(_15code_optt=(Price_1._01article+Price_1._14brand_filled_in).regexp_replace(r"\W|_", "", 'g'))) # func.upper
+                # print(f"15КодТутОптТорг {datetime.datetime.now() - n_dt}")
 
-
+                # n_dt = datetime.datetime.now()
                 # 20ИсключитьИзПрайса
                 words_except(sess, price_code)
+                # print(f"20ИсключитьИзПрайса {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 17КодУникальности
                 sess.execute(update(Price_1).values(_17code_unique=func.upper(Price_1._07supplier_code + Price_1._15code_optt + "ДАSS")))
+                # print(f"17КодУникальности {datetime.datetime.now() - n_dt}")
 
+                # n_dt = datetime.datetime.now()
                 # 18КороткоеНаименование
                 sess.execute(update(Price_1).values(_18short_name=func.regexp_substr(Price_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
+                # print(f"18КороткоеНаименование {datetime.datetime.now() - n_dt}")
 
                 sess.commit()#sess.flush()
                 add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)

@@ -40,6 +40,19 @@ id b 94946
 [2025-09-10 17:26:42] инструмент.xlsx
 [2025-09-10 17:26:42] ✔ (1VTT) - инструмент.xlsx
 
+вакум для price1/price2 (временных таблиц) обновлять только после нового расчёта?
+
+индексы на каждое поле?
+/var/lib/pgsql/<версия>/data/postgresql.conf
+shared_buffers = 4GB  # если, например, 16 ГБ ОЗУ
+work_mem = 64MB
+maintenance_work_mem = 1GB
+effective_cache_size = 12GB
+Увеличь, если у тебя большая нагрузка на запись.
+wal_buffers = 16MB
+checkpoint_timeout = 10min
+max_wal_size = 2GB
+
 + автоперерасчёт 3.0
 + отключить авторестарт 2 (ежедневная проверка)
 + tg bot
