@@ -40,6 +40,7 @@ id b 94946
 [2025-09-10 17:26:42] инструмент.xlsx
 [2025-09-10 17:26:42] ✔ (1VTT) - инструмент.xlsx
 
+drop tables?
 вакум для price1/price2 (временных таблиц) обновлять только после нового расчёта?
 
 индексы на каждое поле?
@@ -170,9 +171,10 @@ TABLE:
 создавать авторестарт.txt каждый вечер
 mass offers and prive b
 
-====
+==== INDEXES ====
 SELECT * FROM pg_indexes where schemaname = 'public'
-====
+
+==== PID ====
 SELECT pid,
            now() - query_start AS duration,
            wait_event_type,
@@ -182,5 +184,25 @@ SELECT pid,
     FROM pg_stat_activity
     WHERE state != 'idle'
     ORDER BY duration DESC;
+
+==== autovacuum_enabled ====
+SELECT
+    nspname AS schema_name,
+    relname AS table_name,
+    'autovacuum_enabled' AS parameter,
+    CASE
+        WHEN reloptions IS NULL THEN 'true' -- Если нет опций, включено глобально
+        WHEN array_to_string(reloptions, ',') LIKE '%autovacuum_enabled%' THEN
+            CASE
+                WHEN (array_to_string(reloptions, ',') ~ 'autovacuum_enabled=false') THEN 'false'
+                ELSE 'true'
+            END
+        ELSE 'true' -- Если нет в reloptions, включено глобально
+    END AS is_enabled
+FROM pg_catalog.pg_class c
+JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE nspname = 'public' -- Замените на имя вашей схемы
+  AND relname = 'app_settings';
+
 =====
 ALTER SYSTEM SET autovacuum_naptime = '5min';       default - 1min

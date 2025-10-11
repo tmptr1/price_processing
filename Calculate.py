@@ -4,7 +4,7 @@ import traceback
 import datetime
 import random
 import os
-from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String
+from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 import numpy as np
@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 # mp.freeze_support()
 
 import colors
-from models import (Price_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings, Data07, Data09,
+from models import (Base, Price_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings, Data07, Data09,
                     Data15, Data07_14, Buy_for_OS, TotalPrice_2, Brands, ExchangeRate)
 from Logs import add_log_cf
 import setting
@@ -172,13 +172,22 @@ class CalculateClass(QThread):
             price_code = '.'.join(file.split('.')[:-1])
             self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
 
+            inspct = inspect(engine)
+            if inspct.has_table(Price_2.__tablename__):
+                Price_2.__table__.drop(engine)
+
+            Base.metadata.create_all(engine)
+
             with session() as sess:
+                sess.execute(text(f"ALTER TABLE {Price_2.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.commit()
+
                 self.UpdatePriceStatusTableSignal.emit(price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
                 cur_time = datetime.datetime.now()
 
-                sess.query(Price_2).delete()
+                # sess.query(Price_2).delete()
 
-                sess.execute(text(f"ALTER SEQUENCE {Price_2.__tablename__}_id_seq restart 1"))
+                # sess.execute(text(f"ALTER SEQUENCE {Price_2.__tablename__}_id_seq restart 1"))
                 # перенос данных из total
                 # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
 
@@ -318,7 +327,9 @@ class CalculateClass(QThread):
                 # self.add_log(price_code, 'step 2', cur_time)
 
                 cnt = sess.execute(select(func.count()).select_from(Price_2)).scalar()
-                sess.query(Price_2).delete()
+                # sess.query(Price_2).delete()
+                Price_2.__table__.drop(engine)
+
                 # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
                              .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"), row_count_2=cnt,

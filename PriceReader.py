@@ -9,7 +9,7 @@ import math
 import os
 import holidays
 import holidays_ru
-from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String
+from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 import numpy as np
@@ -24,7 +24,7 @@ warnings.filterwarnings('ignore')
 # mp.freeze_support()
 
 import colors
-from models import (PriceReport, Price_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
+from models import (Base, PriceReport, Price_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
                     ExchangeRate, SumTable, TotalPrice_1)
 from Logs import add_log_cf
 import setting
@@ -240,15 +240,26 @@ class MainWorker(QThread):
 
             start_calc_price_time = datetime.datetime.now()
             cur_time = datetime.datetime.now()
+
+            inspct = inspect(engine)
+            if inspct.has_table(Price_1.__tablename__):
+                Price_1.__table__.drop(engine)
+            if inspct.has_table(SumTable.__tablename__):
+                SumTable.__table__.drop(engine)
+
+            Base.metadata.create_all(engine)
+
             with session() as sess:
-            # sess = session()
                 # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-                sess.execute(text(f"REINDEX TABLE {Price_1.__tablename__}"))
-                sess.execute(text(f"REINDEX TABLE {SumTable.__tablename__}"))
-                sess.execute(text(f"ALTER SEQUENCE {Price_1.__tablename__}_id_seq restart 1"))
-                sess.execute(text(f"ALTER SEQUENCE {SumTable.__tablename__}_id_seq restart 1"))
-                sess.query(Price_1).delete() # FOR 1 THREAD
-                sess.query(SumTable).delete() # FOR 1 THREAD
+                # sess.execute(text(f"REINDEX TABLE {Price_1.__tablename__}"))
+                # sess.execute(text(f"REINDEX TABLE {SumTable.__tablename__}"))
+                # sess.execute(text(f"ALTER SEQUENCE {Price_1.__tablename__}_id_seq restart 1"))
+                # sess.execute(text(f"ALTER SEQUENCE {SumTable.__tablename__}_id_seq restart 1"))
+                # sess.query(Price_1).delete() # FOR 1 THREAD
+                # sess.query(SumTable).delete() # FOR 1 THREAD
+                sess.execute(text(f"ALTER TABLE {Price_1.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.execute(text(f"ALTER TABLE {SumTable.__tablename__} SET (autovacuum_enabled = false);"))
+
                 sess.commit()
 
                 req = select(PriceReport).where(PriceReport.price_code == price_code)
@@ -522,12 +533,16 @@ class MainWorker(QThread):
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
 
+                Price_1.__table__.drop(engine)
+                SumTable.__table__.drop(engine)
+                sess.commit()
+
                 # дочерние прайсы
                 children_prices = sess.execute(select(distinct(FileSettings.price_code))
                                                .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
                                                            func.upper(FileSettings.save) == 'ДА'))).scalars().all()
                 # УДАЛИТЬ ИЗ БД
-                sess.query(Price_1).delete()
+                # sess.query(Price_1).delete()
 
                 sess.commit()
             # print(f"{children_prices=}")
@@ -584,7 +599,6 @@ class MainWorker(QThread):
                         # break
 
                 # sess.rollback()
-
 
         except Exception as ex:
             ex_text = traceback.format_exc()

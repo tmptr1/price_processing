@@ -97,9 +97,8 @@ class CatalogUpdate(QThread):
                 if res:
                     if now.strftime("%Y-%m-%d") == res.strftime("%Y-%m-%d"):
                         return
-
                 sess.query(ExchangeRate).delete()
-                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js', timeout=15).json()
+                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js').json()
                 valute_dict = dict()
                 for c in valute_data['Valute']:
                     info = valute_data['Valute'][c]
