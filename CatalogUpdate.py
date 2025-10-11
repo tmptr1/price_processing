@@ -178,6 +178,7 @@ class CatalogUpdate(QThread):
                     msg += f"Не прошли Второй этап: {problem_prices_2}\n\n"
 
                     total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
+                    total_cnt = '{0:,d}'.format(total_cnt)
                     msg += f'Всего позиций: {total_cnt}'
 
                     for u in USERS:
