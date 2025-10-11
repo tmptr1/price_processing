@@ -328,7 +328,12 @@ class CalculateClass(QThread):
 
                 cnt = sess.execute(select(func.count()).select_from(Price_2)).scalar()
                 # sess.query(Price_2).delete()
+
+                cur_time = datetime.datetime.now()
+                self.UpdatePriceStatusTableSignal.emit(price_code, 'Запись обработанных данных в БД ...', False)
                 Price_2.__table__.drop(engine)
+                self.add_log(price_code, 'Запись обработанных данных в БД завершена', cur_time)
+
 
                 # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)

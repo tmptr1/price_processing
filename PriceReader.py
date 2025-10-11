@@ -166,7 +166,7 @@ class MainWorker(QThread):
                 # new_files = ["1РЕФ Прайс.xlsx", "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ["3МСК rostov_.xlsx"]
                 # new_files = ["1IMP IMPEKS_KRD.xlsx"]
-                # new_files = ["1МТЗ Прайс.xlsx"]
+                # new_files = ["1MKO остатки_ОС.xls", "1ROS 155889.xlsx", "MI09 mikado_price_vdkz.csv"]
                 # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
 
@@ -520,6 +520,8 @@ class MainWorker(QThread):
                                   self.total_file_count, self.cur_file_count):
                     return
 
+                cur_time = datetime.datetime.now()
+                sender.send(["add", mp.current_process().name, price_code, 1, f"Запись обработанных данных в БД ..."])
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
 
@@ -533,9 +535,7 @@ class MainWorker(QThread):
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
 
-                Price_1.__table__.drop(engine)
-                SumTable.__table__.drop(engine)
-                sess.commit()
+                add_log_cf(LOG_ID, "Запись обработанных данных в БД завершена", sender, price_code, color, cur_time)
 
                 # дочерние прайсы
                 children_prices = sess.execute(select(distinct(FileSettings.price_code))
@@ -599,7 +599,18 @@ class MainWorker(QThread):
                         # break
 
                 # sess.rollback()
+                cur_time = datetime.datetime.now()
+                sender.send(["add", mp.current_process().name, price_code, 1, f"Удаление временных таблиц ..."])
+                Price_1.__table__.drop(engine)
+                SumTable.__table__.drop(engine)
+                add_log_cf(LOG_ID, "Временные таблицы удалены", sender, price_code, color, cur_time)
 
+                total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
+                sender.send(
+                    ["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
+                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                     f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
         except Exception as ex:
             ex_text = traceback.format_exc()
             sender.send(["error", LOG_ID, f"ERROR ({file_name})", ex_text])
@@ -1166,10 +1177,10 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
         add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
 
         total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-        sender.send(["log", LOG_ID, f"+ {price_code} готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]",
-                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                     f"{price_code}</span> готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]"])
+        # sender.send(["log", LOG_ID, f"+ {price_code} готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]",
+        #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+        #              f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+        #              f"{price_code}</span> готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]"])
         cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
         cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
         sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
