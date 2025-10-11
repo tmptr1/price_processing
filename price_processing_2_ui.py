@@ -1077,7 +1077,7 @@ class Ui_MainWindow(object):
         self.CreateBasePriceButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))
         self.BasePriceLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0411\u0430\u0437\u043e\u0432\u0430\u044f \u0446\u0435\u043d\u0430", None))
         self.CreateMassOffersButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))
-        self.MassOffersLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0439 \u0432 \u043e\u043f\u0442\u0435", None))
+        self.MassOffersLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0439 \u0432 \u043e\u043f\u0442\u0435", None))
         self.OpenBasePriceButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.OpenMassOffersButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.TotalCountLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0441\u0435\u0433\u043e \u043f\u043e\u0437\u0438\u0446\u0438\u0439: -", None))

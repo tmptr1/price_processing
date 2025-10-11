@@ -329,11 +329,6 @@ class CalculateClass(QThread):
                 cnt = sess.execute(select(func.count()).select_from(Price_2)).scalar()
                 # sess.query(Price_2).delete()
 
-                cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(price_code, 'Запись обработанных данных в БД ...', False)
-                Price_2.__table__.drop(engine)
-                self.add_log(price_code, 'Запись обработанных данных в БД завершена', cur_time)
-
 
                 # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
@@ -342,6 +337,11 @@ class CalculateClass(QThread):
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
                 self.TotalCountSignal.emit(total_cnt)
+
+            cur_time = datetime.datetime.now()
+            self.UpdatePriceStatusTableSignal.emit(price_code, 'Удаление временных таблиц ...', False)
+            Price_2.__table__.drop(engine)
+            self.add_log(price_code, 'Временные таблицы удалены', cur_time)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID, f"+ {price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",

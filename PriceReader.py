@@ -520,8 +520,8 @@ class MainWorker(QThread):
                                   self.total_file_count, self.cur_file_count):
                     return
 
-                cur_time = datetime.datetime.now()
-                sender.send(["add", mp.current_process().name, price_code, 1, f"Запись обработанных данных в БД ..."])
+                # cur_time = datetime.datetime.now()
+                # sender.send(["add", mp.current_process().name, price_code, 1, f"Запись обработанных данных в БД ..."])
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
 
@@ -535,7 +535,7 @@ class MainWorker(QThread):
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
 
-                add_log_cf(LOG_ID, "Запись обработанных данных в БД завершена", sender, price_code, color, cur_time)
+                # add_log_cf(LOG_ID, "Запись обработанных данных в БД завершена", sender, price_code, color, cur_time)
 
                 # дочерние прайсы
                 children_prices = sess.execute(select(distinct(FileSettings.price_code))
