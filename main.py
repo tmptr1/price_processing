@@ -23,6 +23,7 @@ if not engine:
     _ = input()
     sys.exit()
 
+session = sessionmaker(engine)
 # mp.freeze_support()
 
 from models import Base, AppSettings
@@ -245,11 +246,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 h, m = str(times[t]).split(" ")
                 time_edits[t].setTime(QTime(int(h), int(m)))
 
-        with sessionmaker(engine)() as sess:
-            req = select(AppSettings).where(AppSettings.param=='tg_notification_time')
-            tg_time = sess.execute(req).scalar()
-            h, m = map(int, str(tg_time.var).split())
-            self.Tg_timeEdit_2.setTime(QTime(h, m))
+        with session() as sess:
+            try:
+                req = select(AppSettings).where(AppSettings.param=='tg_notification_time')
+                tg_time = sess.execute(req).scalar()
+                h, m = map(int, str(tg_time.var).split())
+                self.Tg_timeEdit_2.setTime(QTime(h, m))
+            except Exception as get_tg_n_time_ex:
+                pass
 
 
         self.TimeSaveButton_2.clicked.connect(self.save_catalogs_time_update)
@@ -285,7 +289,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def reset_db(self, btn):
         if btn.text() == 'OK':
             try:
-                with sessionmaker(engine)() as sess:
+                with session() as sess:
                     # sess.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
                     # sess.commit()
                     Base.metadata.drop_all(engine)
