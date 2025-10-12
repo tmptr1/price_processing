@@ -55,7 +55,7 @@ class MainWorker(QThread):
 
     def run(self):
         global session, engine
-        wait_sec = 30
+        wait_sec = 5
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()

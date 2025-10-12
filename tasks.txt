@@ -31,29 +31,16 @@
 insert into mail_report(price_code) values('1SHI'), ('1TEM'), ('1IMP'), ('1AVX') / days=1
 
 !!!! первый раз было - Sender: ?UTF-8?B?0YHQvdC+0LTQsNGA? !!!!
-id b 94946
-[2025-09-10 17:26:42] Sender: krasnodar@virage24.ru
-[2025-09-10 17:26:42] Header: электроинструмент.xlsx, инструмент.xlsx
-[2025-09-10 17:26:42] Date: 10 Sep 2025 10-39-35
-[2025-09-10 17:26:42] электроинструмент.xlsx
-[2025-09-10 17:26:42] ✔ (VTTE) - электроинструмент.xlsx
-[2025-09-10 17:26:42] инструмент.xlsx
-[2025-09-10 17:26:42] ✔ (1VTT) - инструмент.xlsx
 
-drop tables?
-вакум для price1/price2 (временных таблиц) обновлять только после нового расчёта?
 
-индексы на каждое поле?
 /var/lib/pgsql/<версия>/data/postgresql.conf
-shared_buffers = 4GB  # если, например, 16 ГБ ОЗУ
-work_mem = 64MB
-maintenance_work_mem = 1GB
+shared_buffers = 4GB
+work_mem = 128MB
+maintenance_work_mem = 2GB
 effective_cache_size = 12GB
-Увеличь, если у тебя большая нагрузка на запись.
-wal_buffers = 16MB
-checkpoint_timeout = 10min
-max_wal_size = 2GB
 
+?UNLOGGED
++ drop price1/price2 tables, autovacuum_enable=False
 + автоперерасчёт 3.0
 + отключить авторестарт 2 (ежедневная проверка)
 + tg bot

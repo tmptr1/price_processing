@@ -41,7 +41,7 @@ class MailParserClass(QThread):
         global session, engine
         self.SetButtonEnabledSignal.emit(False)
         self.log.add(LOG_ID, "Старт", f"<span style='color:{colors.green_log_color};'>Старт</span>  ")
-        wait_sec = 180
+        wait_sec = 60
 
         while not self.isPause:
             # self.delete_irrelevant_prices()
