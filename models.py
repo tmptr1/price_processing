@@ -247,7 +247,7 @@ class Price_2(Base):
     __tablename__ = "price_2"
     __table_args__ = (Index("price_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
-                      # Index("price_2_07supplier_code_14brand_filled_in_low_index", "_07supplier_code", "_14brand_filled_in_low"),
+                      Index("price_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
                       Index("price_2_15code_optt_index", "_15code_optt"),)
 
     id: Mapped[intpk]
