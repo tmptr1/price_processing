@@ -740,7 +740,7 @@ class CreateBasePrice(QThread):
                     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'ЦенаБ', 'Мин. Цена', 'Мин. Поставщик'])
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
-                        sep=';', decimal='.',
+                        sep=';', decimal=',',
                         encoding="windows-1251", index=False, errors='ignore')
                     req = select(BasePrice.article, BasePrice.brand, BasePrice.price_b, BasePrice.min_price,
                                  BasePrice.min_supplier). \
@@ -750,7 +750,7 @@ class CreateBasePrice(QThread):
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
                         mode='a',
-                        sep=';', decimal='.', encoding="windows-1251", index=False, header=False, errors='ignore')
+                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
 
                     df_len = len(df)
                     loaded += df_len
@@ -915,7 +915,7 @@ class CreateMassOffers(QThread):
                     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'Предложений в опте'])
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
-                        sep=';', decimal='.',
+                        sep=';', decimal=',',
                         encoding="windows-1251", index=False, errors='ignore')
                     req = select(MassOffers.article, MassOffers.brand, MassOffers.offers_count).order_by(MassOffers.id).offset(loaded).limit(limit)
                     df = pd.read_sql_query(req, sess.connection(), index_col=None)
@@ -923,7 +923,7 @@ class CreateMassOffers(QThread):
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
                         mode='a',
-                        sep=';', decimal='.', encoding="windows-1251", index=False, header=False, errors='ignore')
+                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
 
                     df_len = len(df)
                     loaded += df_len
@@ -1081,7 +1081,7 @@ class CreateTotalCsv(QThread):
                                                "Мин. Цена", "Мин. Поставщик"])
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-                        sep=';', decimal='.',
+                        sep=';', decimal=',',
                         encoding="windows-1251", index=False, errors='ignore')
                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
@@ -1104,7 +1104,7 @@ class CreateTotalCsv(QThread):
                     df.to_csv(
                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
                         mode='a',
-                        sep=';', decimal='.', encoding="windows-1251", index=False, header=False, errors='ignore')
+                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
 
                     df_len = len(df)
                     loaded += df_len
