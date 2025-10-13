@@ -53,7 +53,7 @@ class CalculateClass(QThread):
 
     def run(self):
         global session, engine
-        wait_sec = 5
+        wait_sec = 10
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -338,10 +338,10 @@ class CalculateClass(QThread):
                 sess.commit()
                 self.TotalCountSignal.emit(total_cnt)
 
-            cur_time = datetime.datetime.now()
-            self.UpdatePriceStatusTableSignal.emit(price_code, 'Удаление временных таблиц ...', False)
+            # cur_time = datetime.datetime.now()
+            # self.UpdatePriceStatusTableSignal.emit(price_code, 'Удаление временных таблиц ...', False)
             Price_2.__table__.drop(engine)
-            self.add_log(price_code, 'Временные таблицы удалены', cur_time)
+            # self.add_log(price_code, 'Временные таблицы удалены', cur_time)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID, f"+ {price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",

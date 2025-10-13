@@ -55,7 +55,7 @@ class MainWorker(QThread):
 
     def run(self):
         global session, engine
-        wait_sec = 5
+        wait_sec = 10
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -599,18 +599,18 @@ class MainWorker(QThread):
                         # break
 
                 # sess.rollback()
-                cur_time = datetime.datetime.now()
-                sender.send(["add", mp.current_process().name, price_code, 1, f"Удаление временных таблиц ..."])
+                # cur_time = datetime.datetime.now()
+                # sender.send(["add", mp.current_process().name, price_code, 1, f"Удаление временных таблиц ..."])
                 Price_1.__table__.drop(engine)
                 SumTable.__table__.drop(engine)
-                add_log_cf(LOG_ID, "Временные таблицы удалены", sender, price_code, color, cur_time)
+                # add_log_cf(LOG_ID, "Временные таблицы удалены", sender, price_code, color, cur_time)
 
                 total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-                sender.send(
-                    ["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                     f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
+                # sender.send(
+                #     ["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
+                #      f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                #      f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                #      f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
         except Exception as ex:
             ex_text = traceback.format_exc()
             sender.send(["error", LOG_ID, f"ERROR ({file_name})", ex_text])
@@ -1177,10 +1177,10 @@ def create_csv(sess, sender, price_code, csv_cols_dict, color, start_calc_price_
         add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
 
         total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-        # sender.send(["log", LOG_ID, f"+ {price_code} готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]",
-        #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-        #              f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-        #              f"{price_code}</span> готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]"])
+        sender.send(["log", LOG_ID, f"+ {price_code} готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]",
+                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                     f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
+                     f"{price_code}</span> готов! ({cur_file_count}/{total_file_count}) [{total_price_calc_time}]"])
         cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
         cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
         sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
