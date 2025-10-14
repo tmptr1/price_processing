@@ -1095,11 +1095,11 @@ class CreateTotalCsv(QThread):
                                       #          "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
                                       #          "Количество закупок", "% Отгрузки",
                                       #          "Мин. Цена", "Мин. Поставщик"])
-                    # df.to_csv(
-                    #     fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-                    #     sep=';', decimal=',',
-                    #     encoding="windows-1251", index=False, errors='ignore')
-                    df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
+                    df.to_csv(
+                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
+                        sep=';', decimal=',',
+                        encoding="windows-1251", index=False, errors='ignore')
+                    # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
                                  TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
@@ -1118,11 +1118,11 @@ class CreateTotalCsv(QThread):
                     # TotalPrice_2.reserve_count,
                     df = pd.read_sql_query(req, sess.connection(), index_col=None)
 
-                    # df.to_csv(
-                    #     fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-                    #     mode='a',
-                    #     sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-                    df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
+                    df.to_csv(
+                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
+                        mode='a',
+                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
+                    # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
 
                     df_len = len(df)
                     loaded += df_len
@@ -1133,8 +1133,8 @@ class CreateTotalCsv(QThread):
 
                 for i in range(1, report_parts_count + 1):
                     shutil.copy(
-                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx",
-                        fr"{settings_data['catalogs_dir']}/Итог/Итог - страница {i}.xlsx")
+                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",   # xlsx
+                        fr"{settings_data['catalogs_dir']}/Итог/Итог - страница {i}.csv")
 
             self.log.add(LOG_ID, f"Итог сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]",
                          f"<span style='color:{colors.green_log_color};font-weight:bold;'>Итог</span> "

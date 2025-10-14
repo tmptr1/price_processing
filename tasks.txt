@@ -193,3 +193,23 @@ WHERE nspname = 'public' -- Замените на имя вашей схемы
 
 =====
 ALTER SYSTEM SET autovacuum_naptime = '5min';       default - 1min
+
+
+
+= Value.NativeQuery(PostgreSQL.Database("192.168.11.201", "price_processing", [CreateNavigationProperties=false]),
+"select key1_s as ""Ключ1 поставщика"", article_s as ""Артикул поставщика"", brand_s as ""Производитель поставщика"",
+name_s as ""Наименование поставщика"", count_s as ""Количество поставщика"", price_s as ""Цена поставщика"",
+mult_s as ""Кратность поставщика"", notice_s as ""Примечание поставщика"", _01article as ""01Артикул"",
+_02brand as ""02Производитель"", _03name as ""03Наименование"", _05price as ""05Цена"", _06mult as ""06Кратность-"",
+_07supplier_code as ""07Код поставщика"", _09code_supl_goods as ""09Код + Поставщик + Товар"", _10original as ""10Оригинал"",
+_13grad as ""13Градация"", _14brand_filled_in as ""14Производитель заполнен"", _15code_optt as ""15КодТутОптТорг"",
+_17code_unique as ""17КодУникальности"", _18short_name as ""18КороткоеНаименование"", _19min_price as ""19МинЦенаПоПрайсу"",
+_20exclude as ""20ИсключитьИзПрайса"", delay as ""Отсрочка"", ""sell_for_OS"" as ""Продаём для ОС"",
+markup_os as ""Наценка для ОС"", ""markup_R"" as ""Наценка Р"", markup_pb as ""Наценка ПБ"", min_markup as ""Мин наценка"",
+min_wholesale_markup as ""Мин опт наценка"", markup_wh_goods as ""Наценка на оптовые товары"", grad_step as ""Шаг градаци"",
+wh_step as ""Шаг опт"",  access_pp as ""Разрешения ПП"", put_away_zp as ""УбратьЗП"", offers_wh as ""Предложений опт"",
+price_b as ""ЦенаБ"", count as ""Кол-во"", code_pb_p as ""Код ПБ_П"", _06mult_new as ""06Кратность"",
+mult_less as ""Кратность меньше"", _05price_plus as ""05Цена+"", buy_count as ""Количество закупок"",
+unload_percent as ""% Отгрузки"", min_price as ""Мин. Цена"", min_supplier as ""Мин. Поставщик"" from total_price_2", null, [EnableFolding=true])
+
+select key1_s as ""Ключ1 поставщика"", article_s as ""Артикул поставщика"", brand_s as ""Производитель поставщика"", name_s as ""Наименование поставщика"", count_s as ""Количество поставщика"", price_s as ""Цена поставщика"", mult_s as ""Кратность поставщика"", notice_s as ""Примечание поставщика"", _01article as ""01Артикул"", _02brand as ""02Производитель"", _03name as ""03Наименование"", _05price as ""05Цена"", _06mult as ""06Кратность-"", _07supplier_code as ""07Код поставщика"", _09code_supl_goods as ""09Код + Поставщик + Товар"", _10original as ""10Оригинал"", _13grad as ""13Градация"", _14brand_filled_in as ""14Производитель заполнен"", _15code_optt as ""15КодТутОптТорг"", _17code_unique as ""17КодУникальности"", _18short_name as ""18КороткоеНаименование"", _19min_price as ""19МинЦенаПоПрайсу"", _20exclude as ""20ИсключитьИзПрайса"", delay as ""Отсрочка"", ""sell_for_OS"" as ""Продаём для ОС"", markup_os as ""Наценка для ОС"", ""markup_R"" as ""Наценка Р"", markup_pb as ""Наценка ПБ"", min_markup as ""Мин наценка"", min_wholesale_markup as ""Мин опт наценка"", markup_wh_goods as ""Наценка на оптовые товары"", grad_step as ""Шаг градаци"", wh_step as ""Шаг опт"",  access_pp as ""Разрешения ПП"", put_away_zp as ""УбратьЗП"", offers_wh as ""Предложений опт"", price_b as ""ЦенаБ"", count as ""Кол-во"", code_pb_p as ""Код ПБ_П"", _06mult_new as ""06Кратность"", mult_less as ""Кратность меньше"", _05price_plus as ""05Цена+"", buy_count as ""Количество закупок"", unload_percent as ""% Отгрузки"", min_price as ""Мин. Цена"", min_supplier as ""Мин. Поставщик"" from total_price_2
