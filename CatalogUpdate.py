@@ -124,13 +124,13 @@ class CatalogUpdate(QThread):
                 for dscnt in discounts:
                     # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
                     sess.execute(update(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == dscnt.price_code,
-                                                                 TotalPrice_1._14brand_filled_in == dscnt.find,
-                                                                 TotalPrice_1.currency_s != None)).values(
+                                                                 TotalPrice_1.currency_s != None,
+                                                                 TotalPrice_1._14brand_filled_in == dscnt.find)).values(
                         {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
 
                     sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == dscnt.price_code,
-                                                                 TotalPrice_2._14brand_filled_in == dscnt.find,
-                                                                 TotalPrice_2.currency_s != None)).values(
+                                                                 TotalPrice_2.currency_s != None,
+                                                                 TotalPrice_2._14brand_filled_in == dscnt.find)).values(
                         {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
 
                 # для пересчёта прайсов, где указана валюта
