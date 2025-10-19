@@ -98,6 +98,8 @@ class CatalogUpdate(QThread):
                 if res:
                     if now.strftime("%Y-%m-%d") == res.strftime("%Y-%m-%d"):
                         return
+
+                self.log.add(LOG_ID, "Обновление курса валют", f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>курса валют</span>...")
                 sess.query(ExchangeRate).delete()
                 valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js').json()
                 valute_dict = dict()
