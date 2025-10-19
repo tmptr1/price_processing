@@ -39,7 +39,34 @@ work_mem = 128MB
 maintenance_work_mem = 2GB
 effective_cache_size = 12GB
 
+work_mem = 32MB
++ maintenance_work_mem = 2GB
++ wal_level = replica
++ wal_buffers = 16MB
++ max_wal_size = 2GB
++ min_wal_size = 512MB
++ checkpoint_completion_target = 0.9
++ checkpoint_timeout = 15min
++ effective_cache_size = 12GB
++ wal_compression = on
+?
++ max_parallel_workers = 8
++ max_parallel_workers_per_gather = 4
+parallel_setup_cost = 1000
+parallel_tuple_cost = 0.1
+
 ?UNLOGGED
+
++ убрать лишние символы в артикул, бренд (новый артикул)
++ добавить столбец В прайс
++ add log notice about 1,2 thread
++ dupl SumTable
++ отображение потоков в PriceReader
++ size лимит брать из БД, а не при объявления классов
++ MB input
++ save time
++ полное обновление итога по условиям 3.0 + ЦенаБ + ПредложенийОпт ночью  -(в модуле calculate, когда все calc и calc2 остановятся)
++ фикс время обновления ЦенаБ, ПО
 + drop price1/price2 tables, autovacuum_enable=False
 + автоперерасчёт 3.0
 + отключить авторестарт 2 (ежедневная проверка)

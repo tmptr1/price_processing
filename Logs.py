@@ -69,17 +69,17 @@ class LogClass(QThread):
 
 
 
-def add_log_cf(id_console_log, log_main_text, sender, price_code, color, cur_time=None):
-    '''Custom Format'''
-    if cur_time:
-        log_text = "{}{price}{} {log_main_text} [{time_spent}]"
-        sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text,
-                                            time_spent=str(datetime.datetime.now() - cur_time)[:7]),
-                     log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>", '</span>',
-                                     price=price_code, log_main_text=log_main_text,
-                                     time_spent=str(datetime.datetime.now() - cur_time)[:7])])
-    else:
-        log_text = "{}{price}{} {log_main_text}"
-        sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text),
-                     log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>",
-                                     '</span>', price=price_code, log_main_text=log_main_text)])
+# def add_log_cf(id_console_log, log_main_text, sender, price_code, color, cur_time=None):
+#     '''Custom Format'''
+#     if cur_time:
+#         log_text = "{}{price}{} {log_main_text} [{time_spent}]"
+#         sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text,
+#                                             time_spent=str(datetime.datetime.now() - cur_time)[:7]),
+#                      log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>", '</span>',
+#                                      price=price_code, log_main_text=log_main_text,
+#                                      time_spent=str(datetime.datetime.now() - cur_time)[:7])])
+#     else:
+#         log_text = "{}{price}{} {log_main_text}"
+#         sender.send(["log", id_console_log, log_text.format('', '', price=price_code, log_main_text=log_main_text),
+#                      log_text.format(f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>",
+#                                      '</span>', price=price_code, log_main_text=log_main_text)])

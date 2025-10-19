@@ -16,7 +16,6 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
 from telebot import TeleBot
 import colors
 from tg_users_id import USERS, TG_TOKEN
-from PriceReader import apply_discount
 
 import setting
 engine = setting.get_engine()
@@ -56,6 +55,8 @@ class CatalogUpdate(QThread):
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
                 self.update_price_settings_catalog_3_0()
+                self.update_DB_3()
+
                 self.update_base_price()
                 self.CBP.wait()
                 self.update_mass_offers()
@@ -287,7 +288,7 @@ class CatalogUpdate(QThread):
                         "mass_offers": ["Для подсчёта предложений в опте"], "base_price": ["Для базовой цены"], }
                 sheet_name = "Справочник Бренды"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand)))
+                sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W', '', 'g'))))
 
 
                 # table_name = 'price_change'
@@ -339,8 +340,9 @@ class CatalogUpdate(QThread):
             new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime("%Y-%m-%d %H:%M:%S")
             with session() as sess:
                 req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
-                res = sess.execute(req).scalar()
-                if res and str(res) >= new_update_time:
+                last_time_update = sess.execute(req).scalar()
+
+                if last_time_update and str(last_time_update) >= new_update_time:
                     return
                 cur_time = datetime.datetime.now()
                 self.log.add(LOG_ID, f"Обновление {base_name} ...",
@@ -358,7 +360,7 @@ class CatalogUpdate(QThread):
                 table_name = 'data07'
                 table_class = Data07
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-                        "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
+                        "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
                         "max_decline": ["Макс снижение от базовой цены"],
                         "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
                         "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
@@ -401,37 +403,6 @@ class CatalogUpdate(QThread):
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
                              f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
 
-                # Обновление данных в total по новым 3.0 Условия
-                cur_time = datetime.datetime.now()
-                self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
-                             f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
-
-                sess.execute(update(TotalPrice_2).values(delay=Data07.delay, sell_for_OS=Data07.sell_os,
-                                                    markup_os=Data07.markup_os, max_decline=Data07.max_decline,
-                                                    markup_holidays=Data07.markup_holidays,
-                                                    markup_R=Data07.markup_R, min_markup=Data07.min_markup,
-                                                    min_wholesale_markup=Data07.min_wholesale_markup,
-                                                    markup_wh_goods=Data07.markup_wholesale,
-                                                    grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
-                                                    access_pp=Data07.access_pp,
-                                                    unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
-
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
-                             values(put_away_zp=Data09.put_away_zp))
-
-                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
-                                                        TotalPrice_2._14brand_filled_in == Data07_14.correct))
-                             .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
-
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
-                    buy_count=Buy_for_OS.buy_count))
-
-                self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                          f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
-                          f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-                sess.commit()
-
-
             self.CreateTotalCsvSignal.emit(True)
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
@@ -439,6 +410,54 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
 
+    def update_DB_3(self):
+        with session() as sess:
+            last_3_condition_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == '3.0 Условия.xlsx')).scalar()
+            last_DB_3_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0')).scalar()
+
+            if last_3_condition_update <= last_DB_3_update:
+                return
+
+            cur_time = datetime.datetime.now()
+            last_DB_3_update_HM = sess.execute(select(AppSettings.var).where(AppSettings.param == "last_DB_3_update")).scalar()
+            h, m = last_DB_3_update_HM.split()
+
+            compare_time = datetime.datetime.strptime(f"{str(last_DB_3_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
+            if (cur_time - compare_time).days < 1:
+                return
+
+            # Обновление данных в total по новым 3.0 Условия
+            self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
+                         f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
+
+            sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
+                                                markup_os=Data07.markup_os, max_decline=Data07.max_decline,
+                                                markup_holidays=Data07.markup_holidays,
+                                                markup_R=Data07.markup_R, min_markup=Data07.min_markup,
+                                                min_wholesale_markup=Data07.min_wholesale_markup,
+                                                markup_wh_goods=Data07.markup_wholesale,
+                                                grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
+                                                access_pp=Data07.access_pp,
+                                                unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
+
+            sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
+                         values(put_away_zp=Data09.put_away_zp))
+
+            sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
+                                                    TotalPrice_2._14brand_filled_in == Data07_14.correct))
+                         .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
+
+            sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
+                buy_count=Buy_for_OS.buy_count))
+
+            self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                      f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
+                      f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+            sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
+            sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+
+            sess.commit()
 
     def update_base_price(self, force_update=False):
         '''Формирование справочника Базовая цена'''
@@ -634,7 +653,7 @@ class CreateBasePrice(QThread):
                     report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "base_price_update")).scalar()
                 h, m = hm.split()
-                hm_time = datetime.time(int(h), int(m))
+                # hm_time = datetime.time(int(h), int(m))
                 # if len(h) == 1:
                 #     h = f"0{h}"
                 # if len(m) == 1:
@@ -644,23 +663,31 @@ class CreateBasePrice(QThread):
                 cur_time = datetime.datetime.now()
                 # next_update_time = datetime.datetime.strptime(f"{cur_time.year}-{cur_time.month}-{cur_time.day} {h}:{m}:00",
                 #                                               "%Y-%m-%d %H:%M:%S")
-                last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
-                    CatalogUpdateTime.catalog_name == catalog_name)).scalar()
+                if not self.force_update:
+                    last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
+                        CatalogUpdateTime.catalog_name == catalog_name)).scalar()
+                    compare_time = datetime.datetime.strptime(f"{str(last_update)[:10]} {h}:{m}:00","%Y-%m-%d %H:%M:%S")
+                    # print(f"{compare_time=}")
+                    if (cur_time - compare_time).days < 1:
+                        return
+                # return
                 # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
                 # time.sleep(2)
                 # print(last_update, hm_time, cur_time)
-                if not self.force_update:
-                    if last_update and last_update.date() == cur_time.date():
-                        if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
-                            pass
-                        else:
-                            return
-                    elif cur_time.time() > hm_time:
-                        pass
-                    elif not last_update:
-                        pass
-                    else:
-                        return
+
+                # if not self.force_update:
+                #     if last_update and last_update.date() == cur_time.date():
+                #         if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
+                #             pass
+                #         else:
+                #             return
+                #     elif cur_time.time() > hm_time:
+                #         pass
+                #     elif not last_update:
+                #         pass
+                #     else:
+                #         return
+
                 self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
 
@@ -680,12 +707,12 @@ class CreateBasePrice(QThread):
 
                 actual_prices = select(distinct(MailReport.price_code))\
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
-                subq = select(TotalPrice_1._01article, TotalPrice_1._14brand_filled_in, TotalPrice_1._05price,
+                subq = select(TotalPrice_1._01article_comp, TotalPrice_1._14brand_filled_in, TotalPrice_1._05price,
                               TotalPrice_1._07supplier_code).where(
                     and_(TotalPrice_1._07supplier_code.in_(actual_prices), TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code,
                          SupplierPriceSettings.is_base_price == 'ДА',
                          TotalPrice_1._20exclude == None, TotalPrice_1._05price > 0,
-                         TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article != None))
+                         TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article_comp != None))
                 sess.execute(insert(BasePrice).from_select(['article', 'brand', 'price_b', 'min_supplier'], subq))
                 sess.query(BasePrice).where(BasePrice.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.base_price != 'ДА'))).delete()
                 sess.commit()  # sess.flush()
@@ -770,11 +797,17 @@ class CreateBasePrice(QThread):
                         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
                         fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv")
 
+                # Обновление итога
+                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._01article_comp == BasePrice.article,
+                                                             TotalPrice_2._14brand_filled_in == BasePrice.brand))
+                             .values(price_b=BasePrice.price_b, min_price=BasePrice.min_price,
+                                     min_supplier=BasePrice.min_supplier))
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
                 sess.add(
                     CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
                 sess.commit()
+
 
             self.log.add(LOG_ID, f"{catalog_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
                          f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> "
@@ -815,21 +848,27 @@ class CreateMassOffers(QThread):
 
                 cur_time = datetime.datetime.now()
 
-                last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
-                    CatalogUpdateTime.catalog_name == catalog_name)).scalar()
-
                 if not self.force_update:
-                    if last_update and last_update.date() == cur_time.date():
-                        if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
-                            pass
-                        else:
-                            return
-                    elif cur_time.time() > hm_time:
-                        pass
-                    elif not last_update:
-                        pass
-                    else:
+                    last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
+                        CatalogUpdateTime.catalog_name == catalog_name)).scalar()
+                    compare_time = datetime.datetime.strptime(f"{str(last_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
+                    # print(f"{compare_time=}")
+                    if (cur_time - compare_time).days < 1:
                         return
+
+                # if not self.force_update:
+                #     if last_update and last_update.date() == cur_time.date():
+                #         if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
+                #             pass
+                #         else:
+                #             return
+                #     elif cur_time.time() > hm_time:
+                #         pass
+                #     elif not last_update:
+                #         pass
+                #     else:
+                #         return
+
                 self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
 
@@ -841,10 +880,10 @@ class CreateMassOffers(QThread):
                 #         Прайс_оптовый = 'ДА' and Бренд is not NULL""")
                 actual_prices = select(distinct(MailReport.price_code))\
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
-                subq = select(TotalPrice_1._01article, TotalPrice_1._14brand_filled_in, TotalPrice_1._07supplier_code).where(
+                subq = select(TotalPrice_1._01article_comp, TotalPrice_1._14brand_filled_in, TotalPrice_1._07supplier_code).where(
                     and_(TotalPrice_1._07supplier_code.in_(actual_prices), TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code,
                          SupplierPriceSettings.wholesale == 'ДА', TotalPrice_1._20exclude == None, TotalPrice_1._05price > 0,
-                         TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article != None))
+                         TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article_comp != None))
                 sess.execute(insert(MassOffers).from_select(['article', 'brand', 'price_code'], subq))
                 sess.query(MassOffers).where(
                     MassOffers.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.mass_offers != 'ДА'))).delete()
@@ -937,6 +976,11 @@ class CreateMassOffers(QThread):
                         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
                         fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv")
 
+                # Обновление итога
+                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._01article_comp == MassOffers.article,
+                                                        TotalPrice_2._14brand_filled_in == MassOffers.brand))
+                             .values(offers_wh=MassOffers.offers_count))
+
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
                 sess.add(
                     CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
@@ -989,6 +1033,25 @@ class SaveTgTime(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"SaveTgTime Error", ex_text)
+
+class SaveCond3Time(QThread):
+    def __init__(self, tg_time, log=None, parent=None):
+        self.log = log
+        self.tg_time = tg_time
+        QThread.__init__(self, parent)
+
+    def run(self):
+        try:
+            with session() as sess:
+                sess.query(AppSettings).filter(AppSettings.param == 'last_DB_3_update').delete()
+                sess.add(AppSettings(param='last_DB_3_update',
+                                     var=f"{self.tg_time.hour()} {self.tg_time.minute()}"))
+                sess.commit()
+            self.log.add(LOG_ID, f"Время сохранено",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>Время сохранено</span>  ")
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"SaveCond3Time Error", ex_text)
 
 class CatalogsUpdateTable(QThread):
     CatalogsInfoSignal = Signal(CatalogUpdateTime)
@@ -1072,7 +1135,7 @@ class CreateTotalCsv(QThread):
                                                "09Код + Поставщик + Товар", "10Оригинал",
                                                "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
                                                "17КодУникальности", "18КороткоеНаименование",
-                                               "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
+                                               "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
                                                "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
                                                "Наценка на оптовые товары", "Шаг градаци",
                                                "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
@@ -1106,7 +1169,7 @@ class CreateTotalCsv(QThread):
                                  TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
                                  TotalPrice_2._10original, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
                                  TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._19min_price, TotalPrice_2._20exclude,
-                                 TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
+                                 TotalPrice_2.to_price, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
                                  TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                                  TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.code_pb_p,
