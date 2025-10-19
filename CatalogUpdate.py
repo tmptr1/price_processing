@@ -163,7 +163,8 @@ class CatalogUpdate(QThread):
                 if diff.days >= 1:
                     msg = ''
                     problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
-                                                                                              PriceReport.info_message != None))).scalars().all()
+                                                                                              PriceReport.info_message != None)).
+                                                    order_by(PriceReport.price_code)).scalars().all()
                     if problem_prices_1:
                         problem_prices_1 = ', '.join(problem_prices_1)
                     else:
@@ -171,7 +172,8 @@ class CatalogUpdate(QThread):
                     msg += f"Не прошли Первый этап: {problem_prices_1}\n\n"
 
                     problem_prices_2 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message2 != 'Ок',
-                                                                                              PriceReport.info_message2 != None))).scalars().all()
+                                                                                              PriceReport.info_message2 != None)).
+                                                    order_by(PriceReport.price_code)).scalars().all()
                     if problem_prices_2:
                         problem_prices_2 = ', '.join(problem_prices_2)
                     else:

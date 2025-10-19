@@ -324,7 +324,7 @@ class TotalPrice_1(Base):
 class Price_2(Base2):
     __tablename__ = "price_2"
     __table_args__ = (Index("price_2_09code_supl_goods_index", "_09code_supl_goods"),
-                      Index("price_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
+                      Index("price_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
                       Index("price_2_15code_optt_index", "_15code_optt"),)
 
@@ -511,7 +511,7 @@ class Price_2(Base2):
 class Price_2_2(Base2_1):
     __tablename__ = "price_2_2"
     __table_args__ = (Index("price_2_2_09code_supl_goods_index", "_09code_supl_goods"),
-                      Index("price_2_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
+                      Index("price_2_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
                       Index("price_2_2_15code_optt_index", "_15code_optt"),)
 
@@ -628,7 +628,10 @@ class Price_2_2(Base2_1):
 
 class TotalPrice_2(Base):
     __tablename__ = "total_price_2"
-    __table_args__ = (Index("total_price_2_09code_supl_goods_index", "_09code_supl_goods"),)
+    __table_args__ = (Index("total_price_2_09code_supl_goods_index", "_09code_supl_goods"),
+                      Index("total_price_2_07supplier_code_index", "_07supplier_code"),
+                      Index("total_price_2_15code_optt_index", "_15code_optt"),
+                      Index("total_price_2_07_14_code_index", "_07supplier_code", "_14brand_filled_in"))
     #                   Index("price_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
     #                   Index("price_2_07supplier_code_14brand_filled_in_low_index", "_07supplier_code", "_14brand_filled_in_low"),
     #                   Index("price_2_15code_optt_index", "_15code_optt"),)
