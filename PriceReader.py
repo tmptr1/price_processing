@@ -194,7 +194,7 @@ class MainWorker(QThread):
                         files.append(f)
 
                 if files:
-                    self.log.add(LOG_ID, f"Начало обработки") # (потоков: {self.threads_count})
+                    self.log.add(LOG_ID, f"Начало обработки {self.file_size_type}") # (потоков: {self.threads_count})
                     cur_time = datetime.datetime.now()
                     # with session() as sess:
                     #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
@@ -321,14 +321,14 @@ class MainWorker(QThread):
                 if not is_report_exists:
                     sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-                # if not self.check_price_time(price_code, file_name, sess):
-                #     self.cur_file_count += 1
-                #     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                #     sess.commit()
-                #     # add_log_cf(LOG_ID, f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
-                #     self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
-                #     return
+                if not self.check_price_time(price_code, file_name, sess):
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                    sess.commit()
+                    # add_log_cf(LOG_ID, f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                    self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
+                    return
 
                 req = select(FileSettings).where(FileSettings.price_code == price_code)
                 price_table_settings = sess.execute(req).scalars().all()
@@ -976,7 +976,7 @@ class MainWorker(QThread):
             raise ke
             # return False
 
-    def load_data_from_xml_to_db(self, sett, rc_dict, path_to_price, price_code, sess):
+    def load_data_from_xml_to_db(self, rc_dict, path_to_price, price_code, sess):
         try:
             cols_count = len(rc_dict)
             use_cols = [rc_dict[k][1]-1 for k in rc_dict]

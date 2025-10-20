@@ -120,7 +120,7 @@ class CalculateClass(QThread):
                     sess.commit()
 
                     # print(files)
-                # new_files = ['1IMP.csv', '1LAM.csv']
+                # new_files = ['1IMP.csv', ]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -130,7 +130,7 @@ class CalculateClass(QThread):
                     self.total_file_count = len(files)
                     self.cur_file_count = 0
                     self.SetTotalTome.emit(True)
-                    self.log.add(LOG_ID, f"Начало обработки")
+                    self.log.add(LOG_ID, f"Начало обработки {self.file_size_type}")
                     cur_time = datetime.datetime.now()
 
                     for f in files:
@@ -315,7 +315,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2._10original, self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
                                   self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._19min_price,
-                                  self.TmpPrice_2._20exclude,
+                                  self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
                                   self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.max_decline,
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
