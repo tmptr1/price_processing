@@ -194,7 +194,7 @@ class MainWorker(QThread):
                         files.append(f)
 
                 if files:
-                    self.log.add(LOG_ID, f"Начало обработки {self.file_size_type}") # (потоков: {self.threads_count})
+                    self.log.add(LOG_ID, f"Начало обработки [{self.file_size_type+1}]") # (потоков: {self.threads_count})
                     cur_time = datetime.datetime.now()
                     # with session() as sess:
                     #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))

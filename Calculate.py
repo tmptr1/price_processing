@@ -130,7 +130,7 @@ class CalculateClass(QThread):
                     self.total_file_count = len(files)
                     self.cur_file_count = 0
                     self.SetTotalTome.emit(True)
-                    self.log.add(LOG_ID, f"Начало обработки {self.file_size_type}")
+                    self.log.add(LOG_ID, f"Начало обработки [{self.file_size_type+1}]")
                     cur_time = datetime.datetime.now()
 
                     for f in files:

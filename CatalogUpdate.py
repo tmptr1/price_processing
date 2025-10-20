@@ -121,6 +121,7 @@ class CatalogUpdate(QThread):
 
                 discounts = sess.execute(select(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика']))).scalars().all()
                 price_cols = {'05Цена': TotalPrice_1._05price, 'Цена поставщика': TotalPrice_1._05price} # price_s
+                price_cols2 = {'05Цена': TotalPrice_2._05price, 'Цена поставщика': TotalPrice_2._05price} # price_s
                 for dscnt in discounts:
                     # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
                     sess.execute(update(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == dscnt.price_code,
@@ -131,7 +132,7 @@ class CatalogUpdate(QThread):
                     sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == dscnt.price_code,
                                                                  TotalPrice_2.currency_s != None,
                                                                  TotalPrice_2._14brand_filled_in == dscnt.find)).values(
-                        {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
+                        {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))}))
 
                 # для пересчёта прайсов, где указана валюта
                 # prices_with_curr = sess.execute(select(distinct(TotalPrice_1._07supplier_code)).

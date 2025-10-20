@@ -267,7 +267,7 @@ class Price_1_1(Base1_1):
 class TotalPrice_1(Base):
     __tablename__ = "total_price_1"
 
-    __table_args__ = (Index("total_price_1_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),)
+    # __table_args__ = (Index("total_price_1_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),)
                         # Index("price_1_brand_s_low_index", "brand_s_low"),
     #                   Index("price_1_id_compare_hash_index", "id_compare", postgresql_using="hash"),
     #                   Index("price_1_key1_index", "key1_s"),
@@ -634,7 +634,7 @@ class TotalPrice_2(Base):
                       Index("total_price_2_07supplier_code_index", "_07supplier_code"),
                       Index("total_price_2_15code_optt_index", "_15code_optt"),
                       Index("total_price_2_07_14_code_index", "_07supplier_code", "_14brand_filled_in"),
-                      Index("total_price_2_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),
+                      # Index("total_price_2_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),
                       )
     #                   Index("price_2_01article_14brand_filled_in_index", "_01article", "_14brand_filled_in"),
     #                   Index("price_2_07supplier_code_14brand_filled_in_low_index", "_07supplier_code", "_14brand_filled_in_low"),
