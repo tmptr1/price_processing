@@ -375,7 +375,7 @@ class MainWorker(QThread):
                 sett = sess.get(FileSettings, {'id': id_settig})
 
                 if new_frmt == 'xml':
-                    loaded = self.load_data_from_xml_to_db(sett, rc_dict, path_to_price, price_code, sess)
+                    loaded = self.load_data_from_xml_to_db(rc_dict, path_to_price, price_code, sess)
                 else:
                     loaded = self.load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
                 if not loaded:
