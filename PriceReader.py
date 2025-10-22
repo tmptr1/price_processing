@@ -87,17 +87,24 @@ class MainWorker(QThread):
 
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
 
-
-                files = os.listdir(settings_data["mail_files_dir"])
+                price_dir = settings_data["mail_files_dir"]
+                files = os.listdir(price_dir)
+                for file in files:
+                    if os.path.isdir(fr"{price_dir}\{file}"):
+                        for file_in_dir in os.listdir(fr"{price_dir}\{file}"):
+                            files.append(fr"{file}\{file_in_dir}")
+                # print(files)
+                # return
                 new_files = []
                 # engine.echo=True
                 with session() as sess:
                     self.mb_limit = int(sess.execute(select(AppSettings.var).where(AppSettings.param == 'mb_limit_1')).scalar())
                     # print(f"{self.mb_limit}")
                     for file in files:
+                        base_file_name = os.path.basename(file)
                         if file.startswith('~$'):
                             continue
-                        file_name = '.'.join(file.split('.')[:-1])
+                        file_name = '.'.join(base_file_name.split('.')[:-1])
                         if len(file_name) < 4:
                             continue
                         price_code = file_name[:4]
@@ -113,7 +120,7 @@ class MainWorker(QThread):
                         standard = sess.execute(req).scalar()
                         if not standard:
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Нет в условиях",
+                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code, info_message="Нет в условиях",
                                                  updated_at=new_update_time))
                             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
                                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
@@ -122,7 +129,7 @@ class MainWorker(QThread):
                             # req = update(PriceReport).where(PriceReport.price_code == price_code).values(info_message="Не указана стандартизация",
                             #                                                                       updated_at=new_update_time)
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code, info_message="Не указана стандартизация",
+                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code, info_message="Не указана стандартизация",
                                                  updated_at=new_update_time))
                             sess.execute(req)
                             self.log.add(LOG_ID, f"{price_code} Не указана стандартизация",
@@ -133,7 +140,7 @@ class MainWorker(QThread):
                         save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
                         if not save or str(save).upper() != 'ДА':
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=file, price_code=price_code,
+                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code,
                                                  info_message="Не указано сохранение",
                                                  updated_at=new_update_time))
                             sess.execute(req)
@@ -187,7 +194,7 @@ class MainWorker(QThread):
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['1EPR Европарт.xlsx', '1MKO остатки_ОС.xls']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
-                # new_files = ['1KPG Прайс-лист.xlsx']
+                # new_files = ['прайсы//1EPR Европарт.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -264,7 +271,8 @@ class MainWorker(QThread):
         return False
 
     def multi_calculate(self, args):
-        file_name, custom_price_code = args
+        file_path, custom_price_code = args
+        file_name = os.path.basename(file_path)
         self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
         children_prices = None
         try:
@@ -275,7 +283,7 @@ class MainWorker(QThread):
             # sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
             self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Загрузка сырых дынных...", True)
 
-            path_to_price = fr"{settings_data['mail_files_dir']}/{file_name}"
+            path_to_price = fr"{settings_data['mail_files_dir']}/{file_path}"
             frmt = file_name.split('.')[-1]
             new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_price)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -321,7 +329,7 @@ class MainWorker(QThread):
                 if not is_report_exists:
                     sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-                if not self.check_price_time(price_code, file_name, sess):
+                if not self.check_price_time(price_code, file_path, sess):
                     self.cur_file_count += 1
                     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
                         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
@@ -699,13 +707,13 @@ class MainWorker(QThread):
             for children_price in children_prices:
                 # print(children_price)
                 self.total_file_count += 1
-                self.multi_calculate([file_name, children_price])
+                self.multi_calculate([file_path, children_price])
 
-    def check_price_time(self, price_code, file_name, sess):
+    def check_price_time(self, price_code, file_path, sess):
         '''Расчёт рабочих дней с последнего изменения прайса'''
 
 
-        d1 = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file_name}"))
+        d1 = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file_path}"))
         d2 = datetime.datetime.today()
         days = (d2 - d1)
         days = days.days + days.seconds / 86400
