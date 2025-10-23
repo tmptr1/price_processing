@@ -130,13 +130,13 @@ class CatalogUpdate(QThread):
                     sess.execute(update(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == dscnt.price_code,
                                                                  TotalPrice_1.currency_s != None,
                                                                  TotalPrice_1._14brand_filled_in == dscnt.find)).values(
-                        {'_05price': TotalPrice_1._05price}))
+                        {'_05price': TotalPrice_1._05price * (1 + float(dscnt.set))}))
                         # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
 
                     sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == dscnt.price_code,
                                                                  TotalPrice_2.currency_s != None,
                                                                  TotalPrice_2._14brand_filled_in == dscnt.find)).values(
-                        {'_05price': TotalPrice_2._05price}))
+                        {'_05price': TotalPrice_2._05price * (1 + float(dscnt.set))}))
                         # {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols2[dscnt.col_change]
 
                 sess.execute(update(TotalPrice_2).where(TotalPrice_2.currency_s != None).values(_05price_plus=None))
