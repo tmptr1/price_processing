@@ -92,7 +92,8 @@ class MainWorker(QThread):
                 for file in files:
                     if os.path.isdir(fr"{price_dir}\{file}"):
                         for file_in_dir in os.listdir(fr"{price_dir}\{file}"):
-                            files.append(fr"{file}\{file_in_dir}")
+                            if not file_in_dir.startswith('~$'):
+                                files.append(fr"{file}\{file_in_dir}")
                 # print(files)
                 # return
                 new_files = []
@@ -194,7 +195,7 @@ class MainWorker(QThread):
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['1EPR Европарт.xlsx', '1MKO остатки_ОС.xls']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
-                # new_files = ['прайсы//1EPR Европарт.xlsx']
+                # new_files = ['AVT0 Stock_AvtoTo 2.csv',]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -1046,7 +1047,7 @@ class MainWorker(QThread):
                 # df[c] = np.float64(df[c])
             if c in pk:  # для PK
                 df = df[df[c].notna()]
-        # print(df['price_s'])
+        # print(df['count_s'])
         # df.to_csv('test.csv', sep=';', decimal=',', encoding="windows-1251", index=False)
         return df
         # df.to_sql(name=table_name, con=con, if_exists='append', index=False, index_label=False, chunksize=CHUNKSIZE)
@@ -1318,9 +1319,9 @@ def to_int(x):
         x = int(re.search(r'\d+', f"{x}").group(0))
         if math.isnan(x) or math.isinf(x):
             return 0
-        if 2147483647 < x < -2147483648:  # int
-            return 0
-        return x
+        if -2147483648 < x < 2147483647:  # int
+            return x
+        return 0
     except:
         return 0
 

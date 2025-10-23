@@ -41,7 +41,7 @@ class MailParserClass(QThread):
         global session, engine
         self.SetButtonEnabledSignal.emit(False)
         self.log.add(LOG_ID, "Старт", f"<span style='color:{colors.green_log_color};'>Старт</span>  ")
-        wait_sec = 60
+        wait_sec = 80
 
         while not self.isPause:
             # self.delete_irrelevant_prices()
@@ -293,8 +293,8 @@ class MailParserClass(QThread):
                                         self.del_duplicates(price_code, id)
 
                                         shutil.move(fr"{tmp_dir}/{f}", fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
-                                        shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
-                                                    fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
+                                        # shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
+                                        #             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
                                         # logger.info(f"+ ({price_code}) - {f}")
                                         self.log.add(LOG_ID, f"+ ({price_code}) - {f}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {f}")
@@ -339,8 +339,8 @@ class MailParserClass(QThread):
                                 self.del_duplicates(price_code, id)
 
                                 open(fr"{settings_data['mail_files_dir']}\{price_code} {addition}", 'wb').write(part.get_payload(decode=True))
-                                shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
-                                            fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
+                                # shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
+                                #             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
 
                                 self.log.add(LOG_ID, f"+ ({price_code}) - {name}", f"✔ (<span style='color:{colors.green_log_color};"
                                                                                         f"font-weight:bold;'>{price_code}</span>) - {name}")

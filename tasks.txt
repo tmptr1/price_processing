@@ -57,6 +57,8 @@ parallel_tuple_cost = 0.1
 
 ?UNLOGGED
 
+
++ int in df
 + папка в почте
 + сортировка по коду прайса в tg
 + убрать лишние символы в артикул, бренд (новый артикул)
@@ -225,7 +227,7 @@ ALTER SYSTEM SET autovacuum_naptime = '5min';       default - 1min
 
 
 
-= Value.NativeQuery(PostgreSQL.Database("192.168.11.201", "price_processing", [CreateNavigationProperties=false]),
+= Value.NativeQuery(PostgreSQL.Database("100.200.30.40", "price_processing", [CreateNavigationProperties=false]),
 "select key1_s as ""Ключ1 поставщика"", article_s as ""Артикул поставщика"", brand_s as ""Производитель поставщика"",
 name_s as ""Наименование поставщика"", count_s as ""Количество поставщика"", price_s as ""Цена поставщика"",
 mult_s as ""Кратность поставщика"", notice_s as ""Примечание поставщика"", _01article as ""01Артикул"",
