@@ -59,7 +59,8 @@ class MailParserClass(QThread):
                 # self.get_mail("94946", mail)
                 # self.get_mail("97738", mail)
                 # self.get_mail("97739", mail)
-                # self.get_mail("99917", mail)
+                # self.get_mail("102555", mail)
+                # self.get_mail("102549", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -244,7 +245,7 @@ class MailParserClass(QThread):
                 if part.get_content_maintype() != 'multipart' and part.get('Content-Disposition') is not None:
                     try:
                         enc = chardet.detect(decode_header(part.get_filename())[0][0])['encoding']
-                        # print(enc)
+                        # print(f"|{enc}|")
                         name = decode_header(part.get_filename())[0][0].decode(enc)
                         # print(name)
                     except:
@@ -319,7 +320,19 @@ class MailParserClass(QThread):
 
                         # обработка других файлов
                         for d_name in db_data:
+                            cont = False
                             if self.check_file_name(name, d_name[0], d_name[1]):
+                                cont = True
+                            if not cont:
+                                for en in ('windows-1251', 'utf-8'):
+                                    try:
+                                        cont = bool(self.check_file_name(decode_header(part.get_filename())[0][0].decode(en), d_name[0], d_name[1]))
+                                    except:
+                                        pass
+                                    if cont:
+                                        break
+
+                            if cont:
                                 price_code = str(d_name[2])
                                 addition = f"{d_name[0]}.{name.split('.')[-1]}"
                                 if d_name[1] == 'Равно + расширение':

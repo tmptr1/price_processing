@@ -193,9 +193,9 @@ class MainWorker(QThread):
                 # new_files = ["1MKO остатки_ОС.xls", "1ROS 155889.xlsx", "MI09 mikado_price_vdkz.csv"]
                 # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
-                # new_files = ['1EPR Европарт.xlsx', '1MKO остатки_ОС.xls']
-                # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
+                # new_files = ['TKT1 АКЦИЯ.xls']
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
+                # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -797,7 +797,6 @@ class MainWorker(QThread):
                 pandas_monkeypatch()
                 try:
                     table = pd.read_excel(path_to_price, header=None, engine='openpyxl', nrows=max_row)
-                    # print(f"{table=}")
                 except Exception as read_ex:
                     pass
                 if table.empty:
@@ -810,7 +809,7 @@ class MainWorker(QThread):
                         table = pd.read_excel(path_to_price, header=None, engine='calamine', nrows=max_row)
                     except Exception as read_ex_3:
                         pass
-
+                # print(f"{table=}")
             elif frmt == 'csv':
                 table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251', nrows=max_row,
                                     encoding_errors='ignore')
@@ -846,7 +845,7 @@ class MainWorker(QThread):
                     pass
 
             if table.empty:
-                print(f"Неизвестный формат")
+                # print(f"Неизвестный формат")
                 reason = "Неизвестный формат"
                 break
 
@@ -857,11 +856,23 @@ class MainWorker(QThread):
             for r, c, name in rc_dict.values():
                 if not name:
                     continue
-                # print(r, c, name, name in table.loc[r-1, c -1])
+                # print(r, c, name, name in table.loc[r-1, c -1])  encode('iso-8859-1').decode('windows-1251')
+                enc_name = None
+                try:
+                    enc_name = str(table.loc[r - 1, c - 1]).encode('iso-8859-1').decode('windows-1251')
+                except:
+                    pass
+
                 if name not in str(table.loc[r - 1, c - 1]):
-                    reason = name
-                    brk = True
-                    break
+                    if enc_name:
+                        if name not in enc_name:
+                            reason = name
+                            brk = True
+                            break
+                    else:
+                        reason = name
+                        brk = True
+                        break
 
             if not brk:
                 id_settig = sett.id
