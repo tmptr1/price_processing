@@ -126,7 +126,7 @@ class CatalogUpdate(QThread):
                 # price_cols = {'05Цена': TotalPrice_1._05price, 'Цена поставщика': TotalPrice_1._05price} # price_s
                 # price_cols2 = {'05Цена': TotalPrice_2._05price, 'Цена поставщика': TotalPrice_2._05price} # price_s
                 for dscnt in discounts:
-                    if not isinstance(dscnt.set, float):
+                    if not isinstance(dscnt.set, (float, int)):
                         continue
                     add = 1 + float(dscnt.set)
                     # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
