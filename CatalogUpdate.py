@@ -904,7 +904,7 @@ class CreateMassOffers(QThread):
                 sess.execute(insert(MassOffers).from_select(['article', 'brand', 'price_code'], subq))
                 sess.query(MassOffers).where(
                     MassOffers.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.mass_offers != 'ДА'))).delete()
-                sess.commit()  # sess.flush()
+                # sess.commit()  # sess.flush()
 
 
                 # # Замена 1MIK, 2MIK на MIK

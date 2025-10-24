@@ -97,7 +97,7 @@ class MainWorker(QThread):
                 # print(files)
                 # return
                 new_files = []
-                # engine.echo=True
+
                 with session() as sess:
                     self.mb_limit = int(sess.execute(select(AppSettings.var).where(AppSettings.param == 'mb_limit_1')).scalar())
                     # print(f"{self.mb_limit}")
@@ -195,7 +195,7 @@ class MainWorker(QThread):
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['1EPR Европарт.xlsx', '1MKO остатки_ОС.xls']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
-                # new_files = ['AVT0 Stock_AvtoTo 2.csv',]
+                # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
