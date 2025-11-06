@@ -41,6 +41,7 @@ class CatalogUpdate(QThread):
         self.log = log
         self.CBP = CreateBasePrice(log=log)
         self.CMO = CreateMassOffers(log=log)
+        self.CTC = CreateTotalCsv(log=log)
         QThread.__init__(self, parent)
 
     def run(self):
@@ -54,7 +55,11 @@ class CatalogUpdate(QThread):
                 self.send_tg_notification()
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
-                self.update_price_settings_catalog_3_0()
+                if self.update_price_settings_catalog_3_0():
+                    # self.CreateTotalCsvSignal.emit(True)
+                    self.CTC.start()
+                    self.CTC.wait()
+
                 self.update_DB_3()
 
                 self.update_base_price()
@@ -422,13 +427,15 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
                              f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                return 1
 
-            self.CreateTotalCsvSignal.emit(True)
+            # self.CreateTotalCsvSignal.emit(True)
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
+        return None
 
     def update_DB_3(self):
         with session() as sess:
