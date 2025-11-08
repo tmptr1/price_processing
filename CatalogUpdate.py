@@ -1274,6 +1274,7 @@ def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=
     for c in cols:
         char_limit = cols[c][1]
         if char_limit:  # str
+            df[c] = df[c].apply(lambda x: str(x).replace(' ', ' '))
             df[c] = df[c].apply(lambda x: str(x)[:char_limit] or None)
         else:  # float/int
             df[c] = df[c].apply(to_float)

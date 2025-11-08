@@ -193,9 +193,10 @@ class MainWorker(QThread):
                 # new_files = ["1MKO остатки_ОС.xls", "1ROS 155889.xlsx", "MI09 mikado_price_vdkz.csv"]
                 # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
                 #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
-                # new_files = ['TKT1 АКЦИЯ.xls']
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
+                # new_files = ['TKT1 АКЦИЯ   .xls']
+                # new_files = ['1LAM Прайс-лист.xls']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -564,8 +565,7 @@ class MainWorker(QThread):
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
 
                 # 13Градация
-                total_sum = sess.execute(
-                    select(func.sum(self.TmpPrice_1._05price))).scalar()
+                total_sum = sess.execute(select(func.sum(self.TmpPrice_1._05price))).scalar() or 1
 
                 subq = select(self.TmpPrice_1.id, self.TmpPrice_1._07supplier_code,
                               func.floor((total_sum - func.sum(self.TmpPrice_1._05price).over(order_by=(self.TmpPrice_1._05price,
