@@ -345,12 +345,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     # sess.commit()
                     Base.metadata.drop_all(engine)
                     Base.metadata.create_all(engine)
-                    sess.add_all([AppSettings(param="base_price_update", var="0 15"), AppSettings(param="mass_offers_update", var="0 15"),
+                    sess.add_all([AppSettings(param="base_price_update", var="2 15"), AppSettings(param="mass_offers_update", var="2 15"),
                                   AppSettings(param="tg_notification_time", var="19 0"),
                                   AppSettings(param="last_tg_notification_time", var="2025-01-01 01:01:01"),
-                                  AppSettings(param="last_DB_3_update", var="1 0"),
+                                  AppSettings(param="last_DB_3_update", var="4 0"),
                                   AppSettings(param="mb_limit_1", var="10"),
-                                  AppSettings(param="mb_limit_2", var="15"),
+                                  AppSettings(param="mb_limit_2", var="25"),
                                   CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Базовая цена', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Предложений в опте', updated_at='2025-01-01 01:01:01')])

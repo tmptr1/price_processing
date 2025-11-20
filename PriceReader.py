@@ -196,7 +196,7 @@ class MainWorker(QThread):
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['1LAM Прайс-лист.xls']
+                # new_files = ['1VTT инструмент.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -1160,7 +1160,7 @@ class MainWorker(QThread):
                     sess.execute(req)
                 else:
                     req = update(self.TmpPrice_1).where(
-                        and_(self.TmpPrice_1._07supplier_code == price_code, change_type[0](cols_name[cs.col_change][0], cs.find))
+                        and_(self.TmpPrice_1._07supplier_code == price_code, change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find))
                     ).values({cols_name[cs.col_change][1]: cols_name[cs.col_change][0].
                              regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
                     sess.execute(req)

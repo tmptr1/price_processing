@@ -304,7 +304,8 @@ class CatalogUpdate(QThread):
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
                 sheet_name = "ИсправНомПоУсл"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                sess.execute(update(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])).values(find=func.upper(ColsFix.find)))
+                # sess.execute(update(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])).values(find=func.upper(ColsFix.find)))
+                sess.execute(update(ColsFix).values(find=func.upper(ColsFix.find)))
                 # sess.query(ArticleFix).filter(ArticleFix.price_code == None).delete()
 
                 table_name = 'brands'
