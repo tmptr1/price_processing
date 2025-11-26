@@ -57,10 +57,13 @@ class CatalogUpdate(QThread):
                 self.update_price_settings_catalog_4_0()
                 if self.update_price_settings_catalog_3_0():
                     # self.CreateTotalCsvSignal.emit(True)
+                    # self.CTC.start()
+                    # self.CTC.wait()
+                    pass
+
+                if self.update_DB_3():
                     self.CTC.start()
                     self.CTC.wait()
-
-                self.update_DB_3()
 
                 self.update_base_price()
                 self.CBP.wait()
@@ -486,6 +489,7 @@ class CatalogUpdate(QThread):
             sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
             sess.commit()
+            return True
 
     def update_base_price(self, force_update=False):
         '''Формирование справочника Базовая цена'''

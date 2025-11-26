@@ -196,7 +196,7 @@ class MainWorker(QThread):
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['1VTT инструмент.xlsx']
+                # new_files = ['ПКФ1 Прайс лист.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -1173,12 +1173,12 @@ class MainWorker(QThread):
                      "Ключ1П": self.TmpPrice_1.key1_s, "АртикулП": self.TmpPrice_1.article_s, "ПроизводительП": self.TmpPrice_1.brand_s,
                      "НаименованиеП": self.TmpPrice_1.name_s, " ВалютаП": self.TmpPrice_1.currency_s, "ПримечаниеП": self.TmpPrice_1.notice_s,
                      }
-        check_types = {"Начинается с": lambda col, x: col.startswith(x),  # '^{}'],
-                       "Содержит": lambda col, x: col.contains(x),  # '{}'],
+        check_types = {"Начинается с": lambda col, x: col.ilike(f"{x}%"),  # '^{}'], startswith
+                       "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
                        "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
-                       "Заканчивается на": lambda col, x: col.endswith(x),  # '{}$'],
-                       "Равно": lambda col, x: col == x,
-                       "Не равно": lambda col, x: col != x,
+                       "Заканчивается на": lambda col, x: col.ilike(f"%{x}"),  # '{}$'], endswith
+                       "Равно": lambda col, x: func.upper(col) == x,
+                       "Не равно": lambda col, x: func.upper(col) != x,
                        }
         words = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
                                                         ColsFix.col_change == '20ИсключитьИзПрайса'))).scalars().all()
@@ -1209,7 +1209,8 @@ class MainWorker(QThread):
                 for c in not_like_cols:
                     # print(c)
                     values += f"{c}, "
-                    cond.append(cols_dict[i].contains(c))
+                    # cond.append(cols_dict[i].contains(c))
+                    cond.append(cols_dict[i].ilike(f"%{c}%"))
                 values = values[:-2]
                 # print(cond)
                 sess.execute(
