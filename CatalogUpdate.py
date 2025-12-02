@@ -472,7 +472,7 @@ class CatalogUpdate(QThread):
                                                 unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
 
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
-                         values(put_away_zp=Data09.put_away_zp))
+                         values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
 
             sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
                                                     TotalPrice_2._14brand_filled_in == Data07_14.correct))

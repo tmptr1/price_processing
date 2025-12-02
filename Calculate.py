@@ -120,7 +120,7 @@ class CalculateClass(QThread):
                     sess.commit()
 
                     # print(files)
-                # new_files = ['ЮАК0.csv', ]
+                # new_files = ['1ГУД.csv', ]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -254,8 +254,10 @@ class CalculateClass(QThread):
                     markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
                     access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
 
+                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=func.upper(
+                    self.TmpPrice_2._07supplier_code+self.TmpPrice_2._01article+self.TmpPrice_2._02brand)))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
-                             values(put_away_zp=Data09.put_away_zp))
+                             values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
                 self.add_log(self.file_size_type, price_code, 'data 07, 09', cur_time)
 
 
