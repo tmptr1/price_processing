@@ -196,7 +196,7 @@ class MainWorker(QThread):
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['ПКФ1 Прайс лист.xlsx']
+                # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -1225,7 +1225,7 @@ class MainWorker(QThread):
         for dscnt in discounts:
             # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
             sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._14brand_filled_in == dscnt.find).values(
-                {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))}))
+                {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(str(dscnt.set).replace(',', '.')))}))
 
 
     def create_csv(self, sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
