@@ -173,7 +173,6 @@ class MainWorker(QThread):
                 # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']#'1MTK Остатки оригинал Bobcat Doosan.xlsx'] #'1AVX AVEX.xlsx']
                 # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
-                # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 # new_files = ['1ROS 155889.xlsx', '1FAV FAVORIT.xlsx']
                 # new_files = ["1ROS 155889.xlsx"]
                 # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
