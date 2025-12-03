@@ -422,7 +422,9 @@ class CatalogUpdate(QThread):
                 sheet_name = "Резерв_да"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
-
+                sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
+                sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
+                sess.commit()
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
@@ -1139,15 +1141,15 @@ class CreateTotalCsv(QThread):
             self.log.add(LOG_ID, f"Формирование Итога ...",
                          f"Формирование <span style='color:{colors.green_log_color};font-weight:bold;'>Итога</span> ...")
             with session() as sess:
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Reserve.code_09)
-                             .values(reserve_count=Reserve.reserve_count))
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2.count - TotalPrice_2.reserve_count))
-                sess.query(TotalPrice_2).where(TotalPrice_2.count <= 0).delete()
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Reserve.code_09)
+                #              .values(reserve_count=Reserve.reserve_count))
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2.count - TotalPrice_2.reserve_count))
+                # sess.query(TotalPrice_2).where(TotalPrice_2.count <= 0).delete()
 
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2._06mult_new == None).values(_06mult_new=1))
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2._06mult_new == None).values(_06mult_new=1))
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
 
-                sess.commit()
+                # sess.commit()
                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
                     if file.startswith('pre Итог - страница'):
                         os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
