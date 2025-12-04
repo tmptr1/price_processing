@@ -1197,7 +1197,7 @@ class MainWorker(QThread):
                         not_like[w.col_find] = [w.find]
                     continue
                 sess.execute(update(self.TmpPrice_1).where(and_(check(col, w.find), self.TmpPrice_1._20exclude==None))
-                             .values(_20exclude=w.set))
+                             .values(_20exclude=str(w.set)[:50]))
 
         if not_like:
             # print(not_like)
