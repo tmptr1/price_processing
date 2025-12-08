@@ -19,6 +19,9 @@ class Base2(DeclarativeBase):
 class Base2_1(DeclarativeBase):
     pass
 
+class Base3(DeclarativeBase):
+    pass
+
 intpk = Annotated[int, mapped_column(primary_key=True)]
 uuidpk = Annotated[uuid.UUID, mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))]
 str_x = lambda x:Annotated[String, mapped_column(String(x), nullable=True)]
@@ -971,6 +974,201 @@ class Reserve(Base):
     # _07 (price_code) varchar(20)
     code_07: Mapped[str_x(20)]
 
+class SaleDK(Base):
+    __tablename__ = "sale_dk"
+
+    id: Mapped[intpk]
+    price_code: Mapped[str_x(20)]
+    agr: Mapped[str_x(100)]
+    val: Mapped[str_x(100)]
+
+class Brands_3(Base):
+    __tablename__ = "brands_3"
+
+    id: Mapped[intpk]
+    correct: Mapped[str_x(256)]
+    agr: Mapped[str_x(100)]
+    brand: Mapped[str_x(256)]
+    short_name: Mapped[str_x(20)]
+
+class BuyersForm(Base):
+    __tablename__ = "buyers_form"
+    # __table_args__ = (Index("reserve_code_09_index", "code_09"),)
+
+    id: Mapped[intpk]
+    # Наименование
+    name: Mapped[str_x(150)]
+    # Наименование2
+    name2: Mapped[str_x(150)]
+    # Код покупателя
+    buyer_code: Mapped[str_x(10)]
+    # Имя прайса
+    price_name: Mapped[str_x(150)]
+    # Имя файла
+    file_name: Mapped[str_x(150)]
+    # Код прайса покупателя
+    buyer_price_code: Mapped[str_x(20)]
+    # Основной прайс
+    main_price: Mapped[str_x(200)]
+    # Настройка ЗП и Брендов
+    zp_brands_setting: Mapped[str_x(30)]
+    # Включен?
+    included: Mapped[str_x(20)]
+    # Срок
+    period: Mapped[intgr]
+    # УС по требованиям покупателя
+    us_buyer_req: Mapped[real]
+    # УС текущий
+    us_current: Mapped[real]
+    # УС была
+    us_was: Mapped[real]
+    # УС Изменения
+    us_change: Mapped[real]
+    # Уровень сервиса не ниже
+    us_above: Mapped[real]
+    # Установить УС
+    us_set: Mapped[real]
+    # Динамика ВП
+    vp_dynamic: Mapped[real]
+    # Динамика Вал
+    val_dynamic: Mapped[real]
+    # Д Вал была
+    d_val_was: Mapped[real]
+    # Д изменения
+    d_change: Mapped[real]
+    # Доп наценка рост
+    rise_markup: Mapped[real]
+    # Доп наценка
+    markup: Mapped[real]
+    # Издержки
+    costs: Mapped[real]
+    # Итоговая наценка
+    final_markup: Mapped[real]
+    # Прохождение наименования
+    name_check: Mapped[str_x(20)]
+    # Короткое наименование
+    short_name: Mapped[str_x(20)]
+    # Отсрочка дней
+    delay: Mapped[intgr]
+    # КБ цены
+    kb_price: Mapped[real]
+    # Проценты за период
+    percent: Mapped[real]
+    # Максимум строк
+    max_rows: Mapped[intgr]
+    # Максимальный рост
+    max_rise: Mapped[real]
+    # Максимальное снижение
+    max_fall: Mapped[real]
+    # Наценка качество приёма товара
+    quality_markup: Mapped[real]
+    # Продаём для К.ОС
+    sell_for_kos: Mapped[str_x(20)]
+    # Наценка для К.ОС
+    kos_markup: Mapped[real]
+    # Адрес для прайсов
+    emails: Mapped[str_x(300)]
+    # Дни отправки
+    send_days: Mapped[str_x(150)]
+    # Время 1
+    time1: Mapped[str_x(20)]
+    # Время 2
+    time2: Mapped[str_x(20)]
+    # Время 3
+    time3: Mapped[str_x(20)]
+    # Время 4
+    time4: Mapped[str_x(20)]
+    # Время 5
+    time5: Mapped[str_x(20)]
+    # Время 6
+    time6: Mapped[str_x(20)]
+
+
+class PriceException(Base):
+    __tablename__ = "price_exception"
+
+    id: Mapped[intpk]
+    price_code: Mapped[str_x(20)]
+    condition: Mapped[str_x(50)]
+    find: Mapped[str_x(150)]
+    text: Mapped[str_x(300)]
+    deny: Mapped[str_x(500)]
+    extra: Mapped[str_x(150)]
+
+
+class FinalPrice(Base3):
+    __tablename__ = "final_price"
+    # __table_args__ = (Index("total_price_2_09code_supl_goods_index", "_09code_supl_goods"),
+    #                   Index("total_price_2_07supplier_code_index", "_07supplier_code"),
+    #                   Index("total_price_2_15code_optt_index", "_15code_optt"),
+    #                   Index("total_price_2_07_14_code_index", "_07supplier_code", "_14brand_filled_in"),
+    #                   # Index("total_price_2_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),
+    #                   )
+
+    id: Mapped[intpk]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _01article_comp: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(256)]
+    # _05Цена_плюс NUMERIC(12,2),
+    _05price_plus: Mapped[numeric]
+    # _06Кратность REAL,
+    _06mult_new: Mapped[intgr]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    # _13Градация REAL,
+    _13grad: Mapped[intgr]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    # _18КороткоеНаименование varchar(256),
+    _18short_name: Mapped[str_x(256)]
+    # Отсрочка REAL,
+    delay: Mapped[real]
+    # Продаём_для_ОС varchar(20),
+    sell_for_OS: Mapped[str_x(20)]
+    # Наценка_для_ОС REAL,
+    markup_os: Mapped[real]
+    # Наценка_Р REAL,
+    markup_R: Mapped[real]
+    # Наценка_ПБ REAL,
+    markup_pb: Mapped[real]
+    # Мин_наценка REAL,
+    min_markup: Mapped[real]
+    # Мин опт наценка
+    min_wholesale_markup: Mapped[real]
+    # Шаг_градаци REAL,
+    grad_step: Mapped[real]
+    # Шаг_опт REAL,
+    wh_step: Mapped[real]
+    # Разрешения_ПП varchar(3000),
+    access_pp: Mapped[str_x(500)]
+    # УбратьЗП varchar(3000),
+    put_away_zp: Mapped[str_x(500)]
+    # Предложений_опт REAL,
+    offers_wh: Mapped[intgr]
+    # ЦенаБ NUMERIC(12,2),
+    price_b: Mapped[numeric]
+    # Кол_во REAL,
+    count: Mapped[intgr]
+    # Код_ПБ_П varchar,
+    code_pb_p: Mapped[str_x(500)]
+    # Кратность_меньше varchar(25),
+    mult_less: Mapped[str_x(20)]
+    # Количество_закупок REAL,
+    buy_count: Mapped[real]
+    # Процент_Отгрузки REAL,
+    unload_percent: Mapped[real]
+    #   ЦенаМин numeric(12,2),
+    min_price: Mapped[numeric]
+    # В прайс
+    to_price: Mapped[intgr]
+
+
 
 class FileSettings(Base):
     __tablename__ = "file_settings"
@@ -1077,6 +1275,14 @@ class ColsFix(Base):
     change_type: Mapped[str_x(50)]
     col_change: Mapped[str_x(50)]
     set: Mapped[str_x(500)]
+
+class SuppliersForm(Base):
+    __tablename__ = "suppliers_form"
+    id: Mapped[intpk]
+    rating: Mapped[real]
+    setting: Mapped[str_x(20)]
+    days: Mapped[str_x(150)]
+
 
 # class ColsFix(Base):
 #     __tablename__ = "cols_fix"

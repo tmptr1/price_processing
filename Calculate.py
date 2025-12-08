@@ -121,6 +121,7 @@ class CalculateClass(QThread):
 
                     # print(files)
                 # new_files = ['1LAM.csv', ]
+                # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', 'TKTZ.csv', 'ЕТС1.csv', 'ЭНЯ0.csv']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -306,6 +307,8 @@ class CalculateClass(QThread):
 
                 sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
+
+                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.count < self.TmpPrice_2._06mult_new).values(mult_less='-'))
 
                 self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
 

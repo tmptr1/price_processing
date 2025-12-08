@@ -39,6 +39,7 @@ from Timer import MyTimer
 # from PipeListener import PipeListener
 import CatalogUpdate # import CatalogUpdate, SaveTime, get_catalogs_time_update, CatalogsUpdateTable
 from Calculate import CalculateClass, PriceReportUpdate_2
+from PriceSender import Sender
 
 Log = Logs.LogClass()
 Log.start()
@@ -119,6 +120,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate_2.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_3.setText(x))
         self.PriceReportUpdate_2.ResetPriceReportTime.connect(lambda _: self.update_price_2_report_table)
 
+        self.PriceSender = Sender(log=Log)
+
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
         self.StartButton_0.clicked.connect(self.start_mail_parser)
@@ -169,6 +172,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PauseCheckBox_2.checkStateChanged.connect(lambda b: self.setPause(b, self.CU))
         self.PauseCheckBox_3.checkStateChanged.connect(lambda b: self.setPause(b, self.Calculate))
         self.PauseCheckBox_3.checkStateChanged.connect(lambda b: self.setPause(b, self.Calculate2))
+        self.PauseCheckBox_4.checkStateChanged.connect(lambda b: self.setPause(b, self.PriceSender))
 
 
         # self.MW.StartTotalTimeSignal.connect(self.set_total_time)
@@ -297,6 +301,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.total__table_timer_3 = [None, None]
         self.total_timers_3 = [None, None]
 
+        self.StartButton_4.clicked.connect(self.start_send)
+        self.PriceSender.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_4, self.PauseCheckBox_4))
+        self.LogButton_4.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[4]}"))
+        self.LogButton_4.setToolTip("Открыть файл с логами")
+
 
         times = CatalogUpdate.get_catalogs_time_update()
         time_edits = {"base_price_update": self.BasePriceTimeEdit_2, "mass_offers_update": self.MassOffersTimeEdit_2}
@@ -323,7 +332,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ConsoleTextBrowser_1.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_2.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_3.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
-        self.consoles = {0: self.ConsoleTextBrowser_0, 1: self.ConsoleTextBrowser_1, 2: self.ConsoleTextBrowser_2, 3: self.ConsoleTextBrowser_3}
+        self.ConsoleTextBrowser_4.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
+        self.consoles = {0: self.ConsoleTextBrowser_0, 1: self.ConsoleTextBrowser_1, 2: self.ConsoleTextBrowser_2,
+                         3: self.ConsoleTextBrowser_3, 4: self.ConsoleTextBrowser_4}
         self.set_old_logs()
 
         self.x = 0
@@ -667,6 +678,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     # def stop_total_time_3(self):
     #     self.total_timer_3 = None
     #     self.TotalTimeLabel_3.setText('[0:00:00]')
+
+    def start_send(self):
+        if not self.PriceSender.isRunning():
+            self.PriceSender.start()
 
     def set_text_to_label(self, label, text):
         label.setText(text)

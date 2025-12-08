@@ -195,7 +195,10 @@ class MainWorker(QThread):
                 # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
                 # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
+                # new_files = ['1MKO остатки_ОС.xls']
+                # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
+                # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
+                #              '2ETP Прайс ЕТП.csv', 'TKTZ Печать 2.xls', 'ЕТС1 PriceМСК.xlsx', 'ЭНЯ0 Прайс-лист.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -1167,10 +1170,11 @@ class MainWorker(QThread):
     def words_except(self, sess, price_code):
         cols_dict = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
                      "Производитель поставщика": self.TmpPrice_1.brand_s,
-                     "Наименование поставщика": self.TmpPrice_1.name_s, " Валюта поставщика": self.TmpPrice_1.currency_s,
+                     "Наименование поставщика": self.TmpPrice_1.name_s, "Валюта поставщика": self.TmpPrice_1.currency_s,
                      "Примечание поставщика": self.TmpPrice_1.notice_s,
                      "Ключ1П": self.TmpPrice_1.key1_s, "АртикулП": self.TmpPrice_1.article_s, "ПроизводительП": self.TmpPrice_1.brand_s,
                      "НаименованиеП": self.TmpPrice_1.name_s, " ВалютаП": self.TmpPrice_1.currency_s, "ПримечаниеП": self.TmpPrice_1.notice_s,
+                     "15КодТутОптТорг": self.TmpPrice_1._15code_optt,
                      }
         check_types = {"Начинается с": lambda col, x: col.ilike(f"{x}%"),  # '^{}'], startswith
                        "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
@@ -1230,7 +1234,7 @@ class MainWorker(QThread):
     def create_csv(self, sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
         cur_time = datetime.datetime.now()
         # sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
-        self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
+        self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Формирование csv...", False)
 
         try:
             df = pd.DataFrame(columns=csv_cols_dict.keys())

@@ -9,7 +9,7 @@ import setting
 settings_data = setting.get_vars()
 
 log_file_names = ["logs_mail_parser_molule.log", "logs_price_reader_molule.log", "logs_catalog_update_molule.log",
-                  "logs_calcutate_molule.log"]
+                  "logs_calcutate_molule.log", "logs_sender.log"]
 log_files_local = []
 log_files_server = []
 for l in log_file_names:
