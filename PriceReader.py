@@ -69,7 +69,7 @@ class MainWorker(QThread):
 
     def run(self):
         global session, engine
-        wait_sec = 10
+        wait_sec = 15
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -198,7 +198,7 @@ class MainWorker(QThread):
                 # new_files = ['1MKO остатки_ОС.xls']
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
-                #              '2ETP Прайс ЕТП.csv', 'TKTZ Печать 2.xls', 'ЕТС1 PriceМСК.xlsx', 'ЭНЯ0 Прайс-лист.xlsx']
+                #              '2ETP Прайс ЕТП.csv', ]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -583,6 +583,7 @@ class MainWorker(QThread):
                 # add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
                 self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
 
+                cur_time = datetime.datetime.now()
                 csv_cols_dict = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
                                  "Производитель поставщика": self.TmpPrice_1.brand_s, "Наименование поставщика": self.TmpPrice_1.name_s,
                                  "Количество поставщика": self.TmpPrice_1.count_s, "Цена поставщика": self.TmpPrice_1.price_s,
@@ -600,7 +601,7 @@ class MainWorker(QThread):
 
                 self.cur_file_count += 1
                 # to csv
-                if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time,new_update_time):
+                if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
                     return
 
                 # cur_time = datetime.datetime.now()
@@ -628,6 +629,14 @@ class MainWorker(QThread):
                 # sess.query(Price_1).delete()
 
                 sess.commit()
+
+                self.add_log(self.file_size_type, price_code, "csv сформирован, данные загружены в БД", cur_time)
+                total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
+                self.log.add(LOG_ID,
+                             f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                             f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
+                             f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
 
             self.TmpPrice_1.__table__.drop(engine)
             self.TmpSum.__table__.drop(engine)
@@ -1232,7 +1241,7 @@ class MainWorker(QThread):
 
 
     def create_csv(self, sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
-        cur_time = datetime.datetime.now()
+        # cur_time = datetime.datetime.now()
         # sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Формирование csv...", False)
 
@@ -1256,18 +1265,18 @@ class MainWorker(QThread):
                 loaded += df_len
                 # print(df)
             # add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
-            self.add_log(self.file_size_type, price_code, "csv сформирован", cur_time)
+            # self.add_log(self.file_size_type, price_code, "csv сформирован", cur_time)
 
-            total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
+            # total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
             # sender.send(["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
             #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
             #              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
             #              f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
-            self.log.add(LOG_ID,
-                         f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                         f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-                         f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
+            # self.log.add(LOG_ID,
+            #              f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
+            #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+            #              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
+            #              f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
             cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_1)).scalar()
             cnt_wo_article = sess.execute(select(func.count()).select_from(self.TmpPrice_1).where(self.TmpPrice_1._01article == None)).scalar()
             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)

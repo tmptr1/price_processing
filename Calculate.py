@@ -60,7 +60,7 @@ class CalculateClass(QThread):
     def run(self):
         global session, engine
         # print('Поток', self.file_size_type)
-        wait_sec = 10
+        wait_sec = 15
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -121,7 +121,7 @@ class CalculateClass(QThread):
 
                     # print(files)
                 # new_files = ['1LAM.csv', ]
-                # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', 'TKTZ.csv', 'ЕТС1.csv', 'ЭНЯ0.csv']
+                # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -233,7 +233,7 @@ class CalculateClass(QThread):
                 del_total = del_positions_1 + del_positions_2
                 # self.add_log(price_code, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2})", cur_time)
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
-                self.log.add(LOG_ID, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2}) [{update_step_time}]",
+                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2}) [{update_step_time}]",
                              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
                              f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
                              f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_2 else 'black'};'>{del_positions_2}</span>) [{update_step_time}]")
@@ -312,6 +312,7 @@ class CalculateClass(QThread):
 
                 self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
 
+                cur_time = datetime.datetime.now()
                 cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
                                   self.TmpPrice_2.notice_s,
@@ -358,6 +359,8 @@ class CalculateClass(QThread):
                                      del_pos=del_total))
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
+                self.add_log(self.file_size_type, price_code, 'csv сформирован, данные загружены в БД', cur_time)
+
             self.TotalCountSignal.emit(total_cnt)
 
             # cur_time = datetime.datetime.now()
@@ -382,6 +385,8 @@ class CalculateClass(QThread):
                               group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
             func.count(self.TmpPrice_2.id) > 1))
 
+        del_positions_2 = 0
+
         for art, brnd in duples:
             # print(art, brnd)
             # DEL для всех повторений
@@ -391,33 +396,28 @@ class CalculateClass(QThread):
             # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
             min_price = select(func.min(self.TmpPrice_2._05price)).where(
                 and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd))
-            sess.execute((update(self.TmpPrice_2)).where(and_(self.TmpPrice_2._20exclude == 'DEL', self.TmpPrice_2._01article_comp == art,
-                                                      self.TmpPrice_2._14brand_filled_in == brnd,
+            sess.execute((update(self.TmpPrice_2)).where(and_(self.TmpPrice_2._20exclude == 'DEL',
                                                       self.TmpPrice_2._05price == min_price))
                          .values(_20exclude='not DEL'))
             # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-            max_count = select(func.max(self.TmpPrice_2._04count)).where(
-                and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-                     self.TmpPrice_2._20exclude == 'not DEL'))
-            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL', self.TmpPrice_2._01article_comp == art,
-                                                    self.TmpPrice_2._14brand_filled_in == brnd, self.TmpPrice_2._04count != max_count))
+            max_count = select(func.max(self.TmpPrice_2._04count)).where(self.TmpPrice_2._20exclude == 'not DEL')
+            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL', self.TmpPrice_2._04count != max_count))
                          .values(_20exclude='DEL'))
             # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-            max_id = select(func.max(self.TmpPrice_2.id)).where(
-                and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-                     self.TmpPrice_2._20exclude == 'not DEL'))
-            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
+            max_id = select(func.max(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude == 'not DEL')
+            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL',
                                                     self.TmpPrice_2.id != max_id)).values(_20exclude='DEL'))
 
-        del_positions_2 = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude == 'DEL').delete()
+            del_positions_2 += sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude == 'DEL').delete()
+            sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).values(_20exclude=None))
         # if del_positions_2:
         #     self.add_log(price_code, f"Удалено дблей: {del_positions_2}")
-        sess.execute(update(self.TmpPrice_2).values(_20exclude=None))
+        # sess.execute(update(self.TmpPrice_2).values(_20exclude=None))
         return del_positions_2
 
     def create_csv(self, sess, price_code, start_time):
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Формирование csv ...', False)
-        cur_time = datetime.datetime.now()
+        # cur_time = datetime.datetime.now()
 
         try:
             df = pd.DataFrame(columns=["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
@@ -464,7 +464,7 @@ class CalculateClass(QThread):
                 loaded += df_len
                 # print(df)
 
-            self.add_log(self.file_size_type, price_code, 'csv сформирован', cur_time)
+            # self.add_log(self.file_size_type, price_code, 'csv сформирован', cur_time)
 
             # cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
             # cnt_wo_article = sess.execute(

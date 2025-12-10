@@ -451,7 +451,7 @@ class CatalogUpdate(QThread):
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
                 table_name = 'buyers_form'
-                table_class = BuyersForm
+                table_class = BuyersForm  # "markup": ["Доп наценка"],
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
                         "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "buyer_price_code": ["Код прайса покупателя"],
                         "main_price": ["Основной прайс"], "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
@@ -459,8 +459,9 @@ class CatalogUpdate(QThread):
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
                         "us_set": ["Установить УС"], "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
                         "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
-                        "markup": ["Доп наценка"], "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
-                        "name_check": ["Прохождение наименования"], "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
+                        "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
+                        "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],
+                        "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
                         "kb_price": ["КБ цены"], "percent": ["Проценты за период"], "max_rows": ["Максимум строк"],
                         "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
                         "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],

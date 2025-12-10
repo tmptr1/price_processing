@@ -4,7 +4,7 @@ import time
 
 properties = ["ip:", "user:", "password:", "db_name:", "chunk_size:", "mail_login:", "mail_imap_password:",
               "mail_files_dir:", "catalogs_dir:", "3_cond_dir:", "server_logs_dir:", "exit_1_dir:",
-              "exit_2_dir:"]
+              "exit_2_dir:", "send_dir:"]
 
 def check_settings_file():
     if not 'Settings.txt' in os.listdir():
@@ -38,7 +38,7 @@ def get_vars():
 def create_dirs(data):
     dirs = ['logs', 'Archives', fr"{data['catalogs_dir']}/pre Справочник Базовая цена", fr"{data['catalogs_dir']}/Справочник Базовая цена",
             fr"{data['catalogs_dir']}/pre Справочник Предложений в опте", fr"{data['catalogs_dir']}/Справочник Предложений в опте",
-            fr"{data['catalogs_dir']}/pre Итог", fr"{data['catalogs_dir']}/Итог"]
+            fr"{data['catalogs_dir']}/pre Итог", fr"{data['catalogs_dir']}/Итог", fr"{data['catalogs_dir']}/pre Отправка"]
     for d in dirs:
         if not os.path.exists(d):
             os.mkdir(d)

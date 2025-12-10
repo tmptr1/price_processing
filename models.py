@@ -984,6 +984,7 @@ class SaleDK(Base):
 
 class Brands_3(Base):
     __tablename__ = "brands_3"
+    # __table_args__ = (Index("brands_3_correct_index", "correct"),)
 
     id: Mapped[intpk]
     correct: Mapped[str_x(256)]
@@ -1044,6 +1045,8 @@ class BuyersForm(Base):
     costs: Mapped[real]
     # Итоговая наценка
     final_markup: Mapped[real]
+    # Наценка покупателя опт
+    markup_buyer_wh: Mapped[real]
     # Прохождение наименования
     name_check: Mapped[str_x(20)]
     # Короткое наименование
@@ -1098,12 +1101,9 @@ class PriceException(Base):
 
 class FinalPrice(Base3):
     __tablename__ = "final_price"
-    # __table_args__ = (Index("total_price_2_09code_supl_goods_index", "_09code_supl_goods"),
-    #                   Index("total_price_2_07supplier_code_index", "_07supplier_code"),
-    #                   Index("total_price_2_15code_optt_index", "_15code_optt"),
-    #                   Index("total_price_2_07_14_code_index", "_07supplier_code", "_14brand_filled_in"),
-    #                   # Index("total_price_2_07_cur_14_code_index", "_07supplier_code", "currency_s", "_14brand_filled_in"),
-    #                   )
+    __table_args__ = (Index("final_price_15code_optt_index", "_15code_optt"),
+                      Index("final_price_01_14_index", "_01article", "_14brand_filled_in"),)
+
 
     id: Mapped[intpk]
     # _01Артикул varchar(256),
@@ -1155,6 +1155,8 @@ class FinalPrice(Base3):
     price_b: Mapped[numeric]
     # Кол_во REAL,
     count: Mapped[intgr]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
     # Код_ПБ_П varchar,
     code_pb_p: Mapped[str_x(500)]
     # Кратность_меньше varchar(25),
@@ -1167,7 +1169,34 @@ class FinalPrice(Base3):
     min_price: Mapped[numeric]
     # В прайс
     to_price: Mapped[intgr]
+    # БазоваяНаценка
+    base_markup: Mapped[real]
+    # МножительПокупателя
+    buyer_mult: Mapped[real]
+    # ЦенаСНаценкой
+    price_with_markup: Mapped[numeric]
+    # ЦенаР
+    price_r: Mapped[numeric]
+    # ОбычнаяЦена
+    default_price: Mapped[numeric]
+    # Превышение базовой цены
+    over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
+    # рейтинг
+    rating: Mapped[real]
 
+class FinalComparePrice(Base3):
+    __tablename__ = "final_compare_price"
+    __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),)
+
+    id: Mapped[intpk]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
+    # Срок
+    period: Mapped[intgr]
 
 
 class FileSettings(Base):
