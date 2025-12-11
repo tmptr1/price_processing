@@ -630,7 +630,7 @@ class MainWorker(QThread):
 
                 sess.commit()
 
-                self.add_log(self.file_size_type, price_code, "csv сформирован, данные загружены в БД", cur_time)
+                self.add_log(self.file_size_type, price_code, "создание csv, загрузка в БД", cur_time)
                 total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
                 self.log.add(LOG_ID,
                              f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",

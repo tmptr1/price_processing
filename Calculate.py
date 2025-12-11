@@ -359,7 +359,7 @@ class CalculateClass(QThread):
                                      del_pos=del_total))
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
-                self.add_log(self.file_size_type, price_code, 'csv сформирован, данные загружены в БД', cur_time)
+                self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)
 
             self.TotalCountSignal.emit(total_cnt)
 
