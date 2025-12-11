@@ -396,16 +396,22 @@ class CalculateClass(QThread):
             # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
             min_price = select(func.min(self.TmpPrice_2._05price)).where(
                 and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd))
-            sess.execute((update(self.TmpPrice_2)).where(and_(self.TmpPrice_2._20exclude == 'DEL',
+            sess.execute((update(self.TmpPrice_2)).where(and_(self.TmpPrice_2._20exclude == 'DEL', self.TmpPrice_2._01article_comp == art,
+                                                      self.TmpPrice_2._14brand_filled_in == brnd,
                                                       self.TmpPrice_2._05price == min_price))
                          .values(_20exclude='not DEL'))
             # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-            max_count = select(func.max(self.TmpPrice_2._04count)).where(self.TmpPrice_2._20exclude == 'not DEL')
-            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL', self.TmpPrice_2._04count != max_count))
+            max_count = select(func.max(self.TmpPrice_2._04count)).where(
+                and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
+                     self.TmpPrice_2._20exclude == 'not DEL'))
+            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL', self.TmpPrice_2._01article_comp == art,
+                                                    self.TmpPrice_2._14brand_filled_in == brnd, self.TmpPrice_2._04count != max_count))
                          .values(_20exclude='DEL'))
             # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-            max_id = select(func.max(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude == 'not DEL')
-            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL',
+            max_id = select(func.max(self.TmpPrice_2.id)).where(
+                and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
+                     self.TmpPrice_2._20exclude == 'not DEL'))
+            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
                                                     self.TmpPrice_2.id != max_id)).values(_20exclude='DEL'))
 
             del_positions_2 += sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude == 'DEL').delete()
@@ -430,7 +436,7 @@ class CalculateClass(QThread):
                                            "17КодУникальности", "18КороткоеНаименование",
                                            "19МинЦенаПоПрайсу", "20ИслючитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
                                            "Наценка для ОС", "Наценка Р",
-                                           "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градаци",
+                                           "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градации",
                                            "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
                                            "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
                                            "Количество закупок", "% Отгрузки",

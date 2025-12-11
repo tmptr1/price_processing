@@ -38,7 +38,8 @@ def get_vars():
 def create_dirs(data):
     dirs = ['logs', 'Archives', fr"{data['catalogs_dir']}/pre Справочник Базовая цена", fr"{data['catalogs_dir']}/Справочник Базовая цена",
             fr"{data['catalogs_dir']}/pre Справочник Предложений в опте", fr"{data['catalogs_dir']}/Справочник Предложений в опте",
-            fr"{data['catalogs_dir']}/pre Итог", fr"{data['catalogs_dir']}/Итог", fr"{data['catalogs_dir']}/pre Отправка"]
+            fr"{data['catalogs_dir']}/pre Итог", fr"{data['catalogs_dir']}/Итог", fr"{data['catalogs_dir']}/pre Отправка",
+            fr"{data['catalogs_dir']}/Последнее отправленное"]
     for d in dirs:
         if not os.path.exists(d):
             os.mkdir(d)

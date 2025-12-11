@@ -39,7 +39,7 @@ from Timer import MyTimer
 # from PipeListener import PipeListener
 import CatalogUpdate # import CatalogUpdate, SaveTime, get_catalogs_time_update, CatalogsUpdateTable
 from Calculate import CalculateClass, PriceReportUpdate_2
-from PriceSender import Sender
+from PriceSender import Sender, FinalPriceReportReset, FinalPriceReportUpdate
 
 Log = Logs.LogClass()
 Log.start()
@@ -301,10 +301,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.total__table_timer_3 = [None, None]
         self.total_timers_3 = [None, None]
 
-        self.StartButton_4.clicked.connect(self.start_send)
+
+        self.model_4 = QStandardItemModel()
+        self.model_4.setHorizontalHeaderLabels(['Code', 'Time'])
+        self.FinalPriceSendTableView_4.setModel(self.model_4)
+        self.FinalPriceSendTableView_4.verticalHeader().hide()
+        self.FinalPriceSendTableView_4.setEditTriggers(QTableView.NoEditTriggers)
+        self.FinalPriceSendTableView_4.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+
         self.PriceSender.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_4, self.PauseCheckBox_4))
+        self.PriceSender.SetProgressBarValue.connect(lambda cur, total: self.set_value_in_prigress_bar(cur, total, self.ProgressLabel_4,
+                                                              self.progressBar_4))
+        self.StartButton_4.clicked.connect(self.start_send)
         self.LogButton_4.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[4]}"))
         self.LogButton_4.setToolTip("Открыть файл с логами")
+        self.SendCheckBox_4.checkStateChanged.connect(lambda status: self.setSendStatus(status))
+        self.PriceSender.StartCreationSignal.connect(lambda b: self.set_total_time_4(b))
+        self.PriceSender.UpdateReportSignal.connect(self.update_price_4_report_table)
+        self.ToFilesDirButton_4.clicked.connect(lambda _: self.open_dir(settings_data['send_dir']))
+        self.FinalPriceReportReset = FinalPriceReportReset(log=Log)
+        self.ResetPriceReportButton_4.clicked.connect(self.reset_final_price_report)
+        self.ToReportDirButton_4.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
+        self.OpenReportButton_4.clicked.connect(
+            lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/final_price_report.csv"))
+        self.FinalPriceReportUpdate = FinalPriceReportUpdate(log=Log)
+        self.FinalPriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_4_report_table)
+        self.FinalPriceReportUpdate.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_4.setText(x))
+        self.UpdateReportButton_4.clicked.connect(self.update_price_4_report_table)
 
 
         times = CatalogUpdate.get_catalogs_time_update()
@@ -419,14 +442,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.model_3_1.removeRow(self.model_3_1.rowCount() - 1)
             self.PriceReportUpdate_2.start()
 
+    def update_price_4_report_table(self):
+        if not self.FinalPriceReportUpdate.isRunning():
+            while self.model_4.rowCount() > 0:
+                self.model_4.removeRow(self.model_4.rowCount() - 1)
+            self.FinalPriceReportUpdate.start()
+
     def reset_price_1_report(self):
         if not self.PriceReportReset.isRunning():
             self.PriceReportReset.start()
+
+    def reset_final_price_report(self):
+        if not self.FinalPriceReportReset.isRunning():
+            self.FinalPriceReportReset.start()
 
     def add_item_to_price_1_report_table(self, report):
         if report:
             items = [QStandardItem(f"{r}") for r in report]
             self.model_1_1.appendRow(items)
+
+    def add_item_to_price_4_report_table(self, report):
+        if report:
+            items = [QStandardItem(f"{r}") for r in report]
+            self.model_4.appendRow(items)
 
     def add_item_to_price_2_report_table(self, report):
         if report:
@@ -522,12 +560,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MP.UpdateReportSignal.connect(self.start_update_mail_report_table)
         self.MP.start()
 
-    def set_total_time(self, start):
+    def set_total_time_4(self, start):
         if start:
-            self.total_timer = MyTimer()
-            self.total_timer.SetTimeSignal.connect(self.set_total_time_on_label)
+            self.total_timer_4 = MyTimer()
+            self.total_timer_4.SetTimeSignal.connect(lambda t: self.set_text_to_label(self.TotalTimeLabel_4, t))
+            # self.total_timer.SetTimeSignal.connect(self.set_total_time_on_label)
         else:
-            self.total_timer.SetTimeSignal.disconnect(self.set_total_time_on_label)
+            self.total_timer_4 = None
+            # self.TotalTimeLabel_4.setText('[0:00:00]')
 
     def set_total_time_on_label(self, text):
         self.TotalTimeLabel.setText(text)
@@ -705,6 +745,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setPause(self, state, some_class):
         if some_class:
             some_class.isPause = (state == Qt.CheckState.Checked)
+
+    def setSendStatus(self, state):
+        self.PriceSender.need_to_send = (state != Qt.CheckState.Checked)
 
     def set_enabled_start_buttons(self, enabled, btn, chb):
         btn.setEnabled(enabled)

@@ -4,7 +4,12 @@ from sqlalchemy import text, select, delete, insert, update, and_, not_, func, c
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, )
+                    SuppliersForm, Brands_3, PriceSendTime)
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
 import pandas as pd
 import traceback
 import datetime
@@ -22,6 +27,7 @@ CHUNKSIZE = int(settings_data["chunk_size"])
 
 LOG_ID = 4
 WEEKDAYS = {0: "пон", 1: "втор", 2: "сре", 3: "чет", 4: "пят", 5: "суб", 6: "вос"}
+REPORT_FILE = r"final_price_report.csv"
 
 # из "Анкета покупателя" взять прайсы (Имя прайса) если "Включен?" == "да"
 # сначала формировать прайсы, где "Срок" == 1
@@ -30,15 +36,19 @@ WEEKDAYS = {0: "пон", 1: "втор", 2: "сре", 3: "чет", 4: "пят", 5
 #
 
 class Sender(QThread):
+    UpdateReportSignal = Signal(bool)
     SetButtonEnabledSignal = Signal(bool)
+    StartCreationSignal = Signal(bool)
+    SetProgressBarValue = Signal(int, int)
     isPause = None
+    need_to_send = True
     def __init__(self, log=None, parent=None):
         self.log = log
         QThread.__init__(self, parent)
     def run(self):
         global session, engine
         self.SetButtonEnabledSignal.emit(False)
-        wait_sec = 2
+        wait_sec = 15
 
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
@@ -51,28 +61,49 @@ class Sender(QThread):
                 # name = "Прайс ABS"
                 # name = "2дня Прайс 2-ABS"
                 # name = "3дня Прайс ABS"
+                price_name_list = []
                 with session() as sess:
-                    prices = sess.execute(select(BuyersForm.price_name).order_by(BuyersForm.period)).scalars().all()
+                    prices = sess.execute(select(BuyersForm).where(func.upper(BuyersForm.included)=='ДА').order_by(BuyersForm.period)).scalars().all()
+                    for p in prices:
+                        send_times = [p.time1, p.time2, p.time3, p.time4, p.time5, p.time6]
+                        last_send = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==p.buyer_price_code)).scalar()
+                        for st in send_times:
+                            if st is not None:
+                                try:
+                                    t_now = datetime.datetime.now()
+                                    h, m = map(int, str(st).split(':')[:2])
+                                    t = t_now.replace(hour=h, minute=m)
+                                    # print(p.buyer_price_code, t)
+
+                                    if t_now > t and (not last_send or last_send < t):
+                                        price_name_list.append(p.price_name)
+                                        break
+                                except:
+                                    pass
+
+                print(price_name_list)
                     # print(prices)
                 self.cur_file_count = 0
-                self.total_file_count = len(prices)
+                self.total_file_count = len(price_name_list)
 
+                # return
                 # prices = ["2дня Прайс 2-ABS", ]
-                if prices:
+                if price_name_list:
+                    self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
                     self.log.add(LOG_ID, f"Начало формирования ...")
-                    for name in prices:
+                    for name in price_name_list:
                         try:
-                            # print('\n')
-                            # print(name)
                             self.create_price(name)
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
                         finally:
                             self.cur_file_count += 1
+                            self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count)
                     self.log.add(LOG_ID, f"Формирование закончено [{str(datetime.datetime.now() - start_creating)[:7]}]")
-
+                    self.StartCreationSignal.emit(False)
+                    self.UpdateReportSignal.emit(True)
 
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
@@ -141,12 +172,16 @@ class Sender(QThread):
             # if cnt < 0:
             #     print('---')  # continue
 
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Начальное кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
-
             self.delete_exceptions(sess)
+            self.add_log(self.price_settings.buyer_price_code,
+                         f"{self.price_settings.buyer_price_code} Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
+
+            cur_time = datetime.datetime.now()
             # шаг удалениедублей перенесен
             self.del_duples(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Удаление дублей", cur_time)
+
+            cur_time = datetime.datetime.now()
 
             self.update_count_and_short_name(sess)
 
@@ -161,50 +196,57 @@ class Sender(QThread):
                              f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (ЦенаБ)")
 
             self.del_over_price(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Расчёт цены", cur_time)
 
+            cur_time = datetime.datetime.now()
             self.set_rating(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Расчёт рейтинга", cur_time)
 
-            try:
-                file_name = f"{str(self.price_settings.file_name).rstrip('.xlsx')}.csv"
-                csv_path = fr"{settings_data['catalogs_dir']}/pre Отправка"
-                df = pd.DataFrame(columns=["Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность",
-                                           "17КодУникальности"])
-                df.to_csv(fr"{csv_path}/_{file_name}", sep=';', decimal=',',
-                          encoding="windows-1251", index=False, errors='ignore')
-
-                limit = CHUNKSIZE
-                loaded = 0
-                while True:
-                    if self.price_settings.max_rows < loaded + limit:
-                        limit = self.price_settings.max_rows - loaded
-                    req = select(FinalPrice._01article, FinalPrice._14brand_filled_in, FinalPrice._03name,
-                                 FinalPrice.count, FinalPrice.price, FinalPrice._06mult_new, FinalPrice._17code_unique
-                                 ).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
-                    df = pd.read_sql_query(req, sess.connection(), index_col=None)
-                    df = df.sort_values(FinalPrice.price.__dict__['name'])
-
-                    df_len = len(df)
-
-                    if not df_len:
-                        break
-                    # print(df)
-                    df.to_csv(fr"{csv_path}/_{file_name}", mode='a',
-                              sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
-                              errors='ignore')
-                    loaded += df_len
-                    # print(df) # settings_data['send_dir']
-                shutil.copy(fr"{csv_path}/_{file_name}", fr"{settings_data['send_dir']}/{file_name}")
-                # return True
-            except PermissionError:
-                self.log.add(LOG_ID,
-                             f"Не удалось сформировать прайс {self.price_settings.buyer_price_code} ({self.cur_file_count + 1}/{self.total_file_count})",
-                             f"Не удалось сформировать прайс <span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-                             f"{self.price_settings.buyer_price_code}</span> ({self.cur_file_count + 1}/{self.total_file_count})")
-
-                # return False
+            cur_time = datetime.datetime.now()
+            self.file_name = f"{str(self.price_settings.file_name).rstrip('.xlsx')}.csv"
+            self.create_csv(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} csv создан", cur_time)
 
             self.add_log(self.price_settings.buyer_price_code,
                          f"{self.price_settings.buyer_price_code} Итоговое кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
+
+            if self.need_to_send:
+                send_to = "ytopttorg@mail.ru"
+                msg = MIMEMultipart()
+                msg["Subject"] = Header(f"{self.price_settings.buyer_price_code}")
+                msg["From"] = settings_data['mail_login']
+                msg["To"] = send_to
+                # msg.attach(MIMEText("price PL3", 'plain'))
+
+                s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+
+                try:
+                    s.starttls()
+                    s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+
+                    file_path = fr"{settings_data['send_dir']}\{self.file_name}"
+
+                    with open(file_path, 'rb') as f:
+                        file = MIMEApplication(f.read())
+
+                    file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                    msg.attach(file)
+
+                    s.sendmail(msg["From"], send_to, msg.as_string())
+
+                    shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
+                                fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+
+                except Exception as mail_ex:
+                    raise mail_ex
+                finally:
+                    s.quit()
+
+                self.add_log(self.price_settings.buyer_price_code,
+                             f"{self.price_settings.buyer_price_code} Отправлено")
+
+            sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
+            sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code, send_time=datetime.datetime.now()))
 
             sess.commit()
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
@@ -350,6 +392,35 @@ class Sender(QThread):
                          f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Цена меньше/равна 0)")
 
 
+    # def del_duples(self, sess):
+    #     duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
+    #                           having(func.count(FinalPrice.id) > 1)).scalars().all()
+    #     # print('dupl:', len(duples))
+    #     del_cnt = 0
+    #
+    #     for d in duples:
+    #         # DEL для всех повторений (mult_less уже не нужен на этом этапе)
+    #         sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
+    #         # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
+    #         min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
+    #         sess.execute((update(FinalPrice)).where(
+    #             and_(FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(mult_less='n D'))
+    #         # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
+    #         max_count = select(func.max(FinalPrice.count)).where(FinalPrice.mult_less == 'n D')
+    #         sess.execute(update(FinalPrice).where(
+    #             and_(FinalPrice.mult_less == 'n D', FinalPrice.count != max_count)).values(mult_less='D'))
+    #         # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
+    #         max_id = select(func.max(FinalPrice.id)).where(FinalPrice.mult_less == 'n D')
+    #         sess.execute(update(FinalPrice).where(
+    #             and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
+    #
+    #         del_cnt += sess.query(FinalPrice).where(FinalPrice.mult_less == 'D').delete()
+    #         sess.execute(update(FinalPrice).where(FinalPrice.mult_less == 'n D').values(mult_less=None))
+    #
+    #     if del_cnt:
+    #         self.add_log(self.price_settings.buyer_price_code,
+    #                      f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Дубли)")
+
     def del_duples(self, sess):
         duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
                               having(func.count(FinalPrice.id) > 1)).scalars().all()
@@ -362,13 +433,13 @@ class Sender(QThread):
             # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
             min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
             sess.execute((update(FinalPrice)).where(
-                and_(FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(mult_less='n D'))
+                and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(mult_less='n D'))
             # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-            max_count = select(func.max(FinalPrice.count)).where(FinalPrice.mult_less == 'n D')
+            max_count = select(func.max(FinalPrice.count)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
             sess.execute(update(FinalPrice).where(
-                and_(FinalPrice.mult_less == 'n D', FinalPrice.count != max_count)).values(mult_less='D'))
+                and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D', FinalPrice.count != max_count)).values(mult_less='D'))
             # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-            max_id = select(func.max(FinalPrice.id)).where(FinalPrice.mult_less == 'n D')
+            max_id = select(func.max(FinalPrice.id)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
             sess.execute(update(FinalPrice).where(
                 and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
 
@@ -426,6 +497,45 @@ class Sender(QThread):
         if min_rating:
             sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
 
+    def create_csv(self, sess):
+        try:
+            csv_path = fr"{settings_data['catalogs_dir']}/pre Отправка"
+            df = pd.DataFrame(columns=["Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность",
+                                       "17КодУникальности"])
+            df.to_csv(fr"{csv_path}/_{self.file_name}", sep=';', decimal=',',
+                      encoding="windows-1251", index=False, errors='ignore')
+
+            limit = CHUNKSIZE
+            loaded = 0
+            while True:
+                if self.price_settings.max_rows < loaded + limit:
+                    limit = self.price_settings.max_rows - loaded
+                req = select(FinalPrice._01article, FinalPrice._14brand_filled_in, FinalPrice._03name,
+                             FinalPrice.count, FinalPrice.price, FinalPrice._06mult_new, FinalPrice._17code_unique
+                             ).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
+                df = pd.read_sql_query(req, sess.connection(), index_col=None)
+                df = df.sort_values(FinalPrice.price.__dict__['name'])
+
+                df_len = len(df)
+
+                if not df_len:
+                    break
+                # print(df)
+                df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
+                          sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
+                          errors='ignore')
+                loaded += df_len
+                # print(df) # settings_data['send_dir']
+            shutil.copy(fr"{csv_path}/_{self.file_name}", fr"{settings_data['send_dir']}/{self.file_name}")
+            # return True
+        except PermissionError:
+            self.log.add(LOG_ID,
+                         f"Не удалось сформировать прайс {self.price_settings.buyer_price_code} ({self.cur_file_count + 1}/{self.total_file_count})",
+                         f"Не удалось сформировать прайс <span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
+                         f"{self.price_settings.buyer_price_code}</span> ({self.cur_file_count + 1}/{self.total_file_count})")
+
+            # return False
+
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
         if cur_time:
@@ -442,3 +552,50 @@ class Sender(QThread):
             self.log.add(LOG_ID, log_text.format('', '', price=price_code, log_main_text=msg),
                          log_text.format(f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>",
                                          '</span>', price=price_code, log_main_text=msg))
+
+
+
+class FinalPriceReportReset(QThread):
+    def __init__(self, log=None, parent=None):
+        self.log = log
+        QThread.__init__(self, parent)
+    def run(self):
+        try:
+            with session() as sess:
+                sess.query(PriceSendTime).delete()
+                sess.commit()
+            self.log.add(LOG_ID, f"Отчёт обнулён", f"<span style='color:{colors.green_log_color};'>Отчёт обнулён</span>  ")
+
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "PriceReportReset Error", ex_text)
+
+class FinalPriceReportUpdate(QThread):
+    UpdateInfoTableSignal = Signal(list)
+    UpdatePriceReportTime = Signal(str)
+
+    def __init__(self, log=None, parent=None):
+        self.log = log
+        QThread.__init__(self, parent)
+    def run(self):
+        try:
+            with (session() as sess):
+                req = select(PriceSendTime.price_code.label("Код прайса покупателя"),
+                             PriceSendTime.send_time.label("Время отправки")).order_by(PriceSendTime.price_code)
+                res = sess.execute(req).all()
+
+                for r in res:
+                    self.UpdateInfoTableSignal.emit(r)
+
+                self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
+                req = select(PriceSendTime.price_code.label("Код прайса покупателя"), PriceSendTime.send_time.label("Время отправки")
+                             ).order_by(PriceSendTime.price_code)
+
+                df = pd.read_sql(req, engine)
+                df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
+                          index=False, header=True, errors='ignore')
+
+                # self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "FinalPriceReportUpdate Error", ex_text)

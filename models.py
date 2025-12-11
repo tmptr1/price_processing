@@ -900,7 +900,7 @@ class Data07(Base):
     # Наценка_на_оптовые_товары REAL,
     markup_wholesale: Mapped[real]
     # Шаг_градаци REAL,
-    grad_step: Mapped[intgr]
+    grad_step: Mapped[real]
     # Шаг_опт REAL DEFAULT 0,
     wholesale_step: Mapped[real]
     # Разрешения_ПП varchar(3000),
@@ -1197,6 +1197,12 @@ class FinalComparePrice(Base3):
     price: Mapped[numeric]
     # Срок
     period: Mapped[intgr]
+
+class PriceSendTime(Base):
+    __tablename__ = "price_send_time"
+    id: Mapped[uuidpk]
+    price_code: Mapped[str_x(20)]
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 
 class FileSettings(Base):

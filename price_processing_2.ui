@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
@@ -1186,7 +1186,10 @@
        </attribute>
        <layout class="QGridLayout" name="gridLayout_16">
         <item row="0" column="0">
-         <layout class="QVBoxLayout" name="verticalLayout_8" stretch="3,12,35">
+         <layout class="QVBoxLayout" name="verticalLayout_9" stretch="3,12,35">
+          <property name="spacing">
+           <number>6</number>
+          </property>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_25">
             <item>
@@ -1218,6 +1221,13 @@
              </widget>
             </item>
             <item>
+             <widget class="QCheckBox" name="SendCheckBox_4">
+              <property name="text">
+               <string>Формировать, но не отправлять</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <spacer name="horizontalSpacer_34">
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
@@ -1229,6 +1239,22 @@
                </size>
               </property>
              </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="ToFilesDirButton_4">
+              <property name="text">
+               <string>Перейти в папку с прайсами</string>
+              </property>
+              <property name="icon">
+               <iconset theme="QIcon::ThemeIcon::FolderOpen"/>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>15</width>
+                <height>15</height>
+               </size>
+              </property>
+             </widget>
             </item>
            </layout>
           </item>
@@ -1290,16 +1316,82 @@
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QTextBrowser" name="ConsoleTextBrowser_4">
-              <property name="sizeAdjustPolicy">
-               <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
-              </property>
-             </widget>
+             <layout class="QVBoxLayout" name="verticalLayout_8">
+              <item>
+               <widget class="QTextBrowser" name="ConsoleTextBrowser_4">
+                <property name="sizeAdjustPolicy">
+                 <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_26">
+                <item>
+                 <widget class="QProgressBar" name="progressBar_4">
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>14</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="value">
+                   <number>0</number>
+                  </property>
+                  <property name="textVisible">
+                   <bool>false</bool>
+                  </property>
+                  <property name="format">
+                   <string>%p%</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="ProgressLabel_4">
+                  <property name="text">
+                   <string>0/0</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="TotalTimeLabel_4">
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::NoFrame</enum>
+                  </property>
+                  <property name="text">
+                   <string>[0:00:00]</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
             </item>
             <item row="1" column="1">
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <widget class="QTableView" name="NotMatchedTableView_4"/>
+               <widget class="QTableView" name="FinalPriceSendTableView_4"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="Label_4">
+                <property name="text">
+                 <string>Время последнего обновления отчёта:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="TimeOfLastReportUpdatelabel_4">
+                <property name="font">
+                 <font>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>-</string>
+                </property>
+               </widget>
               </item>
               <item>
                <layout class="QGridLayout" name="gridLayout_14">

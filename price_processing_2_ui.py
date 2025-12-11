@@ -675,8 +675,9 @@ class Ui_MainWindow(object):
         self.tab_5.setObjectName(u"tab_5")
         self.gridLayout_16 = QGridLayout(self.tab_5)
         self.gridLayout_16.setObjectName(u"gridLayout_16")
-        self.verticalLayout_8 = QVBoxLayout()
-        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+        self.verticalLayout_9 = QVBoxLayout()
+        self.verticalLayout_9.setSpacing(6)
+        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
         self.horizontalLayout_25 = QHBoxLayout()
         self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
         self.StartButton_4 = QPushButton(self.tab_5)
@@ -693,16 +694,28 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_25.addWidget(self.PauseCheckBox_4)
 
+        self.SendCheckBox_4 = QCheckBox(self.tab_5)
+        self.SendCheckBox_4.setObjectName(u"SendCheckBox_4")
+
+        self.horizontalLayout_25.addWidget(self.SendCheckBox_4)
+
         self.horizontalSpacer_34 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_25.addItem(self.horizontalSpacer_34)
 
+        self.ToFilesDirButton_4 = QPushButton(self.tab_5)
+        self.ToFilesDirButton_4.setObjectName(u"ToFilesDirButton_4")
+        self.ToFilesDirButton_4.setIcon(icon1)
+        self.ToFilesDirButton_4.setIconSize(QSize(15, 15))
 
-        self.verticalLayout_8.addLayout(self.horizontalLayout_25)
+        self.horizontalLayout_25.addWidget(self.ToFilesDirButton_4)
+
+
+        self.verticalLayout_9.addLayout(self.horizontalLayout_25)
 
         self.verticalSpacer_12 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_8.addItem(self.verticalSpacer_12)
+        self.verticalLayout_9.addItem(self.verticalSpacer_12)
 
         self.gridLayout_15 = QGridLayout()
         self.gridLayout_15.setObjectName(u"gridLayout_15")
@@ -728,18 +741,59 @@ class Ui_MainWindow(object):
 
         self.gridLayout_15.addWidget(self.NotMatchedLabel_4, 0, 1, 1, 1)
 
+        self.verticalLayout_8 = QVBoxLayout()
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
         self.ConsoleTextBrowser_4 = QTextBrowser(self.tab_5)
         self.ConsoleTextBrowser_4.setObjectName(u"ConsoleTextBrowser_4")
         self.ConsoleTextBrowser_4.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
-        self.gridLayout_15.addWidget(self.ConsoleTextBrowser_4, 1, 0, 1, 1)
+        self.verticalLayout_8.addWidget(self.ConsoleTextBrowser_4)
+
+        self.horizontalLayout_26 = QHBoxLayout()
+        self.horizontalLayout_26.setObjectName(u"horizontalLayout_26")
+        self.progressBar_4 = QProgressBar(self.tab_5)
+        self.progressBar_4.setObjectName(u"progressBar_4")
+        self.progressBar_4.setMaximumSize(QSize(16777215, 14))
+        self.progressBar_4.setStyleSheet(u"")
+        self.progressBar_4.setValue(0)
+        self.progressBar_4.setTextVisible(False)
+
+        self.horizontalLayout_26.addWidget(self.progressBar_4)
+
+        self.ProgressLabel_4 = QLabel(self.tab_5)
+        self.ProgressLabel_4.setObjectName(u"ProgressLabel_4")
+
+        self.horizontalLayout_26.addWidget(self.ProgressLabel_4)
+
+        self.TotalTimeLabel_4 = QLabel(self.tab_5)
+        self.TotalTimeLabel_4.setObjectName(u"TotalTimeLabel_4")
+        self.TotalTimeLabel_4.setFrameShape(QFrame.Shape.NoFrame)
+
+        self.horizontalLayout_26.addWidget(self.TotalTimeLabel_4)
+
+
+        self.verticalLayout_8.addLayout(self.horizontalLayout_26)
+
+
+        self.gridLayout_15.addLayout(self.verticalLayout_8, 1, 0, 1, 1)
 
         self.verticalLayout_7 = QVBoxLayout()
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.NotMatchedTableView_4 = QTableView(self.tab_5)
-        self.NotMatchedTableView_4.setObjectName(u"NotMatchedTableView_4")
+        self.FinalPriceSendTableView_4 = QTableView(self.tab_5)
+        self.FinalPriceSendTableView_4.setObjectName(u"FinalPriceSendTableView_4")
 
-        self.verticalLayout_7.addWidget(self.NotMatchedTableView_4)
+        self.verticalLayout_7.addWidget(self.FinalPriceSendTableView_4)
+
+        self.Label_4 = QLabel(self.tab_5)
+        self.Label_4.setObjectName(u"Label_4")
+
+        self.verticalLayout_7.addWidget(self.Label_4)
+
+        self.TimeOfLastReportUpdatelabel_4 = QLabel(self.tab_5)
+        self.TimeOfLastReportUpdatelabel_4.setObjectName(u"TimeOfLastReportUpdatelabel_4")
+        self.TimeOfLastReportUpdatelabel_4.setFont(font)
+
+        self.verticalLayout_7.addWidget(self.TimeOfLastReportUpdatelabel_4)
 
         self.gridLayout_14 = QGridLayout()
         self.gridLayout_14.setObjectName(u"gridLayout_14")
@@ -779,13 +833,13 @@ class Ui_MainWindow(object):
         self.gridLayout_15.setColumnStretch(0, 7)
         self.gridLayout_15.setColumnStretch(1, 3)
 
-        self.verticalLayout_8.addLayout(self.gridLayout_15)
+        self.verticalLayout_9.addLayout(self.gridLayout_15)
 
-        self.verticalLayout_8.setStretch(0, 3)
-        self.verticalLayout_8.setStretch(1, 12)
-        self.verticalLayout_8.setStretch(2, 35)
+        self.verticalLayout_9.setStretch(0, 3)
+        self.verticalLayout_9.setStretch(1, 12)
+        self.verticalLayout_9.setStretch(2, 35)
 
-        self.gridLayout_16.addLayout(self.verticalLayout_8, 0, 0, 1, 1)
+        self.gridLayout_16.addLayout(self.verticalLayout_9, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_3 = QWidget()
@@ -1276,8 +1330,15 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430", None))
         self.StartButton_4.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u043a", None))
         self.PauseCheckBox_4.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
+        self.SendCheckBox_4.setText(QCoreApplication.translate("MainWindow", u"\u0424\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c, \u043d\u043e \u043d\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0442\u044c", None))
+        self.ToFilesDirButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
         self.LogButton_4.setText("")
         self.NotMatchedLabel_4.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u043f\u0440\u0430\u0439\u0441\u043e\u0432:", None))
+        self.progressBar_4.setFormat(QCoreApplication.translate("MainWindow", u"%p%", None))
+        self.ProgressLabel_4.setText(QCoreApplication.translate("MainWindow", u"0/0", None))
+        self.TotalTimeLabel_4.setText(QCoreApplication.translate("MainWindow", u"[0:00:00]", None))
+        self.Label_4.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043e\u0442\u0447\u0451\u0442\u0430:", None))
+        self.TimeOfLastReportUpdatelabel_4.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.OpenReportButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.ToReportDirButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043e\u0442\u0447\u0451\u0442\u043e\u043c", None))
         self.UpdateReportButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
