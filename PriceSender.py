@@ -143,6 +143,7 @@ class Sender(QThread):
 
         with session() as sess:
             sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.commit()
             self.price_settings = sess.execute(select(BuyersForm).where(BuyersForm.price_name == name)).scalar()
             self.add_log(self.price_settings.buyer_price_code,f" ...")
 

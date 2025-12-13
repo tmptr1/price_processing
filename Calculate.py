@@ -219,6 +219,7 @@ class CalculateClass(QThread):
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
                 sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
                 # sess.execute(update(Price_2).values(_14brand_filled_in_low=Price_2._14brand_filled_in))
+                sess.commit()
 
                 # Удаление по первому условию
                 del_positions_1 = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count < 1, self.TmpPrice_2._04count == None,
