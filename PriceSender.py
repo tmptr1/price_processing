@@ -176,6 +176,9 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code,
                          f"{self.price_settings.buyer_price_code} Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
 
+            sess.commit()
+            print('ok')
+            return
             cur_time = datetime.datetime.now()
             # шаг удалениедублей перенесен
             self.del_duples(sess)
