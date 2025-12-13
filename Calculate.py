@@ -230,7 +230,7 @@ class CalculateClass(QThread):
                 #     self.add_log(price_code, f"Удалено по первому условию: {del_positions_1}")
 
                 # Удаление дублей 01Артикул, 14Производитель заполнен
-                del_positions_2 = self.del_duples(sess, price_code)
+                del_positions_2 = self.del_duples(sess)
                 del_total = del_positions_1 + del_positions_2
                 # self.add_log(price_code, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2})", cur_time)
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
@@ -381,17 +381,23 @@ class CalculateClass(QThread):
             self.cur_file_count += 1
             self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count) # +1
 
-    def del_duples(self, sess, price_code):
+    def del_duples(self, sess):
         duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
                               group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
+            func.count(self.TmpPrice_2.id) > 1)).scalars().all()
+
+        self.log.add(LOG_ID, f"DP: {len(duples)}")
+
+        duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
+        group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
             func.count(self.TmpPrice_2.id) > 1))
         # print('DP', len(duples))
-        print('DP', duples)
+        # print('DP', duples)
         del_positions_2 = 0
 
         i = 0
         for art, brnd in duples:
-            i+= 1
+            i += 1
             # print(art, brnd)
             # DEL для всех повторений
             sess.execute(
