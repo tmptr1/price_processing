@@ -197,7 +197,7 @@ class Sender(QThread):
 
             cur_time = datetime.datetime.now()
 
-            self.update_count_and_short_name(sess)
+            self.update_count_and_short_name(sess, allow_brands)
 
             self.update_price(sess)
 
@@ -410,7 +410,7 @@ class Sender(QThread):
         del_cnt = 0
 
         for i, d in enumerate(duples):
-            ct = datetime.datetime.now()
+            # ct = datetime.datetime.now()
             # DEL для всех повторений (mult_less уже не нужен на этом этапе)
             sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
             # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
