@@ -95,6 +95,7 @@ class Sender(QThread):
                     for name in price_name_list:
                         try:
                             self.create_price(name)
+                            return
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
