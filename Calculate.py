@@ -414,8 +414,11 @@ class CalculateClass(QThread):
             sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
                                                     self.TmpPrice_2.id != max_id)).values(_20exclude='DEL'))
 
-            del_positions_2 += sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude == 'DEL').delete()
-            sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).values(_20exclude=None))
+            del_positions_2 += sess.query(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art,
+                                                                      self.TmpPrice_2._14brand_filled_in == brnd,
+                                                                      self.TmpPrice_2._20exclude == 'DEL')).delete()
+            sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
+                                                            self.TmpPrice_2._20exclude != None)).values(_20exclude=None))
         # if del_positions_2:
         #     self.add_log(price_code, f"Удалено дблей: {del_positions_2}")
         # sess.execute(update(self.TmpPrice_2).values(_20exclude=None))

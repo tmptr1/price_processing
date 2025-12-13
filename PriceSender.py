@@ -185,7 +185,7 @@ class Sender(QThread):
 
             self.delete_exceptions(sess)
             self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
+                         f"Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
 
             # sess.commit()
             # print('ok')
@@ -193,7 +193,7 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
             # шаг удалениедублей перенесен
             self.del_duples(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Удаление дублей", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
 
             cur_time = datetime.datetime.now()
 
@@ -206,23 +206,22 @@ class Sender(QThread):
                          values(over_base_price=True))
             del_cnt = sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
             if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code,
-                             f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (ЦенаБ)")
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (ЦенаБ)")
 
             self.del_over_price(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Расчёт цены", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены", cur_time)
 
             cur_time = datetime.datetime.now()
             self.set_rating(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} Расчёт рейтинга", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга", cur_time)
 
             cur_time = datetime.datetime.now()
             self.file_name = f"{str(self.price_settings.file_name).rstrip('.xlsx')}.csv"
             self.create_csv(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"{self.price_settings.buyer_price_code} csv создан", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
             self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Итоговое кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
+                         f"Итоговое кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
 
             if self.need_to_send:
                 self.send_mail(sess)
@@ -294,8 +293,7 @@ class Sender(QThread):
 
         del_cnt = sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
         if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (слова исключения)")
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Слова исключения)")
 
     def update_count_and_short_name(self, sess, allow_brands):
         # расчёт кол-ва
@@ -305,15 +303,13 @@ class Sender(QThread):
                          values(count=func.floor(FinalPrice.count * self.price_settings.us_above)))
             del_cnt = sess.query(FinalPrice).where(or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count)).delete()
             if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code,
-                             f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (кол-во или кратность)")
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Кол-во или кратность)")
 
         allow_brands_set = set(b.correct for b in allow_brands)
         # print(allow_brands_set)
         del_cnt = sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
         if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Правильные бренды)")
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Правильные бренды)")
 
         short_name = set()
         for b in allow_brands:
@@ -368,8 +364,7 @@ class Sender(QThread):
 
         del_cnt = sess.query(FinalPrice).where(or_(FinalPrice.price<=0, FinalPrice.price==None)).delete()
         if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Цена меньше/равна 0)")
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Цена меньше/равна 0)")
 
 
     # def del_duples(self, sess):
@@ -435,8 +430,7 @@ class Sender(QThread):
             # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
 
         if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Дубли)")
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Дубли)")
 
     def del_over_price(self, sess):
         if self.price_settings.period != 1 and self.price_settings.main_price:
@@ -471,8 +465,7 @@ class Sender(QThread):
                     sess.query(FinalComparePrice).delete()
 
             if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code,
-                             f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (сравнение цены с осн. прайсом)")
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Сравнение цены с осн. прайсом)")
 
     def set_rating(self, sess):
         sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == SuppliersForm.setting).
@@ -561,8 +554,7 @@ class Sender(QThread):
         finally:
             s.quit()
 
-        self.add_log(self.price_settings.buyer_price_code,
-                     f"{self.price_settings.buyer_price_code} Отправлено")
+        self.add_log(self.price_settings.buyer_price_code, f"Отправлено")
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
