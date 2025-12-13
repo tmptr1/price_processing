@@ -120,7 +120,7 @@ class CalculateClass(QThread):
                     sess.commit()
 
                     # print(files)
-                new_files = ['2IMP.csv', ]
+                # new_files = ['2IMP.csv', ]
                 # new_files = ['1LAM.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -383,23 +383,19 @@ class CalculateClass(QThread):
             self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count) # +1
 
     def del_duples(self, sess):
-        duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
-                              group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
-            func.count(self.TmpPrice_2.id) > 1)).scalars().all()
-
-        self.log.add(LOG_ID, f"DP: {len(duples)}")
+        # duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
+        #                       group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
+        #     func.count(self.TmpPrice_2.id) > 1)).scalars().all()
+        #
+        # self.log.add(LOG_ID, f"DP: {len(duples)}")
 
         duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
         group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
             func.count(self.TmpPrice_2.id) > 1))
-        # print('DP', len(duples))
-        # print('DP', duples)
+
         del_positions_2 = 0
 
-        i = 0
         for art, brnd in duples:
-            i += 1
-            # print(art, brnd)
             # DEL для всех повторений
             sess.execute(
                 update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd)).values(
@@ -430,8 +426,6 @@ class CalculateClass(QThread):
                                                                       self.TmpPrice_2._20exclude == 'DEL')).delete()
             sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
                                                             self.TmpPrice_2._20exclude != None)).values(_20exclude=None))
-            if i % 500 == 0:
-                self.log.add(LOG_ID, f"del d {i}")
         # if del_positions_2:
         #     self.add_log(price_code, f"Удалено дблей: {del_positions_2}")
         # sess.execute(update(self.TmpPrice_2).values(_20exclude=None))
