@@ -177,9 +177,9 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code,
                          f"{self.price_settings.buyer_price_code} Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
 
-            sess.commit()
-            print('ok')
-            return
+            # sess.commit()
+            # print('ok')
+            # return
             cur_time = datetime.datetime.now()
             # шаг удалениедублей перенесен
             self.del_duples(sess)
@@ -429,10 +429,11 @@ class Sender(QThread):
         duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
                               having(func.count(FinalPrice.id) > 1)).scalars().all()
         # print('dupl:', len(duples))
-        self.log.add(LOG_ID, f"dp {len(duples)}")
+        pd_count = len(duples)
+        self.log.add(LOG_ID, f"dp {pd_count}")
         del_cnt = 0
 
-        for d in duples:
+        for i, d in enumerate(duples):
             ct = datetime.datetime.now()
             # DEL для всех повторений (mult_less уже не нужен на этом этапе)
             sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
@@ -448,12 +449,14 @@ class Sender(QThread):
             max_id = select(func.max(FinalPrice.id)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
             sess.execute(update(FinalPrice).where(
                 and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
-            self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
+            # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
+            if i % 3000 == 0:
+                self.log.add(LOG_ID, f"del d {i}/{pd_count}")
 
             ct = datetime.datetime.now()
             del_cnt += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
             sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
-            self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
+            # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
 
         if del_cnt:
             self.add_log(self.price_settings.buyer_price_code,
