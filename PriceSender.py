@@ -237,8 +237,8 @@ class Sender(QThread):
                          f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
                          f"{self.price_settings.buyer_price_code}</span> готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]")
 
-        # FinalPrice.__table__.drop(engine)
-        # FinalComparePrice.__table__.drop(engine)
+        FinalPrice.__table__.drop(engine)
+        FinalComparePrice.__table__.drop(engine)
 
 
     def get_allow_prises(self, sess):
