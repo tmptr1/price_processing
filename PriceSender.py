@@ -506,8 +506,10 @@ class Sender(QThread):
         ratings = select(FinalPrice.rating).order_by(FinalPrice.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
         # print('min r:', min_rating)
+        self.log.add(LOG_ID, f"min r: {min_rating}")
         if min_rating:
-            sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
+            del_cnt = sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
+            self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
 
     def create_csv(self, sess):
         try:
