@@ -425,7 +425,7 @@ class Sender(QThread):
         duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
                               having(func.count(FinalPrice.id) > 1)).scalars().all()
         # print('dupl:', len(duples))
-        self.log.add(f"dp {len(duples)}")
+        self.log.add(LOG_ID, f"dp {len(duples)}")
         del_cnt = 0
 
         for d in duples:
@@ -444,12 +444,12 @@ class Sender(QThread):
             max_id = select(func.max(FinalPrice.id)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
             sess.execute(update(FinalPrice).where(
                 and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
-            self.log.add(f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
+            self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
 
             ct = datetime.datetime.now()
             del_cnt += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
             sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
-            self.log.add(f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
+            self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
 
         if del_cnt:
             self.add_log(self.price_settings.buyer_price_code,
