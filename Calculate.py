@@ -120,7 +120,8 @@ class CalculateClass(QThread):
                     sess.commit()
 
                     # print(files)
-                new_files = ['1LAM.csv', ]
+                new_files = ['2IMP.csv', ]
+                # new_files = ['1LAM.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
