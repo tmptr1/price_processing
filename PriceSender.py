@@ -404,7 +404,7 @@ class Sender(QThread):
         # self.log.add(LOG_ID, f"dp {pd_count}")
         del_cnt = 0
 
-        for i, d in enumerate(duples):
+        for d in duples:
             # ct = datetime.datetime.now()
             # DEL для всех повторений (mult_less уже не нужен на этом этапе)
             sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
