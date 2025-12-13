@@ -81,7 +81,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                print(price_name_list)
+                # print(price_name_list)
                     # print(prices)
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
@@ -95,7 +95,6 @@ class Sender(QThread):
                     for name in price_name_list:
                         try:
                             self.create_price(name)
-                            return
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
@@ -144,8 +143,19 @@ class Sender(QThread):
 
         with session() as sess:
             self.price_settings = sess.execute(select(BuyersForm).where(BuyersForm.price_name == name)).scalar()
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"{self.price_settings.buyer_price_code} ...")
+            self.add_log(self.price_settings.buyer_price_code,f" ...")
+
+            allow_brands = sess.execute(
+                select(Brands_3.correct, Brands_3.short_name).where(Brands_3.agr == self.price_settings.name)).all()
+            if not allow_brands:
+                self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды в Справочник_Бренд3")
+                sess.query(PriceSendTime).where(
+                    PriceSendTime.price_code == self.price_settings.buyer_price_code).delete()
+                sess.add(
+                    PriceSendTime(price_code=self.price_settings.buyer_price_code, send_time=datetime.datetime.now()))
+
+                sess.commit()
+                return
 
             allow_prices = self.get_allow_prises(sess)
 
@@ -215,39 +225,7 @@ class Sender(QThread):
                          f"{self.price_settings.buyer_price_code} Итоговое кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
 
             if self.need_to_send:
-                send_to = "ytopttorg@mail.ru"
-                msg = MIMEMultipart()
-                msg["Subject"] = Header(f"{self.price_settings.buyer_price_code}")
-                msg["From"] = settings_data['mail_login']
-                msg["To"] = send_to
-                # msg.attach(MIMEText("price PL3", 'plain'))
-
-                s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
-
-                try:
-                    s.starttls()
-                    s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
-
-                    file_path = fr"{settings_data['send_dir']}\{self.file_name}"
-
-                    with open(file_path, 'rb') as f:
-                        file = MIMEApplication(f.read())
-
-                    file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-                    msg.attach(file)
-
-                    s.sendmail(msg["From"], send_to, msg.as_string())
-
-                    shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
-                                fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
-
-                except Exception as mail_ex:
-                    raise mail_ex
-                finally:
-                    s.quit()
-
-                self.add_log(self.price_settings.buyer_price_code,
-                             f"{self.price_settings.buyer_price_code} Отправлено")
+                self.send_mail(sess)
 
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code, send_time=datetime.datetime.now()))
@@ -319,7 +297,7 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code,
                          f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (слова исключения)")
 
-    def update_count_and_short_name(self, sess):
+    def update_count_and_short_name(self, sess, allow_brands):
         # расчёт кол-ва
         if self.price_settings.us_above is not None:
             sess.execute(update(FinalPrice).where(and_(FinalPrice.unload_percent != 1,
@@ -330,8 +308,6 @@ class Sender(QThread):
                 self.add_log(self.price_settings.buyer_price_code,
                              f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (кол-во или кратность)")
 
-        allow_brands = sess.execute(
-            select(Brands_3.correct, Brands_3.short_name).where(Brands_3.agr == self.price_settings.name)).all()
         allow_brands_set = set(b.correct for b in allow_brands)
         # print(allow_brands_set)
         del_cnt = sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
@@ -429,8 +405,8 @@ class Sender(QThread):
         duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
                               having(func.count(FinalPrice.id) > 1)).scalars().all()
         # print('dupl:', len(duples))
-        pd_count = len(duples)
-        self.log.add(LOG_ID, f"dp {pd_count}")
+        # pd_count = len(duples)
+        # self.log.add(LOG_ID, f"dp {pd_count}")
         del_cnt = 0
 
         for i, d in enumerate(duples):
@@ -450,10 +426,10 @@ class Sender(QThread):
             sess.execute(update(FinalPrice).where(
                 and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
             # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
-            if i % 3000 == 0:
-                self.log.add(LOG_ID, f"del d {i}/{pd_count}")
+            # if i % 3000 == 0:
+            #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
 
-            ct = datetime.datetime.now()
+            # ct = datetime.datetime.now()
             del_cnt += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
             sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
             # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
@@ -506,10 +482,10 @@ class Sender(QThread):
         ratings = select(FinalPrice.rating).order_by(FinalPrice.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
         # print('min r:', min_rating)
-        self.log.add(LOG_ID, f"min r: {min_rating}")
+        # self.log.add(LOG_ID, f"min r: {min_rating}")
         if min_rating:
-            del_cnt = sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
-            self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
+            sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
+            # self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
 
     def create_csv(self, sess):
         try:
@@ -549,6 +525,44 @@ class Sender(QThread):
                          f"{self.price_settings.buyer_price_code}</span> ({self.cur_file_count + 1}/{self.total_file_count})")
 
             # return False
+
+    def send_mail(self, sess):
+        if sess.execute(func.count(FinalPrice.id)).scalar() == 0:
+            self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
+            return
+        send_to = "ytopttorg@mail.ru"
+        msg = MIMEMultipart()
+        msg["Subject"] = Header(f"{self.price_settings.buyer_price_code}")
+        msg["From"] = settings_data['mail_login']
+        msg["To"] = send_to
+        # msg.attach(MIMEText("price PL3", 'plain'))
+
+        s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+
+        try:
+            s.starttls()
+            s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+
+            file_path = fr"{settings_data['send_dir']}\{self.file_name}"
+
+            with open(file_path, 'rb') as f:
+                file = MIMEApplication(f.read())
+
+            file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+            msg.attach(file)
+
+            s.sendmail(msg["From"], send_to, msg.as_string())
+
+            shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
+                        fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+
+        except Exception as mail_ex:
+            raise mail_ex
+        finally:
+            s.quit()
+
+        self.add_log(self.price_settings.buyer_price_code,
+                     f"{self.price_settings.buyer_price_code} Отправлено")
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
