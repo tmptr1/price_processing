@@ -988,7 +988,7 @@ class Brands_3(Base):
 
     id: Mapped[intpk]
     correct: Mapped[str_x(256)]
-    agr: Mapped[str_x(100)]
+    zp_brands_setting: Mapped[str_x(100)]
     brand: Mapped[str_x(256)]
     short_name: Mapped[str_x(20)]
 
@@ -1202,6 +1202,27 @@ class PriceSendTime(Base):
     __tablename__ = "price_send_time"
     id: Mapped[uuidpk]
     price_code: Mapped[str_x(20)]
+    # info_msg
+    info_msg: Mapped[str_x(50)]
+    # count
+    count: Mapped[intgr]
+    # кол-во после первого фильтра
+    count_after_filter: Mapped[intgr]
+    # Удал: ЦенаБ del_price_b
+    del_price_b: Mapped[intgr]
+    # Удал: словам исключения exception_words_del
+    exception_words_del: Mapped[intgr]
+    # Удал: кол-во, кратность count_mult_del
+    count_mult_del: Mapped[intgr]
+    # Удал: правильные бренды correct_brands_del
+    correct_brands_del: Mapped[intgr]
+    # Удал: Цена ноль price_del
+    price_del: Mapped[intgr]
+    # Удал: дубли dup_del
+    dup_del: Mapped[intgr]
+    # Удал: сравнение цен с осн. прайсом price_compare_del
+    price_compare_del: Mapped[intgr]
+    update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 

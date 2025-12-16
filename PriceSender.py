@@ -95,6 +95,8 @@ class Sender(QThread):
                     for name in price_name_list:
                         try:
                             self.create_price(name)
+                            # print('ok')
+                            # return
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
@@ -148,14 +150,14 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code,f" ...")
 
             allow_brands = sess.execute(
-                select(Brands_3.correct, Brands_3.short_name).where(Brands_3.agr == self.price_settings.name)).all()
+                select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.buyer_code)).all()
             if not allow_brands:
                 self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды в Справочник_Бренд3")
                 sess.query(PriceSendTime).where(
                     PriceSendTime.price_code == self.price_settings.buyer_price_code).delete()
-                sess.add(
-                    PriceSendTime(price_code=self.price_settings.buyer_price_code, send_time=datetime.datetime.now()))
-
+                sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
+                                  send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                  info_msg='Не указаны бренды в Справочник_Бренд3'))
                 sess.commit()
                 return
 
@@ -186,8 +188,9 @@ class Sender(QThread):
             #     print('---')  # continue
 
             self.delete_exceptions(sess)
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"Кол-во строк после первого фильтра: {sess.execute(func.count(FinalPrice.id)).scalar()}", cur_time)
+            count_after_first_filter = sess.execute(func.count(FinalPrice.id)).scalar()
+            self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
+                         cur_time)
 
             # sess.commit()
             # print('ok')
@@ -206,9 +209,9 @@ class Sender(QThread):
             sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
                                                        FinalPrice.price_b / self.price_settings.kb_price < FinalPrice.price)).
                          values(over_base_price=True))
-            del_cnt = sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
-            if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (ЦенаБ)")
+            del_price_b = sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
+            if del_price_b:
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_price_b} (ЦенаБ)")
 
             self.del_over_price(sess)
             self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены", cur_time)
@@ -222,15 +225,20 @@ class Sender(QThread):
             self.create_csv(sess)
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
-            self.add_log(self.price_settings.buyer_price_code,
-                         f"Итоговое кол-во строк: {sess.execute(func.count(FinalPrice.id)).scalar()}")
+            total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
+            self.add_log(self.price_settings.buyer_price_code, f"Итоговое кол-во строк: {total_rows}")
 
+            self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
             if self.need_to_send:
                 self.send_mail(sess)
 
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
-            sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code, send_time=datetime.datetime.now()))
-
+            sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
+                                   update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), send_time=self.send_time,
+                                   info_msg='Ок', count=total_rows, count_after_filter=count_after_first_filter,
+                                   del_price_b=del_price_b, exception_words_del=self.exception_words_del,
+                                   count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
+                                   price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del))
             sess.commit()
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID,
@@ -293,25 +301,26 @@ class Sender(QThread):
             if condition and col:
                 sess.execute(update(FinalPrice).where(condition(col, e.text)).values(mult_less='0'))
 
-        del_cnt = sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
-        if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Слова исключения)")
+        self.exception_words_del = sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
+        if self.exception_words_del:
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.exception_words_del} (Слова исключения)")
 
     def update_count_and_short_name(self, sess, allow_brands):
+        self.count_mult_del = 0
         # расчёт кол-ва
         if self.price_settings.us_above is not None:
             sess.execute(update(FinalPrice).where(and_(FinalPrice.unload_percent != 1,
                                                        FinalPrice.unload_percent < self.price_settings.us_above)).
                          values(count=func.floor(FinalPrice.count * self.price_settings.us_above)))
-            del_cnt = sess.query(FinalPrice).where(or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count)).delete()
-            if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Кол-во или кратность)")
+            self.count_mult_del = sess.query(FinalPrice).where(or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count)).delete()
+            if self.count_mult_del:
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.count_mult_del} (Кол-во или кратность)")
 
         allow_brands_set = set(b.correct for b in allow_brands)
         # print(allow_brands_set)
-        del_cnt = sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
-        if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Правильные бренды)")
+        self.correct_brands_del = sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
+        if self.correct_brands_del:
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.correct_brands_del} (Правильные бренды)")
 
         short_name = set()
         for b in allow_brands:
@@ -364,9 +373,9 @@ class Sender(QThread):
                                                            FinalPrice.min_price))))
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
 
-        del_cnt = sess.query(FinalPrice).where(or_(FinalPrice.price<=0, FinalPrice.price==None)).delete()
-        if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Цена меньше/равна 0)")
+        self.price_del = sess.query(FinalPrice).where(or_(FinalPrice.price<=0, FinalPrice.price==None)).delete()
+        if self.price_del:
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
 
     # def del_duples(self, sess):
@@ -404,7 +413,7 @@ class Sender(QThread):
         # print('dupl:', len(duples))
         # pd_count = len(duples)
         # self.log.add(LOG_ID, f"dp {pd_count}")
-        del_cnt = 0
+        self.dup_del = 0
 
         for d in duples:
             # ct = datetime.datetime.now()
@@ -427,18 +436,18 @@ class Sender(QThread):
             #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
 
             # ct = datetime.datetime.now()
-            del_cnt += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
+            self.dup_del += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
             sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
             # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
 
-        if del_cnt:
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Дубли)")
+        if self.dup_del:
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
 
     def del_over_price(self, sess):
+        self.price_compare_del = 0
         if self.price_settings.period != 1 and self.price_settings.main_price:
             main_prices = list(map(str.strip, str(self.price_settings.main_price).split(',')))
             # print('MPs', main_prices)
-            del_cnt = 0
             for p in main_prices:
                 base_name = str(p).rstrip('.xlsx')
                 price_path = fr"{settings_data['send_dir']}/{base_name}.csv"
@@ -463,11 +472,11 @@ class Sender(QThread):
                                                                FinalPrice._14brand_filled_in == FinalComparePrice._14brand_filled_in,
                                                                FinalPrice.price > FinalComparePrice.price)).
                                  values(over_base_price=True))
-                    del_cnt += sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
+                    self.price_compare_del += sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
                     sess.query(FinalComparePrice).delete()
 
-            if del_cnt:
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_cnt} (Сравнение цены с осн. прайсом)")
+            if self.price_compare_del:
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_compare_del} (Сравнение цены с осн. прайсом)")
 
     def set_rating(self, sess):
         sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == SuppliersForm.setting).
@@ -550,7 +559,7 @@ class Sender(QThread):
 
             shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
                         fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
-
+            self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
         except Exception as mail_ex:
             raise mail_ex
         finally:
@@ -602,16 +611,21 @@ class FinalPriceReportUpdate(QThread):
     def run(self):
         try:
             with (session() as sess):
-                req = select(PriceSendTime.price_code.label("Код прайса покупателя"),
-                             PriceSendTime.send_time.label("Время отправки")).order_by(PriceSendTime.price_code)
+                cols = (PriceSendTime.price_code.label("Код прайса покупателя"), PriceSendTime.info_msg.label("Статус"),
+                        PriceSendTime.count.label("Итоговое кол-во"), PriceSendTime.count_after_filter.label("Кол-во после первого фильтра"),
+                        PriceSendTime.del_price_b.label("Уд. ЦенаБ"), PriceSendTime.exception_words_del.label("Уд. Слова исключения"),
+                        PriceSendTime.count_mult_del.label("Уд. Кол-во и Кратность"), PriceSendTime.correct_brands_del.label("Уд. правильные бренды"),
+                        PriceSendTime.price_del.label("Уд. Нулевая/отрицательная цена"), PriceSendTime.dup_del.label("Уд. Дубли"),
+                        PriceSendTime.price_compare_del.label("Уд. Сравнение цены с осн. прайсами"),
+                        )
+                req = select(*cols).order_by(PriceSendTime.price_code)
                 res = sess.execute(req).all()
 
                 for r in res:
                     self.UpdateInfoTableSignal.emit(r)
 
                 self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
-                req = select(PriceSendTime.price_code.label("Код прайса покупателя"), PriceSendTime.send_time.label("Время отправки")
-                             ).order_by(PriceSendTime.price_code)
+                req = select(*cols).order_by(PriceSendTime.price_code)
 
                 df = pd.read_sql(req, engine)
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",

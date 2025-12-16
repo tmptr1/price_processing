@@ -439,10 +439,13 @@ class CatalogUpdate(QThread):
 
                 table_name = 'brands_3'
                 table_class = Brands_3
-                cols = {"correct": ["Сюда правильное"], "agr": ["Атрибут"], "brand": ["Бренд"],
+                cols = {"correct": ["Сюда правильное"], "zp_brands_setting": ["Настройка ЗП и Брендов"], "brand": ["Бренд"],
                         "short_name": ["Короткое наименование бренда"], }
                 sheet_name = "Справочник_Бренд3"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                # unique rows
+                uniques_rows_id = select(func.max(Brands_3.id)).group_by(Brands_3.correct, Brands_3.zp_brands_setting)
+                sess.query(Brands_3).where(Brands_3.id.not_in(uniques_rows_id)).delete()
 
                 table_name = 'suppliers_form'
                 table_class = SuppliersForm
@@ -472,8 +475,8 @@ class CatalogUpdate(QThread):
                 sheet_name = "Анкета покупателя"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
-                sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
+                # sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
                 # sess.execute(update(TotalPrice_2).values(mult_less=None))
                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
                 sess.commit()
@@ -497,13 +500,16 @@ class CatalogUpdate(QThread):
 
     def update_DB_3(self):
         with session() as sess:
+            cur_time = datetime.datetime.now()
+            if cur_time.hour > 8:
+                return
+
             last_3_condition_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == '3.0 Условия.xlsx')).scalar()
             last_DB_3_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0')).scalar()
 
             if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
                 return
 
-            cur_time = datetime.datetime.now()
             last_DB_3_update_HM = sess.execute(select(AppSettings.var).where(AppSettings.param == "last_DB_3_update")).scalar()
             h, m = last_DB_3_update_HM.split()
 
@@ -528,8 +534,8 @@ class CatalogUpdate(QThread):
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
                          values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
             # вычет ШтР
-            # sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
-            # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
+            sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
+            sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
             sess.execute(update(TotalPrice_2).values(mult_less=None))
             sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
 

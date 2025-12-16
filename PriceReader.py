@@ -171,7 +171,6 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']#'1MTK Остатки оригинал Bobcat Doosan.xlsx'] #'1AVX AVEX.xlsx']
-                # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
                 # new_files = ['1ROS 155889.xlsx', '1FAV FAVORIT.xlsx']
                 # new_files = ["1ROS 155889.xlsx"]
@@ -199,6 +198,7 @@ class MainWorker(QThread):
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]
+                # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -445,7 +445,7 @@ class MainWorker(QThread):
 
                 # n_dt = datetime.datetime.now()
                 # Исправление Номенклатуры
-                self.cols_fix(price_code, sess)
+                self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
                 # print(f"Исправление Номенклатуры {datetime.datetime.now() - n_dt}")
 
                 # n_dt = datetime.datetime.now()
@@ -528,7 +528,7 @@ class MainWorker(QThread):
 
                 # n_dt = datetime.datetime.now()
                 # Изменение цены по условиям (05Цена)
-                self.apply_discount(sess, price_code, '05Цена')
+                self.apply_discount(sess, price_code)
                 # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
 
                 # n_dt = datetime.datetime.now()
@@ -542,7 +542,7 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
                                                             regexp_replace(r"\W|_", "", 'g'))) # func.upper
                 # print(f"15КодТутОптТорг {datetime.datetime.now() - n_dt}")
-
+                self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
                 # n_dt = datetime.datetime.now()
                 # 20ИсключитьИзПрайса
                 self.words_except(sess, price_code)
@@ -599,6 +599,7 @@ class MainWorker(QThread):
                                  "18КороткоеНаименование": self.TmpPrice_1._18short_name,
                                  }
 
+                sess.commit()
                 self.cur_file_count += 1
                 # to csv
                 if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
@@ -1101,9 +1102,107 @@ class MainWorker(QThread):
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.mult_s != 0)).values(_06mult=SupplierGoodsFix.mult_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(_20exclude=SupplierGoodsFix.sales_ban))
 
-    def cols_fix(self, price_code, sess):
-        cols_name = {"01Артикул": [self.TmpPrice_1.article_s, "_01article"], "03Наименование": [self.TmpPrice_1.name_s, "_03name"],
-                     "Примечание поставщика": [self.TmpPrice_1.notice_s, "notice_s"]}
+    # def cols_fix(self, price_code, sess, keys):
+    #     cols_name = {"01Артикул": [self.TmpPrice_1.article_s, "_01article"], "03Наименование": [self.TmpPrice_1.name_s, "_03name"],
+    #                  "Примечание поставщика": [self.TmpPrice_1.notice_s, "notice_s"],
+    #                  "06Кратность": [self.TmpPrice_1._06mult, "_06mult"],
+    #                  "15КодТутОптТорг": [self.TmpPrice_1._15code_optt, "_15code_optt"],
+    #                  }
+    #     cols_name = {k: cols_name[k] for k in keys}
+    #     custom_cols = {"Ключ1 поставщика": self.TmpPrice_1.key1_s.__dict__['name'],
+    #                    "Артикул поставщика": self.TmpPrice_1.article_s.__dict__['name'],
+    #                    "Производитель поставщика": self.TmpPrice_1.brand_s.__dict__['name'],
+    #                    "Наименование поставщика": self.TmpPrice_1.name_s.__dict__['name'],
+    #                    "Количество поставщика": self.TmpPrice_1.count_s.__dict__['name'],
+    #                    "Цена поставщика": self.TmpPrice_1.price_s.__dict__['name'],
+    #                    "Валюта поставщика": self.TmpPrice_1.currency_s.__dict__['name'], }
+    #     change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
+    #                     "Содержит": [lambda tb, x: tb.contains(x), '{}'],
+    #                     "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
+    #                     "Равно": [lambda tb, x: tb == x, '{}$'],
+    #                     "Не равно": [lambda tb, x: tb != x, '{}$'],
+    #                     "Добавить в конце": True,
+    #                     "Добавить в начале": True,
+    #                     }
+    #     req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name.keys())))
+    #     cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
+    #
+    #     for cs in cols_settings:
+    #         # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
+    #         change_type = change_types.get(cs.change_type, None)
+    #         col_name = cols_name.get(cs.col_change, None)
+    #         # print(f"{change_type}|{col_name}")
+    #         if change_type and col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
+    #             if cs.change_type in ("Добавить в конце", "Добавить в начале"):
+    #                 change = cs.set
+    #                 not_null_check = "and "
+    #
+    #                 for c in custom_cols:
+    #                     new_change = re.sub(c, f"',{custom_cols[c]},'", change)
+    #                     if new_change != change:
+    #                         change = new_change
+    #                         not_null_check += f"{custom_cols[c]} is not NULL and "
+    #
+    #                 if change.startswith("',"):
+    #                     change = change[2:]
+    #                 else:
+    #                     change = f"'{change}"
+    #                 if change.endswith(",'"):
+    #                     change = change[:-2]
+    #                 else:
+    #                     change = f"{change}'"
+    #                 # print(change)
+    #                 if not_null_check != "and ":
+    #                     not_null_check = not_null_check[:-5]
+    #                 else:
+    #                     not_null_check = ''
+    #
+    #                 if cs.change_type == "Добавить в конце":
+    #                     add_order = f"{cols_name[cs.col_change][0].__dict__['name']}, {change}"
+    #                 else:
+    #                     add_order = f"{change},{cols_name[cs.col_change][0].__dict__['name']}"
+    #
+    #                 sess.execute(text(f"update {self.TmpPrice_1.__tablename__} set {cols_name[cs.col_change][1]} = "
+    #                                   f"CONCAT({add_order}) "
+    #                                   f"where _07supplier_code = '{price_code}' {not_null_check}"))
+    #                 # return
+    #                 # pb = func.concat(Price_1.brand_s, ' ', func.cast(change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s), String))
+    #                 # req = update(Price_1).where(Price_1._07supplier_code == price_code
+    #                 #                             ).values({cols_name[a.col_name][1]: func.concat(cols_name[a.col_name][0],
+    #                 #                                                                             # pb
+    #                 #                         # change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s)
+    #                 #                                                                             )
+    #                 # })
+    #                 sess.execute(req)
+    #             elif cs.col_change == '06Кратность':
+    #                 req = update(self.TmpPrice_1).where(change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find)
+    #                 ).values({cols_name[cs.col_change][1]: int(cols_name[cs.col_change][0])})
+    #                 sess.execute(req)
+    #             else:
+    #                 req = update(self.TmpPrice_1).where(change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find)
+    #                 ).values({cols_name[cs.col_change][1]: cols_name[cs.col_change][0].
+    #                          regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
+    #                 sess.execute(req)
+
+    def cols_fix(self, price_code, sess, keys):
+        # cols_name = {"01Артикул": [self.TmpPrice_1.article_s, "_01article"], "03Наименование": [self.TmpPrice_1.name_s, "_03name"],
+        #              "Примечание поставщика": [self.TmpPrice_1.notice_s, "notice_s"],
+        #              "15КодТутОптТорг": [self.TmpPrice_1._15code_optt, "_15code_optt"],
+        #              "06Кратность": [self.TmpPrice_1._06mult, "_06mult"],
+        #              }
+        cols_name_find = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
+                     "Производитель поставщика": self.TmpPrice_1.brand_s,
+                     "Наименование поставщика": self.TmpPrice_1.name_s, "Валюта поставщика": self.TmpPrice_1.currency_s,
+                     "Примечание поставщика": self.TmpPrice_1.notice_s, "01Артикул": self.TmpPrice_1._01article,
+                     "02Производитель": self.TmpPrice_1._02brand, "14Производитель заполнен": self.TmpPrice_1._14brand_filled_in,
+                     "03Наименование": self.TmpPrice_1._03name, "15КодТутОптТорг": self.TmpPrice_1._15code_optt,
+                     }
+        cols_name_set = {"01Артикул": self.TmpPrice_1._01article, "03Наименование": self.TmpPrice_1._03name,
+                     "Примечание поставщика": self.TmpPrice_1.notice_s,
+                     "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "06Кратность": self.TmpPrice_1._06mult,
+                     }
+        cols_name_set = {k: cols_name_set[k] for k in keys}
+        # print(cols_name_set)
         custom_cols = {"Ключ1 поставщика": self.TmpPrice_1.key1_s.__dict__['name'],
                        "Артикул поставщика": self.TmpPrice_1.article_s.__dict__['name'],
                        "Производитель поставщика": self.TmpPrice_1.brand_s.__dict__['name'],
@@ -1119,15 +1218,17 @@ class MainWorker(QThread):
                         "Добавить в конце": True,
                         "Добавить в начале": True,
                         }
-        req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name.keys())))
+        req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name_set.keys())))
         cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
 
         for cs in cols_settings:
             # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
             change_type = change_types.get(cs.change_type, None)
-            col_name = cols_name.get(cs.col_change, None)
+            set_col_name = cols_name_set.get(cs.col_change, None)
+            find_col_name = cols_name_find.get(cs.col_find, None)
             # print(f"{change_type}|{col_name}")
-            if change_type and col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
+            if change_type and set_col_name and find_col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
+                # print(change_type, set_col_name, find_col_name)
                 if cs.change_type in ("Добавить в конце", "Добавить в начале"):
                     change = cs.set
                     not_null_check = "and "
@@ -1153,11 +1254,11 @@ class MainWorker(QThread):
                         not_null_check = ''
 
                     if cs.change_type == "Добавить в конце":
-                        add_order = f"{cols_name[cs.col_change][0].__dict__['name']}, {change}"
+                        add_order = f"{find_col_name.__dict__['name']}, {change}"
                     else:
-                        add_order = f"{change},{cols_name[cs.col_change][0].__dict__['name']}"
+                        add_order = f"{change},{find_col_name.__dict__['name']}"
 
-                    sess.execute(text(f"update {self.TmpPrice_1.__tablename__} set {cols_name[cs.col_change][1]} = "
+                    sess.execute(text(f"update {self.TmpPrice_1.__tablename__} set {set_col_name} = "
                                       f"CONCAT({add_order}) "
                                       f"where _07supplier_code = '{price_code}' {not_null_check}"))
                     # return
@@ -1169,10 +1270,13 @@ class MainWorker(QThread):
                     #                                                                             )
                     # })
                     sess.execute(req)
+                elif cs.col_change == '06Кратность':
+                    req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
+                    ).values({set_col_name: 0 if not cs.set else int(cs.set)})
+                    sess.execute(req)
                 else:
-                    req = update(self.TmpPrice_1).where(
-                        and_(self.TmpPrice_1._07supplier_code == price_code, change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find))
-                    ).values({cols_name[cs.col_change][1]: cols_name[cs.col_change][0].
+                    req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
+                    ).values({set_col_name: find_col_name.
                              regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
                     sess.execute(req)
 
@@ -1230,12 +1334,12 @@ class MainWorker(QThread):
                     .values(_20exclude=values[:50]))
 
 
-    def apply_discount(self, sess, price_code, col):
+    def apply_discount(self, sess, price_code):
         discounts = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
                                                             ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])))).scalars().all()
         price_cols = {'05Цена': self.TmpPrice_1._05price, 'Цена поставщика': self.TmpPrice_1._05price} # price_s
         for dscnt in discounts:
-            # print(dscnt.set, (1 + float(dscnt.set)), dscnt.col_change, dscnt.find)
+            # print(dscnt.set, 1 + float(str(dscnt.set).replace(',', '.')), dscnt.col_change, dscnt.find)
             sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._14brand_filled_in == dscnt.find).values(
                 {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(str(dscnt.set).replace(',', '.')))}))
 
