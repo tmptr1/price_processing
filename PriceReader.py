@@ -1496,7 +1496,10 @@ class PriceReportUpdate(QThread):
                              PriceReport.row_count.label("Кол-во позиций"), PriceReport.row_wo_article.label("Позиций с пустым артикулом"),
                              PriceReport.updated_at.label("Время (1)"), PriceReport.info_message2.label("Статус обработки"),
                              PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.row_count_2.label("Итоговое кол-во"),
-                             PriceReport.del_pos.label("Удалено")).order_by(PriceReport.price_code)
+                             PriceReport.del_art.label("Уд. 01Артикул"), PriceReport.del_brand.label("Уд. 14Производитель заполнен"),
+                             PriceReport.del_price.label("Уд. 05Цена"), PriceReport.del_count.label("Уд. 04Количество "),
+                             PriceReport.del_20.label("Уд. 20ИсключитьИзПрайса"), PriceReport.del_dupl.label("Уд. Дубли"),
+                             ).order_by(PriceReport.price_code)
                 # (func.round(PriceReport.del_pos / (PriceReport.row_count_2 + PriceReport.del_pos), 2)).label("Процент удалённых позиций"))
                 df = pd.read_sql(req, engine)
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",

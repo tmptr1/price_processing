@@ -222,23 +222,26 @@ class CalculateClass(QThread):
                 sess.commit()
 
                 # Удаление по первому условию
-                del_positions_1 = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count < 1, self.TmpPrice_2._04count == None,
-                                                self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None,
-                                                self.TmpPrice_2._14brand_filled_in == None, self.TmpPrice_2._01article == None,
-                                                self.TmpPrice_2._20exclude != None)).delete()
-                # print('DEL (1):', del_positions_1)
-                # if del_positions_1:
-                #     self.add_log(price_code, f"Удалено по первому условию: {del_positions_1}")
+                                                # or_(self.TmpPrice_2._04count < 1, self.TmpPrice_2._04count == None,
+                                                # self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None,
+                                                # self.TmpPrice_2._14brand_filled_in == None, self.TmpPrice_2._01article == None,
+                                                # self.TmpPrice_2._20exclude != None)).delete()
+                del_art = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._01article == None).delete()
+                del_brand = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._14brand_filled_in == None).delete()
+                del_price = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None)).delete()
+                del_count = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count == None, self.TmpPrice_2._05price <= 0)).delete()
+                del_20 = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
+                del_positions_1 = del_art + del_brand + del_price + del_count + del_20
 
                 # Удаление дублей 01Артикул, 14Производитель заполнен
-                del_positions_2 = self.del_duples(sess)
-                del_total = del_positions_1 + del_positions_2
+                del_dupl = self.del_duples(sess)
+                # del_total = del_positions_1 + del_positions_2
                 # self.add_log(price_code, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2})", cur_time)
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
-                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2}) [{update_step_time}]",
+                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_dupl}) [{update_step_time}]",
                              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
                              f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
-                             f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_2 else 'black'};'>{del_positions_2}</span>) [{update_step_time}]")
+                             f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_dupl else 'black'};'>{del_dupl}</span>) [{update_step_time}]")
                              #                         time_spent=, font-weight:bold;
                              # log_text.format(
                              #     f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>",
@@ -358,7 +361,8 @@ class CalculateClass(QThread):
                 # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
                              .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"), row_count_2=cnt,
-                                     del_pos=del_total))
+                                     del_art=del_art, del_brand=del_brand, del_price=del_price, del_count=del_count,
+                                     del_20=del_20, del_dupl=del_dupl))
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
                 self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)
@@ -546,7 +550,10 @@ class PriceReportUpdate_2(QThread):
                              PriceReport.row_count.label("Кол-во позиций"), PriceReport.row_wo_article.label("Позиций с пустым артикулом"),
                              PriceReport.updated_at.label("Время (1)"), PriceReport.info_message2.label("Статус обработки"),
                              PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.row_count_2.label("Итоговое кол-во"),
-                             PriceReport.del_pos.label("Удалено")).order_by(PriceReport.price_code)
+                             PriceReport.del_art.label("Уд. 01Артикул"), PriceReport.del_brand.label("Уд. 14Производитель заполнен"),
+                             PriceReport.del_price.label("Уд. 05Цена"), PriceReport.del_count.label("Уд. 04Количество "),
+                             PriceReport.del_20.label("Уд. 20ИсключитьИзПрайса"), PriceReport.del_dupl.label("Уд. Дубли"),
+                             ).order_by(PriceReport.price_code)
                 # (func.round(PriceReport.del_pos / (PriceReport.row_count_2 + PriceReport.del_pos), 2)).label("Процент удалённых позиций"))
                 df = pd.read_sql(req, engine)
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",

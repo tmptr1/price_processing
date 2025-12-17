@@ -1457,7 +1457,12 @@ class PriceReport(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     updated_at_2_step: Mapped[datetime.datetime] = mapped_column(nullable=True)
     row_count_2: Mapped[intgr]
-    del_pos: Mapped[intgr]
+    del_art: Mapped[intgr]
+    del_brand: Mapped[intgr]
+    del_price: Mapped[intgr]
+    del_count: Mapped[intgr]
+    del_20: Mapped[intgr]
+    del_dupl: Mapped[intgr]
 
 # class PriceUpdateTime(Base):
 #     __tablename__ = "price_update_time"
