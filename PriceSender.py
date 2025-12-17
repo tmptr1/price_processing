@@ -87,7 +87,7 @@ class Sender(QThread):
                 self.total_file_count = len(price_name_list)
 
                 # return
-                # prices = ["2дня Прайс 2-ABS", ]
+                # price_name_list = ["Прайс STparts", ]
                 if price_name_list:
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
@@ -221,7 +221,7 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга", cur_time)
 
             cur_time = datetime.datetime.now()
-            self.file_name = f"{str(self.price_settings.file_name).rstrip('.xlsx')}.csv"
+            self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
             self.create_csv(sess)
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
@@ -611,12 +611,7 @@ class FinalPriceReportUpdate(QThread):
     def run(self):
         try:
             with (session() as sess):
-                cols = (PriceSendTime.price_code.label("Код прайса покупателя"), PriceSendTime.info_msg.label("Статус"),
-                        PriceSendTime.count.label("Итоговое кол-во"), PriceSendTime.count_after_filter.label("Кол-во после первого фильтра"),
-                        PriceSendTime.del_price_b.label("Уд. ЦенаБ"), PriceSendTime.exception_words_del.label("Уд. Слова исключения"),
-                        PriceSendTime.count_mult_del.label("Уд. Кол-во и Кратность"), PriceSendTime.correct_brands_del.label("Уд. правильные бренды"),
-                        PriceSendTime.price_del.label("Уд. Нулевая/отрицательная цена"), PriceSendTime.dup_del.label("Уд. Дубли"),
-                        PriceSendTime.price_compare_del.label("Уд. Сравнение цены с осн. прайсами"),
+                cols = (PriceSendTime.price_code, PriceSendTime.send_time,
                         )
                 req = select(*cols).order_by(PriceSendTime.price_code)
                 res = sess.execute(req).all()
@@ -625,6 +620,15 @@ class FinalPriceReportUpdate(QThread):
                     self.UpdateInfoTableSignal.emit(r)
 
                 self.UpdatePriceReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
+
+                cols = (PriceSendTime.price_code.label("Код прайса покупателя"), PriceSendTime.info_msg.label("Статус"),
+                        PriceSendTime.update_time.label("Время последнего формирования"), PriceSendTime.send_time.label("Время последней отправки"),
+                        PriceSendTime.count.label("Итоговое кол-во"), PriceSendTime.count_after_filter.label("Кол-во после первого фильтра"),
+                        PriceSendTime.del_price_b.label("Уд. ЦенаБ"), PriceSendTime.exception_words_del.label("Уд. Слова исключения"),
+                        PriceSendTime.count_mult_del.label("Уд. Кол-во и Кратность"), PriceSendTime.correct_brands_del.label("Уд. правильные бренды"),
+                        PriceSendTime.price_del.label("Уд. Нулевая/отрицательная цена"), PriceSendTime.dup_del.label("Уд. Дубли"),
+                        PriceSendTime.price_compare_del.label("Уд. Сравнение цены с осн. прайсами"),
+                        )
                 req = select(*cols).order_by(PriceSendTime.price_code)
 
                 df = pd.read_sql(req, engine)
