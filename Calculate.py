@@ -304,7 +304,7 @@ class CalculateClass(QThread):
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None)
                              .values(_06mult_new=func.ceil(func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
 
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count).
+                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
                              values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
 
