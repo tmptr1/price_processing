@@ -146,7 +146,7 @@ class Sender(QThread):
         Base3.metadata.create_all(engine)
 
         with session() as sess:
-            # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
             sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
             # sess.execute(text(f"ALTER TABLE {FinalPriceDuplDel.__tablename__} SET (autovacuum_enabled = false);"))
             sess.commit()
@@ -199,10 +199,6 @@ class Sender(QThread):
             # sess.commit()
             # print('ok')
             # return
-            cur_time = datetime.datetime.now()
-            # шаг удалениедублей перенесен
-            self.del_duples(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
 
             cur_time = datetime.datetime.now()
 
@@ -210,6 +206,13 @@ class Sender(QThread):
 
             self.update_price(sess)
 
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены и количества", cur_time)
+
+            cur_time = datetime.datetime.now()
+            self.del_duples(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
+
+            cur_time = datetime.datetime.now()
             sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
                                                        FinalPrice.price_b / self.price_settings.kb_price < FinalPrice.price)).
                          values(over_base_price=True))
@@ -218,11 +221,9 @@ class Sender(QThread):
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_price_b} (ЦенаБ)")
 
             self.del_over_price(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены", cur_time)
 
-            cur_time = datetime.datetime.now()
             self.set_rating(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ", cur_time)
 
             cur_time = datetime.datetime.now()
             self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
@@ -413,89 +414,67 @@ class Sender(QThread):
     #                      f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Дубли)")
 
 
-    # def del_duples(self, sess):
-    #     cols_for_price = [FinalPrice.id, FinalPrice._15code_optt, FinalPrice.price, FinalPrice.count,]
-    #     cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-    #     duples = select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).having(func.count(FinalPrice.id) > 1)
-    #     rows = select(*cols_for_price.keys()).where(FinalPrice._15code_optt.in_(duples))
-    #     sess.execute(insert(FinalPriceDuplDel).from_select([FinalPriceDuplDel.id, FinalPriceDuplDel._15code_optt,
-    #                                                        FinalPriceDuplDel.price, FinalPriceDuplDel.count], rows))
-        # print('dupl:', len(duples))
-        # pd_count = len(duples)
-        # self.log.add(LOG_ID, f"dp {pd_count}")
-
-        # self.dup_del = 0
-        #
-        # for d in duples:
-        #     # ct = datetime.datetime.now()
-        #     # DEL для всех повторений (mult_less уже не нужен на этом этапе)
-        #     sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
-        #     # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
-        #     min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
-        #     sess.execute((update(FinalPrice)).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(
-        #         mult_less='n D'))
-        #     # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-        #     max_count = select(func.max(FinalPrice.count)).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
-        #     sess.execute(update(FinalPrice).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D',
-        #              FinalPrice.count != max_count)).values(mult_less='D'))
-        #     # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-        #     max_id = select(func.max(FinalPrice.id)).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
-        #     sess.execute(update(FinalPrice).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
-        #     # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
-        #     # if i % 3000 == 0:
-        #     #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
-        #
-        #     # ct = datetime.datetime.now()
-        #     self.dup_del += sess.query(FinalPrice).where(
-        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
-        #     sess.execute(
-        #         update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(
-        #             mult_less=None))
-        #     # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
-        #
-        # if self.dup_del:
-        #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
-
     def del_duples(self, sess):
-        duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
-                              having(func.count(FinalPrice.id) > 1)).scalars().all()
-        # print('dupl:', len(duples))
-        # pd_count = len(duples)
-        # self.log.add(LOG_ID, f"dp {pd_count}")
-        self.dup_del = 0
+        # D для всех дублей
+        duples = select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).having(func.count(FinalPrice.id) > 1)
+        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt.in_(duples)).values(mult_less='D'))
 
-        for d in duples:
-            # ct = datetime.datetime.now()
-            # DEL для всех повторений (mult_less уже не нужен на этом этапе)
-            sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
-            # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
-            min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
-            sess.execute((update(FinalPrice)).where(
-                and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(mult_less='n D'))
-            # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-            max_count = select(func.max(FinalPrice.count)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
-            sess.execute(update(FinalPrice).where(
-                and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D', FinalPrice.count != max_count)).values(mult_less='D'))
-            # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-            max_id = select(func.max(FinalPrice.id)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
-            sess.execute(update(FinalPrice).where(
-                and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
-            # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
-            # if i % 3000 == 0:
-            #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
+        # D1 не с мин. ценой среди D
+        min_p_table = (select(FinalPrice._15code_optt, func.min(FinalPrice.price).label('min_p')).
+                       where(FinalPrice.mult_less=='D').group_by(FinalPrice._15code_optt))
+        sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt==min_p_table.c._15code_optt,
+                                                   FinalPrice.price==min_p_table.c.min_p)).values(mult_less='D1'))
 
-            # ct = datetime.datetime.now()
-            self.dup_del += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
-            sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
-            # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
+        # D2 не с макс. кол-вом среди D1
+        max_c_table = select(FinalPrice._15code_optt, func.max(FinalPrice.count).label('max_c')).where(FinalPrice.mult_less == 'D1').group_by(FinalPrice._15code_optt)
+        sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt==max_c_table.c._15code_optt,
+                                                   FinalPrice.count==max_c_table.c.max_c)).values(mult_less='D2'))
+
+        # D3 не с макс. id среди D2
+        max_id_table = select(FinalPrice._15code_optt, func.max(FinalPrice.id).label('max_id')).where(FinalPrice.mult_less == 'D2').group_by(FinalPrice._15code_optt)
+        sess.execute(update(FinalPrice).where(FinalPrice.id==max_id_table.c.max_id).values(mult_less='D3'))
+
+        sess.execute(update(FinalPrice).where(FinalPrice.mult_less=='D3').values(mult_less=None))
+        self.dup_del = sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
 
         if self.dup_del:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
+
+    # def del_duples2(self, sess):
+    #     duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
+    #                           having(func.count(FinalPrice.id) > 1)).scalars().all()
+    #     # print('dupl:', len(duples))
+    #     # pd_count = len(duples)
+    #     # self.log.add(LOG_ID, f"dp {pd_count}")
+    #     self.dup_del = 0
+    #
+    #     for d in duples:
+    #         # ct = datetime.datetime.now()
+    #         # DEL для всех повторений (mult_less уже не нужен на этом этапе)
+    #         sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
+    #         # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
+    #         min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
+    #         sess.execute((update(FinalPrice)).where(
+    #             and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(mult_less='n D'))
+    #         # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
+    #         max_count = select(func.max(FinalPrice.count)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
+    #         sess.execute(update(FinalPrice).where(
+    #             and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D', FinalPrice.count != max_count)).values(mult_less='D'))
+    #         # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
+    #         max_id = select(func.max(FinalPrice.id)).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
+    #         sess.execute(update(FinalPrice).where(
+    #             and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
+    #         # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
+    #         # if i % 3000 == 0:
+    #         #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
+    #
+    #         # ct = datetime.datetime.now()
+    #         self.dup_del += sess.query(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
+    #         sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(mult_less=None))
+    #         # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
+    #
+    #     if self.dup_del:
+    #         self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
 
     def del_over_price(self, sess):
         self.price_compare_del = 0
