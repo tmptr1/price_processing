@@ -152,7 +152,7 @@ class CatalogUpdate(QThread):
                         # {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols2[dscnt.col_change]
 
                 sess.execute(update(TotalPrice_2).where(TotalPrice_2.currency_s != None).values(_05price_plus=None))
-                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._05price_plus == None,
+                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._05price_plus == None, TotalPrice_2._04count > 0,
                                                              TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count)).
                              values(_05price_plus=TotalPrice_2.markup_holidays / TotalPrice_2._04count))
                 sess.execute(update(TotalPrice_2).where(TotalPrice_2._05price_plus == None).values(_05price_plus=TotalPrice_2._05price))
