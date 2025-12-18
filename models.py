@@ -1184,6 +1184,21 @@ class FinalPrice(Base3):
     # рейтинг
     rating: Mapped[real]
 
+# class FinalPriceDuplDel(Base3):
+#     __tablename__ = "final_price_dupl_del"
+#     __table_args__ = (Index("final_price_dupl_del_15_index", "_15code_optt"),)
+#
+#     id: Mapped[intpk]
+#     # _15КодТутОптТорг varchar(256),
+#     _15code_optt: Mapped[str_x(256)]
+#     # Цена NUMERIC(12,2),
+#     price: Mapped[numeric]
+#     # Кол_во REAL,
+#     count: Mapped[intgr]
+#     # для отметки дублей varchar(5),
+#     mult_less: Mapped[str_x(5)]
+
+
 class FinalComparePrice(Base3):
     __tablename__ = "final_compare_price"
     __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),)

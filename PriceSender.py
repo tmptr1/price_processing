@@ -4,7 +4,7 @@ from sqlalchemy import text, select, delete, insert, update, and_, not_, func, c
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, PriceSendTime)
+                    SuppliersForm, Brands_3, PriceSendTime, ) #FinalPriceDuplDel)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -87,7 +87,7 @@ class Sender(QThread):
                 self.total_file_count = len(price_name_list)
 
                 # return
-                # price_name_list = ["Прайс STparts", ]
+                # price_name_list = ["2 Прайс АвтоПитер", ]
                 if price_name_list:
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
@@ -140,17 +140,21 @@ class Sender(QThread):
             FinalPrice.__table__.drop(engine)
         if inspct.has_table(FinalComparePrice.__tablename__):
             FinalComparePrice.__table__.drop(engine)
+        # if inspct.has_table(FinalPriceDuplDel.__tablename__):
+        #     FinalPriceDuplDel.__table__.drop(engine)
 
         Base3.metadata.create_all(engine)
 
         with session() as sess:
-            sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+            # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
+            # sess.execute(text(f"ALTER TABLE {FinalPriceDuplDel.__tablename__} SET (autovacuum_enabled = false);"))
             sess.commit()
             self.price_settings = sess.execute(select(BuyersForm).where(BuyersForm.price_name == name)).scalar()
             self.add_log(self.price_settings.buyer_price_code,f" ...")
 
             allow_brands = sess.execute(
-                select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.buyer_code)).all()
+                select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting)).all()
             if not allow_brands:
                 self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды в Справочник_Бренд3")
                 sess.query(PriceSendTime).where(
@@ -249,6 +253,7 @@ class Sender(QThread):
 
         FinalPrice.__table__.drop(engine)
         FinalComparePrice.__table__.drop(engine)
+        # FinalPriceDuplDel.__table__.drop(engine)
 
 
     def get_allow_prises(self, sess):
@@ -406,6 +411,55 @@ class Sender(QThread):
     #     if del_cnt:
     #         self.add_log(self.price_settings.buyer_price_code,
     #                      f"{self.price_settings.buyer_price_code} Удалено: {del_cnt} (Дубли)")
+
+
+    # def del_duples(self, sess):
+    #     cols_for_price = [FinalPrice.id, FinalPrice._15code_optt, FinalPrice.price, FinalPrice.count,]
+    #     cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+    #     duples = select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).having(func.count(FinalPrice.id) > 1)
+    #     rows = select(*cols_for_price.keys()).where(FinalPrice._15code_optt.in_(duples))
+    #     sess.execute(insert(FinalPriceDuplDel).from_select([FinalPriceDuplDel.id, FinalPriceDuplDel._15code_optt,
+    #                                                        FinalPriceDuplDel.price, FinalPriceDuplDel.count], rows))
+        # print('dupl:', len(duples))
+        # pd_count = len(duples)
+        # self.log.add(LOG_ID, f"dp {pd_count}")
+
+        # self.dup_del = 0
+        #
+        # for d in duples:
+        #     # ct = datetime.datetime.now()
+        #     # DEL для всех повторений (mult_less уже не нужен на этом этапе)
+        #     sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == d).values(mult_less='D'))
+        #     # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
+        #     min_price = select(func.min(FinalPrice.price)).where(FinalPrice._15code_optt == d)
+        #     sess.execute((update(FinalPrice)).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D', FinalPrice.price == min_price)).values(
+        #         mult_less='n D'))
+        #     # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
+        #     max_count = select(func.max(FinalPrice.count)).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
+        #     sess.execute(update(FinalPrice).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D',
+        #              FinalPrice.count != max_count)).values(mult_less='D'))
+        #     # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
+        #     max_id = select(func.max(FinalPrice.id)).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D'))
+        #     sess.execute(update(FinalPrice).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.id != max_id)).values(mult_less='D'))
+        #     # self.log.add(LOG_ID, f"1) {d} {str(datetime.datetime.now() - ct)[:7]}")
+        #     # if i % 3000 == 0:
+        #     #     self.log.add(LOG_ID, f"del d {i}/{pd_count}")
+        #
+        #     # ct = datetime.datetime.now()
+        #     self.dup_del += sess.query(FinalPrice).where(
+        #         and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'D')).delete()
+        #     sess.execute(
+        #         update(FinalPrice).where(and_(FinalPrice._15code_optt == d, FinalPrice.mult_less == 'n D')).values(
+        #             mult_less=None))
+        #     # self.log.add(LOG_ID, f"2) {d} {str(datetime.datetime.now() - ct)[:7]}")
+        #
+        # if self.dup_del:
+        #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
 
     def del_duples(self, sess):
         duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).

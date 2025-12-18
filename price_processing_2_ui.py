@@ -1213,6 +1213,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_14.addWidget(self.ResetDBButton_2)
 
+        self.AddDBButton_2 = QPushButton(self.tab_3)
+        self.AddDBButton_2.setObjectName(u"AddDBButton_2")
+
+        self.horizontalLayout_14.addWidget(self.AddDBButton_2)
+
         self.horizontalSpacer_21 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_14.addItem(self.horizontalSpacer_21)
@@ -1379,6 +1384,7 @@ class Ui_MainWindow(object):
         self.CreateTotalCsv_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0438\u0442\u043e\u0433\u043e\u0432\u044b\u0439 \u043f\u0440\u0430\u0439\u0441", None))
         self.TotalCountLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0441\u0435\u0433\u043e \u043f\u043e\u0437\u0438\u0446\u0438\u0439: -", None))
         self.ResetDBButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u0411\u0414", None))
+        self.AddDBButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0411\u0414+", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("MainWindow", u"\u0421\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438", None))
     # retranslateUi
 

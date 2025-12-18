@@ -2146,6 +2146,13 @@
                  </widget>
                 </item>
                 <item>
+                 <widget class="QPushButton" name="AddDBButton_2">
+                  <property name="text">
+                   <string>БД+</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
                  <spacer name="horizontalSpacer_21">
                   <property name="orientation">
                    <enum>Qt::Orientation::Horizontal</enum>

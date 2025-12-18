@@ -243,6 +243,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ToReportDirButton_2.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
         self.ResetDBButton_2.clicked.connect(
             lambda _: self.confirmed_message_box('Обнуление БД', 'Обнулить данные в БД?', self.reset_db))
+        self.AddDBButton_2.clicked.connect(self.add_db)
         self.CatalogUpdateTimeTableUpdateButton_2.clicked.connect(self.update_catalogs_update_time_table)
         self.CurrencyTableUpdateButton_2.clicked.connect(self.update_currency_table)
         self.CreateBasePriceButton_2.clicked.connect(self.update_base_price)
@@ -392,6 +393,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 print('БД обновлена')
             except Exception as ex:
                 print(ex)
+
+    def add_db(self):
+        try:
+            with session() as sess:
+                Base.metadata.create_all(engine)
+                sess.commit()
+            print('Таблицы в БД добавлены')
+        except Exception as ex:
+            print(ex)
 
     def start_catalog_update(self):
         if not self.CU.isRunning():
