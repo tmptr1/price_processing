@@ -13,7 +13,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm)
+                    Brands_3, SuppliersForm, FinalPriceHistory, FinalPriceInfo)
 from telebot import TeleBot
 import colors
 from tg_users_id import USERS, TG_TOKEN
@@ -62,6 +62,7 @@ class CatalogUpdate(QThread):
                     # self.CTC.wait()
                     pass
 
+                # + удаление из final_price_history
                 if self.update_DB_3():
                     self.CTC.start()
                     self.CTC.wait()
@@ -517,6 +518,15 @@ class CatalogUpdate(QThread):
             if (cur_time - compare_time).days < 1:
                 return
 
+            id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3))).scalars().all()
+            if id_list:
+                del_prices_count = len(id_list)
+                sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
+                .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
+                sess.commit()
+                self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count}",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>Удалено прайсов из истории:</span> {del_prices_count}")
+
             # Обновление данных в total по новым 3.0 Условия
             self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
@@ -745,9 +755,6 @@ class CreateBasePrice(QThread):
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
                 # report_parts_count = 4
-                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
-                if report_parts_count < 1:
-                    report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "base_price_update")).scalar()
                 h, m = hm.split()
                 # hm_time = datetime.time(int(h), int(m))
@@ -765,8 +772,12 @@ class CreateBasePrice(QThread):
                         CatalogUpdateTime.catalog_name == catalog_name)).scalar()
                     compare_time = datetime.datetime.strptime(f"{str(last_update)[:10]} {h}:{m}:00","%Y-%m-%d %H:%M:%S")
                     # print(f"{compare_time=}")
-                    if (cur_time - compare_time).days < 1:
+                    if cur_time.hour > 8 or (cur_time - compare_time).days < 1:
                         return
+
+                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
+                if report_parts_count < 1:
+                    report_parts_count = 1
                 # return
                 # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
                 # time.sleep(2)
@@ -936,12 +947,9 @@ class CreateMassOffers(QThread):
                 # report_parts_count = math.ceil(report_parts_count / 1_040_500)
                 # print(f"{report_parts_count=}")
                 # report_parts_count = 4
-                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
-                if report_parts_count < 1:
-                    report_parts_count = 1
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "mass_offers_update")).scalar()
                 h, m = hm.split()
-                hm_time = datetime.time(int(h), int(m))
+                # hm_time = datetime.time(int(h), int(m))
 
                 cur_time = datetime.datetime.now()
 
@@ -950,9 +958,12 @@ class CreateMassOffers(QThread):
                         CatalogUpdateTime.catalog_name == catalog_name)).scalar()
                     compare_time = datetime.datetime.strptime(f"{str(last_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
                     # print(f"{compare_time=}")
-                    if (cur_time - compare_time).days < 1:
+                    if cur_time.hour > 8 or (cur_time - compare_time).days < 1:
                         return
 
+                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
+                if report_parts_count < 1:
+                    report_parts_count = 1
                 # if not self.force_update:
                 #     if last_update and last_update.date() == cur_time.date():
                 #         if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and

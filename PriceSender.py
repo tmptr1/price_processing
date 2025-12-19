@@ -4,7 +4,7 @@ from sqlalchemy import text, select, delete, insert, update, and_, not_, func, c
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, PriceSendTime, ) #FinalPriceDuplDel)
+                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, FinalPriceInfo)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -167,7 +167,8 @@ class Sender(QThread):
 
             allow_prices = self.get_allow_prises(sess)
 
-            cols_for_price = [TotalPrice_2._01article, TotalPrice_2._03name, TotalPrice_2._05price_plus,
+            cols_for_price = [TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2._01article,
+                              TotalPrice_2._03name, TotalPrice_2._05price, TotalPrice_2._05price_plus,
                               TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2._13grad,
                               TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt, TotalPrice_2._17code_unique,
                               TotalPrice_2._18short_name, TotalPrice_2.delay, TotalPrice_2.sell_for_OS,
@@ -178,8 +179,8 @@ class Sender(QThread):
                               TotalPrice_2.code_pb_p, TotalPrice_2.mult_less, TotalPrice_2.buy_count,
                               TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-            price = select(*cols_for_price.keys()).where(and_(TotalPrice_2._07supplier_code.in_(allow_prices),
-                                                              TotalPrice_2.to_price == self.price_settings.period))
+            price = select(*cols_for_price.keys()).where(and_(TotalPrice_2.to_price == self.price_settings.period,
+                                                              TotalPrice_2._07supplier_code.in_(allow_prices)))
             sess.execute(insert(FinalPrice).from_select(cols_for_price.values(), price))
 
             sess.commit()
@@ -237,6 +238,19 @@ class Sender(QThread):
             if self.need_to_send:
                 self.send_mail(sess)
 
+                info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
+                sess.add(info_row)
+                sess.flush()
+
+                cols_for_price = [FinalPrice.article_s, FinalPrice.brand_s, FinalPrice._01article,
+                                  FinalPrice._03name, FinalPrice._05price, FinalPrice._05price_plus,
+                                  FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
+                                  FinalPrice._15code_optt, FinalPrice._17code_unique,
+                                  FinalPrice.count, FinalPrice.price]
+                cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+                price = select(info_row.id, *cols_for_price.keys())
+                sess.execute(insert(FinalPriceHistory).from_select(['info_id', *cols_for_price.values()], price))
+
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), send_time=self.send_time,
@@ -244,6 +258,7 @@ class Sender(QThread):
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del))
+
             sess.commit()
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID,
@@ -285,7 +300,7 @@ class Sender(QThread):
             # print(price_time)
         allow_prices = allow_prices & allow_prices_wd
         # print(allow_prices)
-        return allow_prices
+        return select(Data07.setting).where(Data07.setting.in_(allow_prices))
 
     def delete_exceptions(self, sess):
         cols = {"03Наименование": FinalPrice._03name, "15КодТутОптТорг": FinalPrice._15code_optt, }

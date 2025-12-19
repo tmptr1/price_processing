@@ -1106,11 +1106,17 @@ class FinalPrice(Base3):
 
 
     id: Mapped[intpk]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
     # _01Артикул varchar(256),
     _01article: Mapped[str_x(256)]
     # _01article_comp: Mapped[str_x(256)]
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # _06Кратность REAL,
@@ -1184,19 +1190,45 @@ class FinalPrice(Base3):
     # рейтинг
     rating: Mapped[real]
 
-# class FinalPriceDuplDel(Base3):
-#     __tablename__ = "final_price_dupl_del"
-#     __table_args__ = (Index("final_price_dupl_del_15_index", "_15code_optt"),)
-#
-#     id: Mapped[intpk]
-#     # _15КодТутОптТорг varchar(256),
-#     _15code_optt: Mapped[str_x(256)]
-#     # Цена NUMERIC(12,2),
-#     price: Mapped[numeric]
-#     # Кол_во REAL,
-#     count: Mapped[intgr]
-#     # для отметки дублей varchar(5),
-#     mult_less: Mapped[str_x(5)]
+class FinalPriceInfo(Base):
+    __tablename__ = "final_price_info"
+
+    id: Mapped[intpk]
+    price_code: Mapped[str_x(20)]
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
+class FinalPriceHistory(Base):
+    __tablename__ = "final_price_history"
+
+    id: Mapped[uuidpk]
+    info_id: Mapped[intgr]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _01article_comp: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(256)]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
+    # _05Цена_плюс NUMERIC(12,2),
+    _05price_plus: Mapped[numeric]
+    # _06Кратность REAL,
+    _06mult_new: Mapped[intgr]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    # Кол_во REAL,
+    count: Mapped[intgr]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
 
 
 class FinalComparePrice(Base3):
