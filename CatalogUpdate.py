@@ -520,17 +520,21 @@ class CatalogUpdate(QThread):
 
             id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
             if id_list:
+                self.log.add(LOG_ID, f"Удаление прайсов из истории...",
+                             f"Удаление прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span> ...")
+                cur_time = datetime.datetime.now()
                 del_prices_count = len(id_list)
                 sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
                 .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
                 sess.commit()
-                self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count}",
-                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>Удалено прайсов из истории:</span> {del_prices_count}")
+                self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
+                             f"{del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             # Обновление данных в total по новым 3.0 Условия
             self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
-
+            cur_time = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
                                                 markup_os=Data07.markup_os, max_decline=Data07.max_decline,
                                                 markup_holidays=Data07.markup_holidays,

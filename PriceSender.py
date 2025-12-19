@@ -237,6 +237,8 @@ class Sender(QThread):
             total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
             self.add_log(self.price_settings.buyer_price_code, f"Итоговое кол-во строк: {total_rows}")
 
+            cur_time = datetime.datetime.now()
+            is_sended = False
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
             if self.need_to_send:
                 self.send_mail(sess)
@@ -253,6 +255,7 @@ class Sender(QThread):
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(info_row.id, *cols_for_price.keys())
                 sess.execute(insert(FinalPriceHistory).from_select(['info_id', *cols_for_price.values()], price))
+                is_sended = True
 
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
@@ -262,7 +265,11 @@ class Sender(QThread):
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del))
 
+            sess.query(FinalPrice).delete()
             sess.commit()
+            if is_sended:
+                self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
+
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID,
                          f"+ {self.price_settings.buyer_price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",
