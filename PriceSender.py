@@ -183,26 +183,22 @@ class Sender(QThread):
                                                               TotalPrice_2._07supplier_code.in_(allow_prices)))
             sess.execute(insert(FinalPrice).from_select(cols_for_price.values(), price))
 
-            self.add_log(self.price_settings.buyer_price_code, f"Загружено", cur_time)
+            # self.add_log(self.price_settings.buyer_price_code, f"Загружено", cur_time)
 
             sess.commit()
 
-            cur_time = datetime.datetime.now()
+            # cur_time = datetime.datetime.now()
             sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
                 FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
 
-            # cnt = sess.execute(func.count(FinalPrice.id)).scalar()
-            # print(cnt)
-            # if cnt < 0:
-            #     print('---')  # continue
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено", cur_time)
+            # self.add_log(self.price_settings.buyer_price_code, f"Удалено", cur_time)
 
-            cur_time = datetime.datetime.now()
+            # cur_time = datetime.datetime.now()
             self.delete_exceptions(sess)
             count_after_first_filter = sess.execute(func.count(FinalPrice.id)).scalar()
-            self.add_log(self.price_settings.buyer_price_code, f"Слова иск, тотал: {count_after_first_filter}", cur_time)
-            # self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
-            #              cur_time)
+            # self.add_log(self.price_settings.buyer_price_code, f"Слова иск, тотал: {count_after_first_filter}", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
+                         cur_time)
 
             # sess.commit()
             # print('ok')
