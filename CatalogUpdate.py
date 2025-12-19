@@ -518,7 +518,7 @@ class CatalogUpdate(QThread):
             if (cur_time - compare_time).days < 1:
                 return
 
-            id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3))).scalars().all()
+            id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
             if id_list:
                 del_prices_count = len(id_list)
                 sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
