@@ -188,8 +188,8 @@ class Sender(QThread):
             sess.commit()
 
             cur_time = datetime.datetime.now()
-            sess.query(FinalPrice).where(
-                FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%")).delete()
+            sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
+                FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
 
             # cnt = sess.execute(func.count(FinalPrice.id)).scalar()
             # print(cnt)
