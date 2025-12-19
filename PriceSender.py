@@ -659,8 +659,7 @@ class FinalPriceReportUpdate(QThread):
     def run(self):
         try:
             with (session() as sess):
-                cols = (PriceSendTime.price_code, PriceSendTime.send_time,
-                        )
+                cols = (PriceSendTime.price_code, PriceSendTime.info_msg, PriceSendTime.send_time,)
                 req = select(*cols).order_by(PriceSendTime.price_code)
                 res = sess.execute(req).all()
 

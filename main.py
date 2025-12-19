@@ -304,7 +304,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         self.model_4 = QStandardItemModel()
-        self.model_4.setHorizontalHeaderLabels(['Code', 'Send time'])
+        self.model_4.setHorizontalHeaderLabels(['Code', 'Status', 'Send time'])
         self.FinalPriceSendTableView_4.setModel(self.model_4)
         self.FinalPriceSendTableView_4.verticalHeader().hide()
         self.FinalPriceSendTableView_4.setEditTriggers(QTableView.NoEditTriggers)
