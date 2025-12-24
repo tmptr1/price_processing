@@ -66,7 +66,7 @@ class Sender(QThread):
                     prices = sess.execute(select(BuyersForm).where(func.upper(BuyersForm.included)=='ДА').order_by(BuyersForm.period)).scalars().all()
                     for p in prices:
                         send_times = [p.time1, p.time2, p.time3, p.time4, p.time5, p.time6]
-                        last_send = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==p.buyer_price_code)).scalar()
+                        last_update = sess.execute(select(PriceSendTime.update_time).where(PriceSendTime.price_code==p.buyer_price_code)).scalar()
                         for st in send_times:
                             if st is not None:
                                 try:
@@ -75,7 +75,7 @@ class Sender(QThread):
                                     t = t_now.replace(hour=h, minute=m)
                                     # print(p.buyer_price_code, t)
 
-                                    if t_now > t and (not last_send or last_send < t):
+                                    if t_now > t and (not last_update or last_update < t):
                                         price_name_list.append(p.price_name)
                                         break
                                 except:
@@ -87,7 +87,7 @@ class Sender(QThread):
                 self.total_file_count = len(price_name_list)
 
                 # return
-                # price_name_list = ["2 Прайс АвтоПитер", ]
+                price_name_list = ["2 Прайс АвтоПитер", ]
                 if price_name_list:
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
@@ -200,9 +200,12 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
                          cur_time)
 
-            # sess.commit()
-            # print('ok')
-            # return
+            total_prices_result = dict()
+            price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(FinalPrice._07supplier_code))
+            # print(price_count)
+            for p, c in price_count:
+                total_prices_result[p] = c
+            # print(total_prices_result)
 
             cur_time = datetime.datetime.now()
 
@@ -240,7 +243,10 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
             is_sended = False
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
-            if self.need_to_send:
+
+            if total_rows == 0:
+                self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
+            elif self.need_to_send:
                 self.send_mail(sess)
 
                 info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
@@ -257,13 +263,30 @@ class Sender(QThread):
                 sess.execute(insert(FinalPriceHistory).from_select(['info_id', *cols_for_price.values()], price))
                 is_sended = True
 
+            price_count = sess.execute(
+                select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
+                    FinalPrice._07supplier_code))
+
+            prices_count_msg = ''
+            new_total_prices_result = dict()
+            for p, c in price_count:
+                new_total_prices_result[p] = c
+            # print(new_total_prices_result)
+
+            for k in total_prices_result:
+                prices_count_msg += f"{k} {total_prices_result[k]}/{new_total_prices_result.get(k, 0)}; "
+
+            if prices_count_msg: prices_count_msg = prices_count_msg[:-1]
+            # print(prices_count_msg)
+
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), send_time=self.send_time,
                                    info_msg='Ок', count=total_rows, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
-                                   price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del))
+                                   price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
+                                   prices_count=prices_count_msg))
 
             sess.query(FinalPrice).delete()
             sess.commit()
@@ -589,9 +612,6 @@ class Sender(QThread):
             # return False
 
     def send_mail(self, sess):
-        if sess.execute(func.count(FinalPrice.id)).scalar() == 0:
-            self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
-            return
         send_to = "ytopttorg@mail.ru"
         msg = MIMEMultipart()
         msg["Subject"] = Header(f"{self.price_settings.buyer_price_code}")
@@ -685,6 +705,7 @@ class FinalPriceReportUpdate(QThread):
                         PriceSendTime.count_mult_del.label("Уд. Кол-во и Кратность"), PriceSendTime.correct_brands_del.label("Уд. правильные бренды"),
                         PriceSendTime.price_del.label("Уд. Нулевая/отрицательная цена"), PriceSendTime.dup_del.label("Уд. Дубли"),
                         PriceSendTime.price_compare_del.label("Уд. Сравнение цены с осн. прайсами"),
+                        PriceSendTime.prices_count.label("Кол-во в разрезе прайсов поставщиков")
                         )
                 req = select(*cols).order_by(PriceSendTime.price_code)
 

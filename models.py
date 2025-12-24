@@ -1271,6 +1271,7 @@ class PriceSendTime(Base):
     price_compare_del: Mapped[intgr]
     update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    prices_count: Mapped[str_x(5000)]
 
 
 class FileSettings(Base):
