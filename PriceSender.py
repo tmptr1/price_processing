@@ -87,7 +87,7 @@ class Sender(QThread):
                 self.total_file_count = len(price_name_list)
 
                 # return
-                price_name_list = ["2 Прайс АвтоПитер", ]
+                # price_name_list = ["2 Прайс АвтоПитер", ]
                 if price_name_list:
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
