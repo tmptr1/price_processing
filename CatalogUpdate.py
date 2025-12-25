@@ -526,6 +526,7 @@ class CatalogUpdate(QThread):
                 del_prices_count = len(id_list)
                 sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
                 .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
+                sess.query(FinalPriceInfo).where(FinalPriceInfo.id.in_(id_list)).delete()
                 sess.commit()
                 self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
                              f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
