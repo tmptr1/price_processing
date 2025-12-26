@@ -15,8 +15,8 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
                     Brands_3, SuppliersForm, FinalPriceHistory, FinalPriceInfo)
 from telebot import TeleBot
-import colors
 from tg_users_id import USERS, TG_TOKEN
+import colors
 
 import setting
 engine = setting.get_engine()
@@ -111,7 +111,7 @@ class CatalogUpdate(QThread):
 
                 self.log.add(LOG_ID, "Обновление курса валют", f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>курса валют</span>...")
                 sess.query(ExchangeRate).delete()
-                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js').json()
+                valute_data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js', timeout=100).json()
                 valute_dict = dict()
                 for c in valute_data['Valute']:
                     info = valute_data['Valute'][c]

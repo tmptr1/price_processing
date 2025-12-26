@@ -2,6 +2,7 @@ from PySide6.QtCore import QThread, Signal
 import time
 import traceback
 import os
+import re
 import datetime
 import imaplib
 import email
@@ -16,6 +17,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import FileSettings, MailReport, MailReportUnloaded, CatalogUpdateTime
 from sqlalchemy import select, delete, insert, and_
 import pandas as pd
+from requests_html import HTMLSession
 import colors
 
 import setting
@@ -56,11 +58,8 @@ class MailParserClass(QThread):
                 # self.get_mail("86693", mail)
                 # self.get_mail("86422", mail)
                 # self.get_mail("86854", mail)
-                # self.get_mail("94946", mail)
-                # self.get_mail("97738", mail)
-                # self.get_mail("97739", mail)
-                # self.get_mail("102555", mail)
-                # self.get_mail("109727", mail)
+                # self.get_mail("113019", mail)
+                # self.get_mail("112898", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -238,8 +237,46 @@ class MailParserClass(QThread):
         '''Скачивает необходимые файлы, в случае с архивами, скачивает полный архив в папку Archives, далее распаковывает
         его в папку tmp, нужные файлы переносит в папку для сырых прайсов'''
         # received_time = datetime.datetime.strptime(str(received_time), "%d %b %Y %H-%M-%S")
+        loaded = False
 
         for part in message.walk():
+
+            # Получение прайса по ссылке
+            try:
+                if sender == 'no-reply@impeks-autoparts.ru' and str(part.get_content_type()).startswith('text/'):
+                    # Прайс-лист сгенерирован, для загрузки перейдите по <a href="https://impeks-autoparts.ru/?page=get_price&p=5ed3f1f27add4da9a2afb279737646ab&FranchiseeId=10148069">ссылке</a>.<br />Дата и время
+                    text = part.get_payload(decode=True).decode('utf-8')
+                    pattern = 'для загрузки перейдите по <a href="'
+                    if not re.search(pattern, text):
+                        continue
+                    url = re.search(fr'{pattern}[^"]+', text)
+                    url = url.group()[len(pattern):]
+
+                    name = 'price'
+                    file_dir = fr"{tmp_archive_dir}/{name}.zip"
+
+                    HTMLsess = HTMLSession()
+                    response = HTMLsess.get(url, stream=True, timeout=100)
+                    response.raise_for_status()
+
+                    with open(file_dir, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=10000):  # 10 MB
+                            f.write(chunk)
+
+                    with session() as sess:
+                        if self.load_archieve(sess, tmp_dir, 'zip', file_dir, db_data, sender, received_time):
+                            loaded = True
+
+                        if not loaded:
+                            sess.query(MailReportUnloaded).where(and_(MailReportUnloaded.sender == sender, MailReportUnloaded.file_name == name)).delete()
+                            sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
+                            sess.commit()
+
+            except Exception as get_price_from_url_ex:
+                ex_text = traceback.format_exc()
+                self.log.error(LOG_ID, "get_price_from_url_ex Error", ex_text)
+
+
             if part.get_content_disposition() == 'attachment':
 
                 if part.get_content_maintype() != 'multipart' and part.get('Content-Disposition') is not None:
@@ -253,69 +290,23 @@ class MailParserClass(QThread):
 
                     self.log.add(LOG_ID, f"{name}")
 
-                    loaded = False
                     file_format = name.split('.')[-1]
 
                     with session() as sess:
                         # обработка архивов
                         if file_format in ('zip', 'rar'):
-                            path_to_archieve = f'{tmp_archive_dir}/{name}'
-                            open(path_to_archieve, 'wb').write(part.get_payload(decode=True))
-                            if not os.path.exists(tmp_dir):
-                                os.mkdir(tmp_dir)
-                            if file_format == 'zip':
-                                with ZipFile(path_to_archieve, 'r') as archive:
-                                    archive.extractall(path=tmp_dir)
-                            elif file_format == 'rar':
-                                with az.rar.RarArchive(path_to_archieve) as archive:
-                                    archive.extract_to_directory(tmp_dir)
-                            os.remove(path_to_archieve)
-
-                            for f in os.listdir(tmp_dir):
-                                for d_name in db_data:
-                                    if self.check_file_name(f, d_name[0], d_name[1]):
-                                        price_code = str(d_name[2])
-                                        addition = f"{d_name[0]}.{f.split('.')[-1]}"
-                                        if d_name[1] == 'Равно + расширение':
-                                            addition = ".".join(addition.split('.')[:-1])
-
-                                        price_from_db = sess.execute(select(MailReport).where(
-                                            and_(MailReport.sender == sender,
-                                                 MailReport.file_name == addition))).scalar()
-
-                                        if price_from_db:
-                                            # print(f"{price_from_db.date=}")
-                                            if received_time <= price_from_db.date:
-                                                self.log.add(LOG_ID, f"- ({price_code}) - {addition}",
-                                                             f"- ({price_code}) - {addition}")
-                                                loaded = True
-                                                continue
-
-                                        self.del_duplicates(price_code, id)
-
-                                        shutil.move(fr"{tmp_dir}/{f}", fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
-                                        # shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
-                                        #             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
-                                        # logger.info(f"+ ({price_code}) - {f}")
-                                        self.log.add(LOG_ID, f"+ ({price_code}) - {f}", f"✔ (<span style='color:{colors.green_log_color};"
-                                                                                        f"font-weight:bold;'>{price_code}</span>) - {f}")
-
-                                        sess.query(MailReport).where(
-                                            and_(MailReport.sender == sender, MailReport.file_name == addition)).delete()
-                                        sess.add(
-                                            MailReport(price_code=price_code, sender=sender, file_name=addition, date=received_time))
-                                        sess.commit()
-                                        loaded = True
-                                        break
+                            path_to_archive = f'{tmp_archive_dir}/{name}'
+                            open(path_to_archive, 'wb').write(part.get_payload(decode=True))
+                            if self.load_archieve(sess, tmp_dir, file_format, path_to_archive, db_data, sender, received_time):
+                                loaded = True
                                     # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{f}'")
                                     # cur.execute(f"insert into mail_report_tab values('{sender}', '{f}', '{received_time}')")
                             if not loaded:
                                 sess.query(MailReportUnloaded).where(and_(MailReportUnloaded.sender == sender,
-                                                                          MailReportUnloaded.file_name == f)).delete()
-                                sess.add(MailReportUnloaded(sender=sender, file_name=f, date=received_time))
+                                                                          MailReportUnloaded.file_name == name)).delete()
+                                sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
                                 sess.commit()
 
-                            shutil.rmtree(tmp_dir)
                             continue
 
                         # обработка других файлов
@@ -378,6 +369,62 @@ class MailParserClass(QThread):
                         # if not is_loaded:
                             # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{name}'")
                             # cur.execute(f"insert into mail_report_tab values('{sender}', '{name}', '{received_time}')")
+
+    def load_archieve(self, sess, tmp_dir, file_format, path_to_archive, db_data, sender, received_time):
+        loaded = False
+        if not os.path.exists(tmp_dir):
+            os.mkdir(tmp_dir)
+        if file_format == 'zip':
+            with ZipFile(path_to_archive, 'r') as archive:
+                archive.extractall(path=tmp_dir)
+        elif file_format == 'rar':
+            with az.rar.RarArchive(path_to_archive) as archive:
+                archive.extract_to_directory(tmp_dir)
+        os.remove(path_to_archive)
+
+        for f in os.listdir(tmp_dir):
+            for d_name in db_data:
+                if self.check_file_name(f, d_name[0], d_name[1]):
+                    price_code = str(d_name[2])
+                    addition = f"{d_name[0]}.{f.split('.')[-1]}"
+                    if d_name[1] == 'Равно + расширение':
+                        addition = ".".join(addition.split('.')[:-1])
+
+                    price_from_db = sess.execute(select(MailReport).where(
+                        and_(MailReport.sender == sender,
+                             MailReport.file_name == addition))).scalar()
+
+                    if price_from_db:
+                        # print(f"{price_from_db.date=}")
+                        if received_time <= price_from_db.date:
+                            self.log.add(LOG_ID, f"- ({price_code}) - {addition}",
+                                         f"- ({price_code}) - {addition}")
+                            loaded = True
+                            continue
+
+                    self.del_duplicates(price_code, id)
+
+                    shutil.move(fr"{tmp_dir}/{f}",
+                                fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
+                    # shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
+                    #             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
+                    # logger.info(f"+ ({price_code}) - {f}")
+                    self.log.add(LOG_ID, f"+ ({price_code}) - {f}",
+                                 f"✔ (<span style='color:{colors.green_log_color};"
+                                 f"font-weight:bold;'>{price_code}</span>) - {f}")
+
+                    sess.query(MailReport).where(
+                        and_(MailReport.sender == sender,
+                             MailReport.file_name == addition)).delete()
+                    sess.add(
+                        MailReport(price_code=price_code, sender=sender, file_name=addition,
+                                   date=received_time))
+                    sess.commit()
+                    loaded = True
+                    break
+
+        shutil.rmtree(tmp_dir)
+        return loaded
 
     def del_duplicates(self, file_code, id):
         '''Удаляет файл при совпадении первых 4 символов (код прайса)'''

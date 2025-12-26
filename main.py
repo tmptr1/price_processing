@@ -384,6 +384,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                   AppSettings(param="tg_notification_time", var="19 0"),
                                   AppSettings(param="last_tg_notification_time", var="2025-01-01 01:01:01"),
                                   AppSettings(param="last_DB_3_update", var="2 0"),
+                                  AppSettings(param="last_tg_price_send", var="2025-01-01 01:01:01"),
                                   AppSettings(param="mb_limit_1", var="10"),
                                   AppSettings(param="mb_limit_2", var="25"),
                                   CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at='2025-01-01 01:01:01'),

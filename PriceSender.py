@@ -4,12 +4,13 @@ from sqlalchemy import text, select, delete, insert, update, and_, not_, func, c
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, FinalPriceInfo)
+                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, FinalPriceInfo, AppSettings)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
+from telebot import TeleBot
 import pandas as pd
 import traceback
 import datetime
@@ -18,12 +19,14 @@ import os
 import shutil
 import random
 
+from tg_users_id import USERS, TG_TOKEN
 import colors
 import setting
 engine = setting.get_engine()
 session = sessionmaker(engine)
 settings_data = setting.get_vars()
 CHUNKSIZE = int(settings_data["chunk_size"])
+tg_bot = TeleBot(TG_TOKEN)
 
 LOG_ID = 4
 WEEKDAYS = {0: "пон", 1: "втор", 2: "сре", 3: "чет", 4: "пят", 5: "суб", 6: "вос"}
@@ -51,6 +54,7 @@ class Sender(QThread):
         wait_sec = 15
 
         while not self.isPause:
+            self.send_tg_msg()
             start_cycle_time = datetime.datetime.now()
             try:
 
@@ -83,11 +87,14 @@ class Sender(QThread):
 
                 # print(price_name_list)
                     # print(prices)
+
+                # price_name_list = []
+                # price_name_list = ["2 Прайс АвтоПитер", ]
+
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
 
                 # return
-                # price_name_list = ["2 Прайс АвтоПитер", ]
                 if price_name_list:
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
@@ -129,6 +136,36 @@ class Sender(QThread):
             self.log.add(LOG_ID, f"Пауза", f"<span style='color:{colors.orange_log_color};'>Пауза</span>  ")
             self.SetButtonEnabledSignal.emit(True)
 
+
+    def send_tg_msg(self):
+        try:
+            cur_time = datetime.datetime.now()
+            if cur_time.hour < 13 and cur_time.hour > 20:
+                return
+
+            with session() as sess:
+                last_tg_send_time = sess.execute(select(AppSettings.var).where(AppSettings.param=='last_tg_price_send')).scalar()
+                last_tg_send_time = datetime.datetime.strptime(last_tg_send_time, "%Y-%m-%d %H:%M:%S")
+
+                if (datetime.datetime(cur_time.year, cur_time.month, cur_time.day, cur_time.hour) - last_tg_send_time).days < 1:
+                    return
+
+                last_time = sess.execute(select(func.max(FinalPriceInfo.send_time))).scalar()
+                if not last_time or last_time.day != cur_time.day:
+                    msg = f"! СЕГОДНЯ ПРАЙСЫ НЕ ОТПРАВЛЯЛИСЬ !"
+                else:
+                    msg = f"Последняя отправка прайсов была {last_time}"
+
+                for u in USERS:
+                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML')
+                # self.last_tg_send = datetime.datetime.now()
+                sess.execute(update(AppSettings).where(AppSettings.param=='last_tg_price_send').values(var=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+                self.log.add(LOG_ID, f"Уведомление отправлено", f"<span style='color:{colors.green_log_color};'>Уведомление отправлено</span>  ")
+                sess.commit()
+
+        except Exception as tg_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "ERROR:", ex_text)
 
     def create_price(self, name):
         start_time = datetime.datetime.now()
@@ -201,7 +238,8 @@ class Sender(QThread):
                          cur_time)
 
             total_prices_result = dict()
-            price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(FinalPrice._07supplier_code))
+            price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).
+                                       group_by(FinalPrice._07supplier_code).order_by(FinalPrice._07supplier_code))
             # print(price_count)
             for p, c in price_count:
                 total_prices_result[p] = c
