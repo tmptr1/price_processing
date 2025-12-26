@@ -62,7 +62,7 @@ class CatalogUpdate(QThread):
                     # self.CTC.wait()
                     pass
 
-                # + удаление из final_price_history
+                # + удаление из final_price_history и удаление неактуальных прайсов
                 if self.update_DB_3():
                     self.CTC.start()
                     self.CTC.wait()
@@ -508,8 +508,6 @@ class CatalogUpdate(QThread):
             last_3_condition_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == '3.0 Условия.xlsx')).scalar()
             last_DB_3_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0')).scalar()
 
-            if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
-                return
 
             last_DB_3_update_HM = sess.execute(select(AppSettings.var).where(AppSettings.param == "last_DB_3_update")).scalar()
             h, m = last_DB_3_update_HM.split()
@@ -531,6 +529,18 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
                              f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
                              f"{del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+            # проверка неактуальных прайсов
+            loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
+            actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
+            useless_prices = (loaded_prices - actual_prices)
+            # print(useless_prices)
+            sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
+
+            sess.commit()
+
+            if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
+                return
 
             # Обновление данных в total по новым 3.0 Условия
             self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",

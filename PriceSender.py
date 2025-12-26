@@ -140,7 +140,7 @@ class Sender(QThread):
     def send_tg_msg(self):
         try:
             cur_time = datetime.datetime.now()
-            if cur_time.hour < 13 and cur_time.hour > 20:
+            if cur_time.hour < 13 or cur_time.hour > 20:
                 return
 
             with session() as sess:

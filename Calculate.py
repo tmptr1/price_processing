@@ -78,7 +78,8 @@ class CalculateClass(QThread):
                                                                                   SupplierPriceSettings.calculate == 'ДА'))
                         res = sess.execute(req).scalar()
                         if not res:
-                            sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
+                            # удаляются раз в день в CatalogUpdate
+                            # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
                             continue
 
                         req = select(PriceReport.price_code).where(and_(PriceReport.price_code == price_code,
@@ -94,7 +95,7 @@ class CalculateClass(QThread):
                             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                          values(info_message2='Нет настроек или срока обновления в 07Данные',
                                                 updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
-                            sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
+                            # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
                             continue
 
                         if res:
@@ -103,7 +104,7 @@ class CalculateClass(QThread):
                                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                              values(info_message2='Не подходит период обновления',
                                                     updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
-                                sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
+                                # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
                                 continue
                             # print(file, (datetime.datetime.now() - time_edit).days, (datetime.datetime.now() - time_edit).days - update_time,
                             #       (datetime.datetime.now() - time_edit).days - update_time < 30)
@@ -111,11 +112,11 @@ class CalculateClass(QThread):
                             new_files.append(file)
 
                     # проверка неактуальных прайсов
-                    loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
-                    actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
-                    useless_prices = (loaded_prices - actual_prices)
-                    # print(useless_prices)
-                    sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
+                    # loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
+                    # actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
+                    # useless_prices = (loaded_prices - actual_prices)
+                    # # print(useless_prices)
+                    # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
 
                     sess.commit()
 
