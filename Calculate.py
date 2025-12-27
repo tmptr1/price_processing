@@ -123,6 +123,7 @@ class CalculateClass(QThread):
                     # print(files)
                 # new_files = ['2IMP.csv', ]
                 # new_files = ['1LAM.csv', ]
+                new_files = ['3МСК.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
@@ -235,7 +236,7 @@ class CalculateClass(QThread):
                 del_positions_1 = del_art + del_brand + del_price + del_count + del_20
 
                 # Удаление дублей 01Артикул, 14Производитель заполнен
-                del_dupl = self.del_duples(sess)
+                del_dupl = self.del_duples(sess, price_code)
                 # del_total = del_positions_1 + del_positions_2
                 # self.add_log(price_code, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2})", cur_time)
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
@@ -388,21 +389,26 @@ class CalculateClass(QThread):
             self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count) # +1
 
 
-    def del_duples(self, sess):
+    def del_duples(self, sess, price_code):
         # D для всех дублей
+        cur_time = datetime.datetime.now()
         duples = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
                   group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
                   having(func.count(self.TmpPrice_2.id) > 1))
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in)).values(_20exclude='D'))
+        self.add_log(self.file_size_type, price_code, 'D', cur_time)
 
+        cur_time = datetime.datetime.now()
         # D1 не с мин. ценой среди D
         min_p_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.min(self.TmpPrice_2._05price).label('min_p')).
                        where(self.TmpPrice_2._20exclude=='D').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in,
                                                    self.TmpPrice_2._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
+        self.add_log(self.file_size_type, price_code, 'D1', cur_time)
 
+        cur_time = datetime.datetime.now()
         # D2 не с макс. кол-вом среди D1
         max_c_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in,
                              func.max(self.TmpPrice_2._04count).label('max_c')).where(self.TmpPrice_2._20exclude == 'D1').
@@ -410,14 +416,19 @@ class CalculateClass(QThread):
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in,
                                                    self.TmpPrice_2._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
+        self.add_log(self.file_size_type, price_code, 'D2', cur_time)
 
+        cur_time = datetime.datetime.now()
         # D3 не с макс. id среди D2
         max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).
                         where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
+        self.add_log(self.file_size_type, price_code, 'D3', cur_time)
 
+        cur_time = datetime.datetime.now()
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
         dup_del = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
+        self.add_log(self.file_size_type, price_code, 'D_', cur_time)
 
         return dup_del
     # def del_duples(self, sess):
