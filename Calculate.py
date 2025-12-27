@@ -124,6 +124,7 @@ class CalculateClass(QThread):
                 # new_files = ['2IMP.csv', ]
                 # new_files = ['1LAM.csv', ]
                 new_files = ['3МСК.csv', ]
+                # new_files = ['1LAM.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
@@ -424,8 +425,9 @@ class CalculateClass(QThread):
         #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
         max_id_table = select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
-        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table.c.max_id)).values(_20exclude='D3'))
+        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
         self.add_log(self.file_size_type, price_code, 'D3', cur_time)
+
 
         cur_time = datetime.datetime.now()
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
@@ -433,6 +435,8 @@ class CalculateClass(QThread):
         self.add_log(self.file_size_type, price_code, 'D_', cur_time)
 
         return dup_del
+        # return -1
+
     # def del_duples(self, sess):
     #     # duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
     #     #                       group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
