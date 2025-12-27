@@ -437,7 +437,7 @@ class CalculateClass(QThread):
     #     return dup_del
         # return -1
 
-    def del_duples(self, sess):
+    def del_duples(self, sess, p):
         # duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
         #                       group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
         #     func.count(self.TmpPrice_2.id) > 1)).scalars().all()
