@@ -1189,19 +1189,22 @@ class FinalPrice(Base3):
     over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
     # рейтинг
     rating: Mapped[real]
+    supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
-class FinalPriceInfo(Base):
-    __tablename__ = "final_price_info"
-
-    id: Mapped[intpk]
-    price_code: Mapped[str_x(20)]
-    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+# class FinalPriceInfo(Base):
+#     __tablename__ = "final_price_info"
+#
+#     id: Mapped[intpk]
+#     price_code: Mapped[str_x(20)]
+#     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 class FinalPriceHistory(Base):
     __tablename__ = "final_price_history"
+    __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
 
     id: Mapped[uuidpk]
-    info_id: Mapped[intgr]
+    # info_id: Mapped[intgr]
+    price_code: Mapped[str_x(20)]
     # Артикул_поставщика varchar(256),
     article_s: Mapped[str_x(256)]
     # Производитель_поставщика varchar(256),
@@ -1229,6 +1232,8 @@ class FinalPriceHistory(Base):
     count: Mapped[intgr]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
+    supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 
 class FinalComparePrice(Base3):

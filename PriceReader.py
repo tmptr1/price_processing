@@ -170,29 +170,6 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']#'1MTK Остатки оригинал Bobcat Doosan.xlsx'] #'1AVX AVEX.xlsx']
-                # new_files = ['4FAL FORUM_AUTO_PRICE_CENTER.xlsx']
-                # new_files = ['1ROS 155889.xlsx', '1FAV FAVORIT.xlsx']
-                # new_files = ["1ROS 155889.xlsx"]
-                # new_files = ["1APR Прайс Армтек Краснодар.xlsx"]
-                # new_files = ["1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
-                # new_files = ['MI21 mikado_price_vlgd.csv', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx", "VTTE электроинструмент.xlsx",
-                #              "1IMP IMPEKS_KRD.xlsx"]
-                # new_files = ["АСИ1 price.xls"]
-                # new_files = ["MKOZ остатки_ИМ.xls"]
-                # new_files = ["1ГУД Прайс ШСН.xlsx"]
-                # new_files = ["TKTZ Печать.xls"]
-                # new_files = ["8ГУД дочерний парйс 1ГУД.csv", "9ГУД дочерний парйс 1ГУД.csv"]
-                # new_files = ["2ССС web-parts SIMF.xlsx"]
-                # new_files = ["1АСК Прайс.xlsx"]
-                # new_files = ["1РЕФ Прайс.xlsx", "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
-                # new_files = ["3МСК rostov_.xlsx"]
-                # new_files = ["1IMP IMPEKS_KRD.xlsx"]
-                # new_files = ["1MKO остатки_ОС.xls", "1ROS 155889.xlsx", "MI09 mikado_price_vdkz.csv"]
-                # new_files = ['1SHI Прайс_Эникс.xlsx', '1TEM prais LUBRIMEX Krasnodar.xls', '1IMP IMPEKS_KRD.xlsx',
-                #              '1AVX AVEX.xlsx', '1MTK Остатки оригинал Bobcat Doosan.xlsx']
-                # new_files = ['1NL0 Новая Логистика Краснодар.xlsx', 'avx']
-                # new_files = ['1LAM Прайс-лист.xls', '1IMP IMPEKS_KRD.xlsx']
                 # new_files = ['TKT1 АКЦИЯ   .xls']
                 # new_files = ['1MKO остатки_ОС.xls']
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']

@@ -13,7 +13,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm, FinalPriceHistory, FinalPriceInfo)
+                    Brands_3, SuppliersForm, FinalPriceHistory)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -516,19 +516,29 @@ class CatalogUpdate(QThread):
             if (cur_time - compare_time).days < 1:
                 return
 
-            id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
-            if id_list:
-                self.log.add(LOG_ID, f"Удаление прайсов из истории...",
-                             f"Удаление прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span> ...")
-                cur_time = datetime.datetime.now()
-                del_prices_count = len(id_list)
-                sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
-                .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
-                sess.query(FinalPriceInfo).where(FinalPriceInfo.id.in_(id_list)).delete()
-                sess.commit()
-                self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                             f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
-                             f"{del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+            # удалить позиции старше 14 дней + неактуальные прайсы
+            cur_time = datetime.datetime.now()
+            dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
+                                                FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                                                FinalPriceHistory.send_time == None)).delete()
+            if dels:
+                self.log.add(LOG_ID, f"Удалено строк из истории: {dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                                 f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
+                                 f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+            # price_code_list = select(BuyersForm.buyer_price_code))
+            # id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
+            # if id_list:
+            #     self.log.add(LOG_ID, f"Удаление прайсов из истории...",
+            #                  f"Удаление прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span> ...")
+            #     cur_time = datetime.datetime.now()
+            #     del_prices_count = len(id_list)
+            #     sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
+            #     .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
+            #     sess.query(FinalPriceInfo).where(FinalPriceInfo.id.in_(id_list)).delete()
+            #     sess.commit()
+            #     self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+            #                  f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
+            #                  f"{del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             # проверка неактуальных прайсов
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())

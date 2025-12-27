@@ -1,10 +1,10 @@
 import time
 from PySide6.QtCore import QThread, Signal
-from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL
+from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, FinalPriceInfo, AppSettings)
+                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -57,14 +57,15 @@ class Sender(QThread):
             self.send_tg_msg()
             start_cycle_time = datetime.datetime.now()
             try:
-
+                # with session() as sess:
+                #     cur_time = datetime.datetime.now()
+                #     sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
+                #                                             FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                #                                             FinalPriceHistory.send_time == None)).delete()
+                #     sess.commit()
+                # print('okk')
+                # return
                 # СНАЧАЛА С МИН СРОКОМ
-                # в бета версии сравнивать с временем изменения прайса, далее отталкиваться от времени отправки в справочнике
-                # name = "Прайс Профит-Лига"
-                # name = "2 Прайс Профит-Лига"
-                # name = "Прайс ABS"
-                # name = "2дня Прайс 2-ABS"
-                # name = "3дня Прайс ABS"
                 price_name_list = []
                 with session() as sess:
                     prices = sess.execute(select(BuyersForm).where(func.upper(BuyersForm.included)=='ДА').order_by(BuyersForm.period)).scalars().all()
@@ -150,7 +151,7 @@ class Sender(QThread):
                 if (datetime.datetime(cur_time.year, cur_time.month, cur_time.day, cur_time.hour) - last_tg_send_time).days < 1:
                     return
 
-                last_time = sess.execute(select(func.max(FinalPriceInfo.send_time))).scalar()
+                last_time = sess.execute(select(func.max(PriceSendTime.send_time))).scalar()
                 if not last_time or last_time.day != cur_time.day:
                     msg = f"! СЕГОДНЯ ПРАЙСЫ НЕ ОТПРАВЛЯЛИСЬ !"
                 else:
@@ -286,19 +287,27 @@ class Sender(QThread):
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
             elif self.need_to_send:
                 self.send_mail(sess)
+                # self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
-                info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
-                sess.add(info_row)
-                sess.flush()
+                # info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
+                # sess.add(info_row)
+                # sess.flush()
+                last_supplier_price_updates = select(PriceReport.price_code, PriceReport.updated_at_2_step)
+                sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                             values(supplier_update_time=last_supplier_price_updates.c.updated_at_2_step))
+
+                sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
+                                                         FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
 
                 cols_for_price = [FinalPrice.article_s, FinalPrice.brand_s, FinalPrice._01article,
                                   FinalPrice._03name, FinalPrice._05price, FinalPrice._05price_plus,
                                   FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
                                   FinalPrice._15code_optt, FinalPrice._17code_unique,
-                                  FinalPrice.count, FinalPrice.price]
+                                  FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-                price = select(info_row.id, *cols_for_price.keys())
-                sess.execute(insert(FinalPriceHistory).from_select(['info_id', *cols_for_price.values()], price))
+                price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"), literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
+                sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
+
                 is_sended = True
 
             price_count = sess.execute(
@@ -650,38 +659,50 @@ class Sender(QThread):
             # return False
 
     def send_mail(self, sess):
-        send_to = "ytopttorg@mail.ru"
-        msg = MIMEMultipart()
-        msg["Subject"] = Header(f"{self.price_settings.buyer_price_code}")
-        msg["From"] = settings_data['mail_login']
-        msg["To"] = send_to
-        # msg.attach(MIMEText("price PL3", 'plain'))
+        emails = ["ytopttorg@mail.ru"]
+        prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
+        if self.price_settings.price_name in prices_to_send:
+            emails = self.price_settings.emails
+            if not emails:
+                emails = []
+            elif ',' in emails:
+                emails = list(map(str.strip, str(self.price_settings.emails).split(',')))
+            else:
+                emails = [str(emails).strip()]
 
-        s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+        for send_to in emails:
+            # self.add_log(self.price_settings.buyer_price_code, f"SEND {send_to}")
+            msg = MIMEMultipart()
+            msg["Subject"] = Header(f"{self.price_settings.price_name}")
+            msg["From"] = settings_data['mail_login']
+            msg["To"] = send_to
+            # msg.attach(MIMEText("price PL3", 'plain'))
 
-        try:
-            s.starttls()
-            s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+            s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
 
-            file_path = fr"{settings_data['send_dir']}\{self.file_name}"
+            try:
+                s.starttls()
+                s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
 
-            with open(file_path, 'rb') as f:
-                file = MIMEApplication(f.read())
+                file_path = fr"{settings_data['send_dir']}\{self.file_name}"
 
-            file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-            msg.attach(file)
+                with open(file_path, 'rb') as f:
+                    file = MIMEApplication(f.read())
 
-            s.sendmail(msg["From"], send_to, msg.as_string())
+                file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                msg.attach(file)
 
-            shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
-                        fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
-            self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
-        except Exception as mail_ex:
-            raise mail_ex
-        finally:
-            s.quit()
+                s.sendmail(msg["From"], send_to, msg.as_string())
 
-        self.add_log(self.price_settings.buyer_price_code, f"Отправлено")
+                shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
+                            fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+            except Exception as mail_ex:
+                raise mail_ex
+            finally:
+                s.quit()
+
+        self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+        self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
