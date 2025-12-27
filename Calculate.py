@@ -199,7 +199,7 @@ class CalculateClass(QThread):
             BASE[self.file_size_type].metadata.create_all(engine)
 
             with session() as sess:
-                # sess.execute(text(f"ALTER TABLE {self.TmpPrice_2.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.execute(text(f"ALTER TABLE {self.TmpPrice_2.__tablename__} SET (autovacuum_enabled = false);"))
                 sess.commit()
 
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
@@ -374,7 +374,7 @@ class CalculateClass(QThread):
 
             # cur_time = datetime.datetime.now()
             # self.UpdatePriceStatusTableSignal.emit(price_code, 'Удаление временных таблиц ...', False)
-            self.TmpPrice_2.__table__.drop(engine)
+            # self.TmpPrice_2.__table__.drop(engine)
             # self.add_log(price_code, 'Временные таблицы удалены', cur_time)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
@@ -424,10 +424,10 @@ class CalculateClass(QThread):
         # max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).where(
         #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
-        max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).where(self.TmpPrice_2._20exclude == 'D2')).group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
+        # max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).where(self.TmpPrice_2._20exclude == 'D2')).group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
         # res = sess.execute(max_id_table).scalars().all()
         # print(res)
-        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in,
         #                                                                        func.max(self.TmpPrice_2.id).label('max_id')).where(self.TmpPrice_2._20exclude == 'D2').
         #                                                                 group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).c.max_id)).values(_20exclude='D3'))
@@ -435,12 +435,12 @@ class CalculateClass(QThread):
 
 
         cur_time = datetime.datetime.now()
-        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
-        dup_del = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
+        # dup_del = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
         self.add_log(self.file_size_type, price_code, 'D_', cur_time)
 
-        return dup_del
-        # return -1
+        # return dup_del
+        return -1
 
     # def del_duples(self, sess, p):
     #     # duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
