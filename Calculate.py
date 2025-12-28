@@ -123,7 +123,7 @@ class CalculateClass(QThread):
                     # print(files)
                 # new_files = ['2IMP.csv', ]
                 # new_files = ['1LAM.csv', ]
-                # new_files = ['3МСК.csv', ]
+                new_files = ['3МСК.csv', ]
                 # new_files = ['1LAM.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -404,8 +404,8 @@ class CalculateClass(QThread):
         # D1 не с мин. ценой среди D
         min_p_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.min(self.TmpPrice_2._05price).label('min_p')).
                        where(self.TmpPrice_2._20exclude=='D').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
-        sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
-                                                        self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in,
+        sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==min_p_table.c._01article_comp,
+                                                        self.TmpPrice_2._14brand_filled_in==min_p_table.c._14brand_filled_in,
                                                    self.TmpPrice_2._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
         self.add_log(self.file_size_type, price_code, 'D1', cur_time)
 
@@ -414,8 +414,8 @@ class CalculateClass(QThread):
         max_c_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in,
                              func.max(self.TmpPrice_2._04count).label('max_c')).where(self.TmpPrice_2._20exclude == 'D1').
                        group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
-        sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
-                                                        self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in,
+        sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==max_c_table.c._01article_comp,
+                                                        self.TmpPrice_2._14brand_filled_in==max_c_table.c._14brand_filled_in,
                                                    self.TmpPrice_2._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
         self.add_log(self.file_size_type, price_code, 'D2', cur_time)
 
