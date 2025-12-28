@@ -398,7 +398,8 @@ class CalculateClass(QThread):
                   having(func.count(self.TmpPrice_2.id) > 1))
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in)).values(_20exclude='D'))
-        self.add_log(self.file_size_type, price_code, 'D', cur_time)
+        self.add_log(self.file_size_type, price_code, f'D {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D')).scalar()}', cur_time)
+        # self.add_log(self.file_size_type, price_code, 'D', cur_time)
 
         cur_time = datetime.datetime.now()
         # D1 не с мин. ценой среди D
@@ -407,7 +408,7 @@ class CalculateClass(QThread):
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==min_p_table.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==min_p_table.c._14brand_filled_in,
                                                    self.TmpPrice_2._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
-        self.add_log(self.file_size_type, price_code, 'D1', cur_time)
+        self.add_log(self.file_size_type, price_code, f'D1 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D1')).scalar()}', cur_time)
 
         cur_time = datetime.datetime.now()
         # D2 не с макс. кол-вом среди D1
@@ -417,7 +418,7 @@ class CalculateClass(QThread):
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==max_c_table.c._01article_comp,
                                                         self.TmpPrice_2._14brand_filled_in==max_c_table.c._14brand_filled_in,
                                                    self.TmpPrice_2._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
-        self.add_log(self.file_size_type, price_code, 'D2', cur_time)
+        self.add_log(self.file_size_type, price_code, f'D2 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D2')).scalar()}', cur_time)
 
         cur_time = datetime.datetime.now()
         # D3 не с макс. id среди D2
@@ -430,9 +431,9 @@ class CalculateClass(QThread):
         # self.add_log(self.file_size_type, price_code, 'D3', cur_time)
 
         max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).
-                        where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
+                        where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).cte()
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
-        self.add_log(self.file_size_type, price_code, 'D3', cur_time)
+        self.add_log(self.file_size_type, price_code, f'D3 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D3')).scalar()}', cur_time)
 
 
         cur_time = datetime.datetime.now()
