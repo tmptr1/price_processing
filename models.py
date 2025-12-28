@@ -1106,20 +1106,38 @@ class FinalPrice(Base3):
 
 
     id: Mapped[intpk]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
     # Артикул_поставщика varchar(256),
     article_s: Mapped[str_x(256)]
     # Производитель_поставщика varchar(256),
     brand_s: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[intgr]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
     # _01Артикул varchar(256),
     _01article: Mapped[str_x(256)]
     # _01article_comp: Mapped[str_x(256)]
+    _01article_comp: Mapped[str_x(256)]
+    _02brand: Mapped[str_x(256)]
+    brand: Mapped[str_x(256)]
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
+    _03name_old: Mapped[str_x(256)]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # _06Кратность REAL,
+    # _06mult: Mapped[intgr]
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
@@ -1160,6 +1178,7 @@ class FinalPrice(Base3):
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Кол_во REAL,
+    count_old: Mapped[intgr]
     count: Mapped[intgr]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
@@ -1205,15 +1224,32 @@ class FinalPriceHistory(Base):
     id: Mapped[uuidpk]
     # info_id: Mapped[intgr]
     price_code: Mapped[str_x(20)]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
     # Артикул_поставщика varchar(256),
     article_s: Mapped[str_x(256)]
     # Производитель_поставщика varchar(256),
     brand_s: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[intgr]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
     # _01Артикул varchar(256),
     _01article: Mapped[str_x(256)]
     # _01article_comp: Mapped[str_x(256)]
+    _01article_comp: Mapped[str_x(256)]
+    _02brand: Mapped[str_x(256)]
+    brand: Mapped[str_x(256)]
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
+    _03name_old: Mapped[str_x(256)]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
@@ -1230,6 +1266,7 @@ class FinalPriceHistory(Base):
     _17code_unique: Mapped[str_x(256)]
     # Кол_во REAL,
     count: Mapped[intgr]
+    count_old: Mapped[intgr]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)

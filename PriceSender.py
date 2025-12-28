@@ -205,7 +205,9 @@ class Sender(QThread):
 
             allow_prices = self.get_allow_prises(sess)
 
-            cols_for_price = [TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2._01article,
+            cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
+                              TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
+                              TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
                               TotalPrice_2._03name, TotalPrice_2._05price, TotalPrice_2._05price_plus,
                               TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2._13grad,
                               TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt, TotalPrice_2._17code_unique,
@@ -217,9 +219,9 @@ class Sender(QThread):
                               TotalPrice_2.code_pb_p, TotalPrice_2.mult_less, TotalPrice_2.buy_count,
                               TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-            price = select(*cols_for_price.keys()).where(and_(TotalPrice_2.to_price == self.price_settings.period,
+            price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(and_(TotalPrice_2.to_price == self.price_settings.period,
                                                               TotalPrice_2._07supplier_code.in_(allow_prices)))
-            sess.execute(insert(FinalPrice).from_select(cols_for_price.values(), price))
+            sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
 
             # self.add_log(self.price_settings.buyer_price_code, f"Загружено", cur_time)
 
@@ -299,10 +301,12 @@ class Sender(QThread):
                 sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
                                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
 
-                cols_for_price = [FinalPrice.article_s, FinalPrice.brand_s, FinalPrice._01article,
-                                  FinalPrice._03name, FinalPrice._05price, FinalPrice._05price_plus,
+                cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
+                                  FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s,
+                                  FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
+                                  FinalPrice._03name_old, FinalPrice._03name, FinalPrice._05price, FinalPrice._05price_plus,
                                   FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
-                                  FinalPrice._15code_optt, FinalPrice._17code_unique,
+                                  FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
                                   FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"), literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
@@ -430,6 +434,9 @@ class Sender(QThread):
 
         sess.execute(update(FinalPrice).where(FinalPrice._14brand_filled_in.in_(short_name)).
                      values(_03name=FinalPrice._18short_name))
+
+        sess.execute(update(FinalPrice).where(and_(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting,
+                                                   FinalPrice._14brand_filled_in == Brands_3.correct)).values(brand=Brands_3.brand))
 
     def update_price(self, sess):
         sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
@@ -632,7 +639,7 @@ class Sender(QThread):
             while True:
                 if self.price_settings.max_rows < loaded + limit:
                     limit = self.price_settings.max_rows - loaded
-                req = select(FinalPrice._01article, FinalPrice._14brand_filled_in, FinalPrice._03name,
+                req = select(FinalPrice._01article, FinalPrice.brand, FinalPrice._03name,
                              FinalPrice.count, FinalPrice.price, FinalPrice._06mult_new, FinalPrice._17code_unique
                              ).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
@@ -659,7 +666,7 @@ class Sender(QThread):
             # return False
 
     def send_mail(self, sess):
-        emails = ["ytopttorg@mail.ru"]
+        emails = ["ytopttorg@mail.ru"] # []
         prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
         if self.price_settings.price_name in prices_to_send:
             emails = self.price_settings.emails
