@@ -398,7 +398,7 @@ class CalculateClass(QThread):
         # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
         #                                                 self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in)).values(_20exclude='D'))
         duples = select(self.TmpPrice_2._15code_optt).group_by(self.TmpPrice_2._15code_optt).having(func.count(self.TmpPrice_2.id) > 1)
-        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt.in_(duples)).values(_20exclude='D'))
+        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==duples.c._15code_optt).values(_20exclude='D'))
         self.add_log(self.file_size_type, price_code, f'D {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D')).scalar()}', cur_time)
         # self.add_log(self.file_size_type, price_code, 'D', cur_time)
 
