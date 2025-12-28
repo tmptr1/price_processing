@@ -1132,6 +1132,8 @@ class FinalPrice(Base3):
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
     _03name_old: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
@@ -1250,6 +1252,8 @@ class FinalPriceHistory(Base):
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
     _03name_old: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),

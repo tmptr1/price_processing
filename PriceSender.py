@@ -208,7 +208,7 @@ class Sender(QThread):
             cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                               TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
-                              TotalPrice_2._03name, TotalPrice_2._05price, TotalPrice_2._05price_plus,
+                              TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2._05price_plus,
                               TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2._13grad,
                               TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt, TotalPrice_2._17code_unique,
                               TotalPrice_2._18short_name, TotalPrice_2.delay, TotalPrice_2.sell_for_OS,
@@ -304,7 +304,7 @@ class Sender(QThread):
                 cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
                                   FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s,
                                   FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                                  FinalPrice._03name_old, FinalPrice._03name, FinalPrice._05price, FinalPrice._05price_plus,
+                                  FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus,
                                   FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
                                   FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
                                   FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
@@ -666,7 +666,8 @@ class Sender(QThread):
             # return False
 
     def send_mail(self, sess):
-        emails = ["ytopttorg@mail.ru"] # []
+        emails = []
+        emails = ["ytopttorg@mail.ru"]
         prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
         if self.price_settings.price_name in prices_to_send:
             emails = self.price_settings.emails
