@@ -421,10 +421,12 @@ class CalculateClass(QThread):
 
         cur_time = datetime.datetime.now()
         # D3 не с макс. id среди D2
-        max_id_table = sess.execute(select(func.max(self.TmpPrice_2.id).label('max_id')).where(
-            self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).scalars().all()
-        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
-        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
+        # max_id_table = sess.execute(select(func.max(self.TmpPrice_2.id).label('max_id')).where(
+        #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).scalars().all()
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
+        max_id_table = select(func.max(self.TmpPrice_2.id).label('max_id')).where(
+            self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
+        sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
         self.add_log(self.file_size_type, price_code, 'D3', cur_time)
 
 
