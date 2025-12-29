@@ -148,7 +148,7 @@ class Sender(QThread):
                 last_tg_send_time = sess.execute(select(AppSettings.var).where(AppSettings.param=='last_tg_price_send')).scalar()
                 last_tg_send_time = datetime.datetime.strptime(last_tg_send_time, "%Y-%m-%d %H:%M:%S")
 
-                if (datetime.datetime(cur_time.year, cur_time.month, cur_time.day, cur_time.hour) - last_tg_send_time).days < 1:
+                if (datetime.datetime(cur_time.year, cur_time.month, cur_time.day, cur_time.hour) - last_tg_send_time).seconds < 20 * 60 * 60:
                     return
 
                 last_time = sess.execute(select(func.max(PriceSendTime.send_time))).scalar()
@@ -279,7 +279,10 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
             total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
-            self.add_log(self.price_settings.buyer_price_code, f"Итоговое кол-во строк: {total_rows}")
+            log_msg = f"Итоговое кол-во строк: {total_rows}"
+            if self.price_settings.max_rows:
+                log_msg += f". Лимит: {self.price_settings.max_rows}"
+            self.add_log(self.price_settings.buyer_price_code, log_msg)
 
             cur_time = datetime.datetime.now()
             is_sended = False
@@ -330,10 +333,12 @@ class Sender(QThread):
             if prices_count_msg: prices_count_msg = prices_count_msg[:-1]
             # print(prices_count_msg)
 
+            count_for_report = self.price_settings.max_rows if self.price_settings.max_rows > total_rows else total_rows
+
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), send_time=self.send_time,
-                                   info_msg='Ок', count=total_rows, count_after_filter=count_after_first_filter,
+                                   info_msg='Ок', count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
@@ -666,7 +671,7 @@ class Sender(QThread):
             # return False
 
     def send_mail(self, sess):
-        emails = []
+        # emails = []
         emails = ["ytopttorg@mail.ru"]
         prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
         if self.price_settings.price_name in prices_to_send:
@@ -710,7 +715,10 @@ class Sender(QThread):
                 s.quit()
 
         self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
-        self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
+        if emails:
+            self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
+        else:
+            self.add_log(self.price_settings.buyer_price_code, f"НЕ отправлено, почта для отправки не указана")
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
