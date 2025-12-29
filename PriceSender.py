@@ -148,7 +148,7 @@ class Sender(QThread):
                 last_tg_send_time = sess.execute(select(AppSettings.var).where(AppSettings.param=='last_tg_price_send')).scalar()
                 last_tg_send_time = datetime.datetime.strptime(last_tg_send_time, "%Y-%m-%d %H:%M:%S")
 
-                if (datetime.datetime(cur_time.year, cur_time.month, cur_time.day, cur_time.hour) - last_tg_send_time).seconds < 20 * 60 * 60:
+                if (cur_time - last_tg_send_time).seconds < 20 * 60 * 60:
                     return
 
                 last_time = sess.execute(select(func.max(PriceSendTime.send_time))).scalar()
