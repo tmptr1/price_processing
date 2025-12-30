@@ -48,9 +48,10 @@ MAX_LOG_ROWS_IN_TEXT_BROWSER = 200
 # DEFAULT_THREAD_COUNT = settings_data["thread_count"]
 
 class MainWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, autostart):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.autostart = autostart
 
         with session() as sess:
             try:
@@ -365,11 +366,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dbWorker = None
 
         # AUTO START
-        if os.path.exists('autostart.txt'):
+        # if os.path.exists('autostart.txt'):
+        if self.autostart:
             self.start_mail_parser()
             self.start_mult()
             self.start_catalog_update()
             self.start_calculate()
+            self.start_send()
 
 
     def reset_db(self, btn):
@@ -775,9 +778,12 @@ def main():
     # with engine.connect() as con:
     #     res = con.execute(text("select count(*) from data07")).scalar()
     #     print(f"ff {res=}")
+    autostart = False
+    if len(sys.argv) > 1:
+        autostart = bool(sys.argv[1])
 
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = MainWindow(autostart)
     window.show()
     app.exec()
 

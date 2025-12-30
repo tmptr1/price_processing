@@ -200,7 +200,7 @@ class MailParserClass(QThread):
 
                 req = select(FileSettings.file_name, FileSettings.file_name_cond, FileSettings.price_code
                              ).where(
-                    and_(func.lower(FileSettings.email) == str.lower(sender), FileSettings.save == "ДА"))
+                    and_(func.lower(FileSettings.email) == str.lower(sender), func.upper(FileSettings.save) == "ДА"))
                 # FileSettings.price_code == FileSettings.price_code,
                 db_data = sess.execute(req).all()
 
@@ -220,13 +220,10 @@ class MailParserClass(QThread):
                                                               MailReportUnloaded.file_name == '')).delete()
                     sess.add(MailReportUnloaded(sender=sender, file_name='', date=received_time))
                     sess.commit()
-                    # create csv report + delete report button
                     return
 
-                # print(data)
                 self.load_content(msg, tmp_archive_dir, tmp_dir, db_data, sender, received_time)
 
-            # logger.info('=' * 20)
             self.log.add(LOG_ID, "*" * 35)
         except Exception as ex:
             # logger.error("get_mail error:", exc_info=ex)
