@@ -471,7 +471,7 @@ class CatalogUpdate(QThread):
                         "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],
                         "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "send_days": ["Дни отправки"],
                         "time1": ["Время 1"], "time2": ["Время 2"], "time3": ["Время 3"], "time4": ["Время 4"],
-                        "time5": ["Время 5"], "time6": ["Время 6"],
+                        "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"],
                         }
                 sheet_name = "Анкета покупателя"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)

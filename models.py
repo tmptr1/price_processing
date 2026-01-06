@@ -1085,6 +1085,7 @@ class BuyersForm(Base):
     time5: Mapped[str_x(20)]
     # Время 6
     time6: Mapped[str_x(20)]
+    for_send: Mapped[str_x(10)]
 
 
 class PriceException(Base):

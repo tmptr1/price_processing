@@ -147,8 +147,7 @@ class Sender(QThread):
             with session() as sess:
                 last_tg_send_time = sess.execute(select(AppSettings.var).where(AppSettings.param=='last_tg_price_send')).scalar()
                 last_tg_send_time = datetime.datetime.strptime(last_tg_send_time, "%Y-%m-%d %H:%M:%S")
-
-                if (cur_time - last_tg_send_time).seconds < 20 * 60 * 60:
+                if (cur_time - last_tg_send_time).total_seconds() < 20 * 60 * 60:
                     return
 
                 last_time = sess.execute(select(func.max(PriceSendTime.send_time))).scalar()
@@ -673,8 +672,8 @@ class Sender(QThread):
     def send_mail(self, sess):
         # emails = []
         emails = ["ytopttorg@mail.ru"]
-        prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
-        if self.price_settings.price_name in prices_to_send:
+        # prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
+        if str(self.price_settings.for_send).upper() == 'ДА':
             emails = self.price_settings.emails
             if not emails:
                 emails = []
