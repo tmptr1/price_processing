@@ -37,6 +37,7 @@ class CatalogUpdate(QThread):
     CreateTotalCsvSignal = Signal(bool)
 
     isPause = None
+    del_history_day = (datetime.datetime.now() - datetime.timedelta(days=1)).day
 
     def __init__(self, log=None, parent=None):
         self.log = log
@@ -518,13 +519,16 @@ class CatalogUpdate(QThread):
 
             # удалить позиции старше 14 дней + неактуальные прайсы
             cur_time = datetime.datetime.now()
-            dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
-                                                FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
-                                                FinalPriceHistory.send_time == None)).delete()
-            if dels:
-                self.log.add(LOG_ID, f"Удалено строк из истории: {dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                                 f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
-                                 f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+            if self.del_history_day != cur_time.day:
+                self.del_history_day = cur_time.day
+                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
+                                                    FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                                                    FinalPriceHistory.send_time == None)).delete()
+                if dels:
+                    total_fph_rows = sess.execute(func.count(FinalPriceHistory.id)).scalar()
+                    self.log.add(LOG_ID, f"Удалено строк из истории: {dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}",
+                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
+                                     f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
             # price_code_list = select(BuyersForm.buyer_price_code))
             # id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
             # if id_list:

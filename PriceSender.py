@@ -289,8 +289,8 @@ class Sender(QThread):
 
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
-            elif self.need_to_send:
-                self.send_mail(sess)
+            elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА':
+                self.send_mail()
                 # self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
                 # info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
@@ -669,52 +669,52 @@ class Sender(QThread):
 
             # return False
 
-    def send_mail(self, sess):
+    def send_mail(self):
         # emails = []
-        emails = ["ytopttorg@mail.ru"]
+        # emails = ["ytopttorg@mail.ru"]
         # prices_to_send = ['Прайс KWCJ', '2дня Прайс KWB7', '3дня Прайс KWJS', 'Прайс KWA7']
-        if str(self.price_settings.for_send).upper() == 'ДА':
-            emails = self.price_settings.emails
-            if not emails:
-                emails = []
-            elif ',' in emails:
-                emails = list(map(str.strip, str(self.price_settings.emails).split(',')))
-            else:
-                emails = [str(emails).strip()]
+        # if str(self.price_settings.for_send).upper() == 'ДА':
+        emails = self.price_settings.emails
+        if not emails:
+            emails = []
+        elif ',' in emails:
+            emails = list(map(str.strip, str(self.price_settings.emails).split(',')))
+        else:
+            emails = [str(emails).strip()]
 
-        for send_to in emails:
-            # self.add_log(self.price_settings.buyer_price_code, f"SEND {send_to}")
-            msg = MIMEMultipart()
-            msg["Subject"] = Header(f"{self.price_settings.price_name}")
-            msg["From"] = settings_data['mail_login']
-            msg["To"] = send_to
-            # msg.attach(MIMEText("price PL3", 'plain'))
-
-            s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
-
-            try:
-                s.starttls()
-                s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
-
-                file_path = fr"{settings_data['send_dir']}\{self.file_name}"
-
-                with open(file_path, 'rb') as f:
-                    file = MIMEApplication(f.read())
-
-                file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-                msg.attach(file)
-
-                s.sendmail(msg["From"], send_to, msg.as_string())
-
-                shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
-                            fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
-            except Exception as mail_ex:
-                raise mail_ex
-            finally:
-                s.quit()
-
-        self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
         if emails:
+            for send_to in [*emails, "ytopttorg@mail.ru"]:
+                # self.add_log(self.price_settings.buyer_price_code, f"SEND {send_to}")
+                msg = MIMEMultipart()
+                msg["Subject"] = Header(f"{self.price_settings.price_name}")
+                msg["From"] = settings_data['mail_login']
+                msg["To"] = send_to
+                # msg.attach(MIMEText("price PL3", 'plain'))
+
+                s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+
+                try:
+                    s.starttls()
+                    s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+
+                    file_path = fr"{settings_data['send_dir']}\{self.file_name}"
+
+                    with open(file_path, 'rb') as f:
+                        file = MIMEApplication(f.read())
+
+                    file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                    msg.attach(file)
+
+                    s.sendmail(msg["From"], send_to, msg.as_string())
+
+                    shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
+                                fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+                except Exception as mail_ex:
+                    raise mail_ex
+                finally:
+                    s.quit()
+
+            self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
             self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
         else:
             self.add_log(self.price_settings.buyer_price_code, f"НЕ отправлено, почта для отправки не указана")
