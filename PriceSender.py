@@ -8,8 +8,10 @@ from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, 
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
+from email import encoders
 from telebot import TeleBot
 import pandas as pd
 import traceback
@@ -700,8 +702,11 @@ class Sender(QThread):
                     file_path = fr"{settings_data['send_dir']}\{self.file_name}"
 
                     with open(file_path, 'rb') as f:
-                        file = MIMEApplication(f.read())
+                        # file = MIMEApplication(f.read())
+                        file = MIMEBase('application', 'vnd.ms-excel')
+                        file.set_payload(f.read())
 
+                    encoders.encode_base64(file)
                     file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
                     msg.attach(file)
 
