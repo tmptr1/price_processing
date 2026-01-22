@@ -292,31 +292,31 @@ class Sender(QThread):
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
             elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА':
-                self.send_mail()
-                # self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+                if self.send_mail():
+                    # self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
-                # info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
-                # sess.add(info_row)
-                # sess.flush()
-                last_supplier_price_updates = select(PriceReport.price_code, PriceReport.updated_at_2_step)
-                sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                             values(supplier_update_time=last_supplier_price_updates.c.updated_at_2_step))
+                    # info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
+                    # sess.add(info_row)
+                    # sess.flush()
+                    last_supplier_price_updates = select(PriceReport.price_code, PriceReport.updated_at_2_step)
+                    sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                 values(supplier_update_time=last_supplier_price_updates.c.updated_at_2_step))
 
-                sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
-                                                         FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
+                    sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
+                                                             FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
 
-                cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-                                  FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s,
-                                  FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                                  FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus,
-                                  FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
-                                  FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                                  FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
-                cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-                price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"), literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
-                sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
+                    cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
+                                      FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s,
+                                      FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
+                                      FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus,
+                                      FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
+                                      FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
+                                      FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
+                    cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+                    price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"), literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
+                    sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
-                is_sended = True
+                    is_sended = True
 
             price_count = sess.execute(
                 select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
@@ -722,8 +722,10 @@ class Sender(QThread):
 
             self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
             self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
+            return True
         else:
             self.add_log(self.price_settings.buyer_price_code, f"НЕ отправлено, почта для отправки не указана")
+            return False
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
