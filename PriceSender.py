@@ -656,7 +656,7 @@ class Sender(QThread):
                 if not df_len:
                     break
                 # print(df)
-                df[FinalPrice._01article.__dict__['name']] = df[FinalPrice._01article.__dict__['name']].apply(lambda x: f'="{x}"' if str(x)[0] == '0' else x)
+                df[FinalPrice._01article.__dict__['name']] = df[FinalPrice._01article.__dict__['name']].apply(lambda x: f'="{x}"' if str(x).startswith('0') else x)
                 df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
                           errors='ignore')
