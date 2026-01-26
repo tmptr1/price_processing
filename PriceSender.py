@@ -93,6 +93,7 @@ class Sender(QThread):
 
                 # price_name_list = []
                 # price_name_list = ["2 Прайс АвтоПитер", ]
+                # price_name_list = ["2дня Прайс 2-ABS", ]
 
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
@@ -635,8 +636,21 @@ class Sender(QThread):
     def create_csv(self, sess):
         try:
             csv_path = fr"{settings_data['catalogs_dir']}/pre Отправка"
-            df = pd.DataFrame(columns=["Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность",
-                                       "17КодУникальности"])
+
+            headers_patterns = {"Артикул": FinalPrice._01article, "Бренд": FinalPrice.brand, "Наименование": FinalPrice._03name,
+                                "Кол-во": FinalPrice.count, "Цена": FinalPrice.price, "Кратность": FinalPrice._06mult_new,
+                                       "17КодУникальности": FinalPrice._17code_unique}
+            cols = [self.price_settings.col_1, self.price_settings.col_2, self.price_settings.col_3, self.price_settings.col_4,
+                    self.price_settings.col_5, self.price_settings.col_6, self.price_settings.col_7]
+            headers = dict()
+
+            for c in cols:
+                col_name = headers_patterns.get(c, None)
+                if col_name:
+                    headers[c] = col_name
+
+            # "Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность", "17КодУникальности"
+            df = pd.DataFrame(columns=[*headers.keys()])
             df.to_csv(fr"{csv_path}/_{self.file_name}", sep=';', decimal=',',
                       encoding="windows-1251", index=False, errors='ignore')
 
@@ -645,9 +659,7 @@ class Sender(QThread):
             while True:
                 if self.price_settings.max_rows < loaded + limit:
                     limit = self.price_settings.max_rows - loaded
-                req = select(FinalPrice._01article, FinalPrice.brand, FinalPrice._03name,
-                             FinalPrice.count, FinalPrice.price, FinalPrice._06mult_new, FinalPrice._17code_unique
-                             ).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
+                req = select(*headers.values()).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
                 df = df.sort_values(FinalPrice.price.__dict__['name'])
 

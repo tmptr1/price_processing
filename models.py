@@ -1086,6 +1086,13 @@ class BuyersForm(Base):
     # Время 6
     time6: Mapped[str_x(20)]
     for_send: Mapped[str_x(10)]
+    col_1: Mapped[str_x(50)]
+    col_2: Mapped[str_x(50)]
+    col_3: Mapped[str_x(50)]
+    col_4: Mapped[str_x(50)]
+    col_5: Mapped[str_x(50)]
+    col_6: Mapped[str_x(50)]
+    col_7: Mapped[str_x(50)]
 
 
 class PriceException(Base):
