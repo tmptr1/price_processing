@@ -551,7 +551,18 @@ class CatalogUpdate(QThread):
             actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
             useless_prices = (loaded_prices - actual_prices)
             # print(useless_prices)
-            sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
+            if useless_prices:
+                dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
+                self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем != ДА): {dels}",
+                             f"Удалено строк (Обрабаытваем != ДА): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
+
+            expired_prices = set(sess.execute(select(PriceReport.price_code).where(
+                and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step is not None,
+                     PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
+            if expired_prices:
+                dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
+                self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
+                             f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             sess.commit()
 
@@ -1017,6 +1028,7 @@ class CreateMassOffers(QThread):
                 # cur.execute(f"""insert into mass_offers (Артикул, Бренд, Код_прайса) select UPPER(Артикул), UPPER(Бренд),
                 #         Код_прайса from total, Настройки_прайса_поставщика where total.Код_поставщика = Код_прайса and
                 #         Прайс_оптовый = 'ДА' and Бренд is not NULL""")
+                # actual_prices = select(distinct(TotalPrice_1._07supplier_code))  # for test
                 actual_prices = select(distinct(MailReport.price_code))\
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
                 subq = select(TotalPrice_1._01article_comp, TotalPrice_1._14brand_filled_in, TotalPrice_1._07supplier_code).where(
@@ -1080,7 +1092,7 @@ class CreateMassOffers(QThread):
                 max_id_in_duple = select(func.max(MassOffers.id)).where(MassOffers.duple == True).group_by(MassOffers.article, MassOffers.brand). \
                     having(func.count(MassOffers.id) > 1)
                 sess.execute(update(MassOffers).where(MassOffers.id.in_(max_id_in_duple)).values(duple=False))
-                sess.query(MassOffers).where(or_(MassOffers.duple == True, MassOffers.offers_count <= 1)).delete()
+                sess.query(MassOffers).where(MassOffers.duple == True).delete()  # MassOffers.offers_count <= 1
 
                 sess.commit()
 

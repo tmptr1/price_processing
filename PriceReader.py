@@ -175,7 +175,7 @@ class MainWorker(QThread):
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]
-                # new_files = ['1MTK Остатки оригинал Bobcat Doosan.xlsx']
+                # new_files = ['2VAL Шевелько 1.xlsx', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
