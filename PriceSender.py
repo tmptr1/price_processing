@@ -287,7 +287,7 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, log_msg)
 
             cur_time = datetime.datetime.now()
-            is_sended = False
+            # is_sended = False
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
 
             if total_rows == 0:
@@ -306,7 +306,7 @@ class Sender(QThread):
                     # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
                     #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
 
-                    is_sended = True
+                    # is_sended = True
 
             cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
                               FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
@@ -318,8 +318,11 @@ class Sender(QThread):
                               FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+
+            send_time_val = 'NULL' if self.send_time is None else f"'{self.send_time}'"
+
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                           literal_column(f"'{None or self.send_time}'"), *cols_for_price.keys())
+                           literal_column(send_time_val), *cols_for_price.keys())
             sess.execute(
                 insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
@@ -352,8 +355,8 @@ class Sender(QThread):
 
             sess.query(FinalPrice).delete()
             sess.commit()
-            if is_sended:
-                self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
+            # if is_sended:
+            self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID,
