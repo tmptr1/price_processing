@@ -319,7 +319,7 @@ class Sender(QThread):
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                           literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
+                           literal_column(f"'{None or self.send_time}'"), *cols_for_price.keys())
             sess.execute(
                 insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
