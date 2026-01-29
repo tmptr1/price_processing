@@ -92,8 +92,8 @@ class Sender(QThread):
                     # print(prices)
 
                 # price_name_list = []
-                # price_name_list = ["2 Прайс АвтоПитер", ]
-                # price_name_list = ["2дня Прайс 2-ABS", ]
+                price_name_list = ["Прайс АвтоПитер", ]
+                # price_name_list = ["2 Прайс ПРИЧАЛ", ]
 
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
@@ -303,21 +303,25 @@ class Sender(QThread):
                     sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
                                  values(supplier_update_time=last_supplier_price_updates.c.updated_at_2_step))
 
-                    sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
-                                                             FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
-
-                    cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-                                      FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s,
-                                      FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                                      FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus,
-                                      FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
-                                      FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                                      FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
-                    cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-                    price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"), literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
-                    sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
+                    # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
+                    #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
 
                     is_sended = True
+
+            cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
+                              FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
+                              FinalPrice.notice_s,
+                              FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
+                              FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
+                              FinalPrice._05price_plus,
+                              FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
+                              FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
+                              FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
+            cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+            price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
+                           literal_column(f"'{self.send_time}'"), *cols_for_price.keys())
+            sess.execute(
+                insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
             price_count = sess.execute(
                 select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
@@ -446,6 +450,7 @@ class Sender(QThread):
                                                    FinalPrice._14brand_filled_in == Brands_3.correct)).values(brand=Brands_3.brand))
 
     def update_price(self, sess):
+        # ntt = datetime.datetime.now()
         sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
                                                    SaleDK.price_code == FinalPrice._07supplier_code,
                                                    SaleDK.val is not None)).
@@ -457,10 +462,10 @@ class Sender(QThread):
                                                        FinalPrice.delay > self.price_settings.delay,
                                                        FinalPrice.offers_wh != None)).
                          values(price=FinalPrice._05price_plus * (FinalPrice.min_markup - (FinalPrice.markup_os *
-                                                                                           (
-                                                                                                       FinalPrice.delay - self.price_settings.delay))) * (
-                                                  self.price_settings.kos_markup + 1)))
+                                        (FinalPrice.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
 
+
+        # nt = datetime.datetime.now()
         # БазоваяНаценка, МножительПокупателя
         sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
                                                    FinalPrice.offers_wh == None)).
@@ -470,28 +475,40 @@ class Sender(QThread):
                                                    FinalPrice.base_markup == None)).
                      values(base_markup=FinalPrice.min_wholesale_markup + (FinalPrice.wh_step * FinalPrice._13grad),
                             buyer_mult=self.price_settings.markup_buyer_wh + 1))
+        # print(f"1 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         # ЦенаСНаценкой
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).
                      values(
             price_with_markup=FinalPrice._05price_plus * FinalPrice.base_markup * FinalPrice.buyer_mult))
+        # print(f"2 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         # ЦенаР
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).
                      values(price_r=FinalPrice._05price_plus + FinalPrice.markup_R))
+        # print(f"3 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         # ОбычнаяЦена
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).
                      values(
             default_price=func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup) * (FinalPrice.markup_pb + 1)))
-
+        # print(f"4 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None, FinalPrice.min_price != None)).
                      values(price=func.least(FinalPrice.default_price,
                                              func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup,
                                                            FinalPrice.min_price))))
+        # print(f"5 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
-
+        # print(f"6 {str(datetime.datetime.now() - nt)[:7]}")
+        # nt = datetime.datetime.now()
         self.price_del = sess.query(FinalPrice).where(or_(FinalPrice.price<=0, FinalPrice.price==None)).delete()
+        # print(f"7 {str(datetime.datetime.now() - nt)[:7]}")
         if self.price_del:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
+        # print(f"total {str(datetime.datetime.now() - ntt)[:7]}")
 
     # def del_duples(self, sess):
     #     duples = sess.execute(select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).
