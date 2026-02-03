@@ -196,7 +196,7 @@ class Price_1(Base1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
-    _12sum: Mapped[numeric]
+    # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     _15code_optt: Mapped[str_x(256)]
@@ -252,7 +252,7 @@ class Price_1_1(Base1_1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
-    _12sum: Mapped[numeric]
+    # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     _15code_optt: Mapped[str_x(256)]
@@ -311,7 +311,7 @@ class TotalPrice_1(Base):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
-    _12sum: Mapped[numeric]
+    # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     _15code_optt: Mapped[str_x(256)]
@@ -369,7 +369,7 @@ class Price_2(Base2):
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
-    _10original: Mapped[str_x(30)]
+    # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
     # _14Производитель_заполнен varchar(1000),
@@ -382,7 +382,7 @@ class Price_2(Base2):
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
-    _19min_price: Mapped[str_x(50)]
+    # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
     _20exclude: Mapped[str_x(50)]
     # Название_файла varchar(50),
@@ -422,13 +422,13 @@ class Price_2(Base2):
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Низкая_цена NUMERIC(12,2),
-    low_price: Mapped[numeric]
+    # low_price: Mapped[numeric]
     # Кол_во REAL,
     count: Mapped[intgr]
     # Наценка_ПБ REAL,
     markup_pb: Mapped[real]
     # Код_ПБ_П varchar,
-    code_pb_p: Mapped[str_x(500)]
+    # code_pb_p: Mapped[str_x(500)]
     # _06Кратность REAL,
     _06mult_new: Mapped[intgr]
     # Кратность_меньше varchar(25),
@@ -556,7 +556,7 @@ class Price_2_2(Base2_1):
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
-    _10original: Mapped[str_x(30)]
+    # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
     # _14Производитель_заполнен varchar(1000),
@@ -569,7 +569,7 @@ class Price_2_2(Base2_1):
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
-    _19min_price: Mapped[str_x(50)]
+    # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
     _20exclude: Mapped[str_x(50)]
     # Название_файла varchar(50),
@@ -609,13 +609,13 @@ class Price_2_2(Base2_1):
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Низкая_цена NUMERIC(12,2),
-    low_price: Mapped[numeric]
+    # low_price: Mapped[numeric]
     # Кол_во REAL,
     count: Mapped[intgr]
     # Наценка_ПБ REAL,
     markup_pb: Mapped[real]
     # Код_ПБ_П varchar,
-    code_pb_p: Mapped[str_x(500)]
+    # code_pb_p: Mapped[str_x(500)]
     # _06Кратность REAL,
     _06mult_new: Mapped[intgr]
     # Кратность_меньше varchar(25),
@@ -679,7 +679,7 @@ class TotalPrice_2(Base):
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
-    _10original: Mapped[str_x(30)]
+    # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
     # _14Производитель_заполнен varchar(1000),
@@ -692,7 +692,7 @@ class TotalPrice_2(Base):
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
-    _19min_price: Mapped[str_x(50)]
+    # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
     _20exclude: Mapped[str_x(50)]
     # Название_файла varchar(50),
@@ -732,13 +732,13 @@ class TotalPrice_2(Base):
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Низкая_цена NUMERIC(12,2),
-    low_price: Mapped[numeric]
+    # low_price: Mapped[numeric]
     # Кол_во REAL,
     count: Mapped[intgr]
     # Наценка_ПБ REAL,
     markup_pb: Mapped[real]
     # Код_ПБ_П varchar,
-    code_pb_p: Mapped[str_x(500)]
+    # code_pb_p: Mapped[str_x(500)]
     # _06Кратность REAL,
     _06mult_new: Mapped[intgr]
     # Кратность_меньше varchar(25),
@@ -1193,7 +1193,7 @@ class FinalPrice(Base3):
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     # Код_ПБ_П varchar,
-    code_pb_p: Mapped[str_x(500)]
+    # code_pb_p: Mapped[str_x(500)]
     # Кратность_меньше varchar(25),
     mult_less: Mapped[str_x(20)]
     # Количество_закупок REAL,
@@ -1581,3 +1581,63 @@ class CatalogUpdateTime(Base):
     __tablename__ = "catalog_update_time"
     catalog_name: Mapped[str] = mapped_column(String(100), primary_key=True)
     updated_at: Mapped[datetime.datetime]
+
+
+class Orders(Base):
+    __tablename__ = "orders"
+    id: Mapped[uuidpk]
+    # Заказ
+    order_time: Mapped[str_x(30)]
+    # Клиент
+    client: Mapped[str_x(50)]
+    # Автомат
+    auto: Mapped[str_x(20)]
+    # В ручную
+    manually: Mapped[str_x(20)]
+    # Для сортировки
+    for_sort: Mapped[str_x(20)]
+    # Ключ1 в заказ
+    key_1_ord: Mapped[str_x(256)]
+    # Артикул в заказ
+    article_ord: Mapped[str_x(256)]
+    # Производитель в заказ
+    brand_ord: Mapped[str_x(256)]
+    # Заказ шт
+    count_ord: Mapped[intgr]
+    # Цена в заказ
+    price_ord: Mapped[numeric]
+    # В 1С Код наш
+    code_1c: Mapped[str_x(256)]
+    # В 1С Артикул наш
+    article_1c: Mapped[str_x(30)]
+    # Тех. Артикул
+    article: Mapped[str_x(256)]
+    # Тех.Производитель
+    brand: Mapped[str_x(256)]
+    # Тех. Кол-во
+    count: Mapped[intgr]
+    # Тех. Цена
+    price: Mapped[numeric]
+    # Тех. Наименование
+    name: Mapped[str_x(256)]
+    # Код ТутОптТорг
+    code_optt: Mapped[str_x(256)]
+    # Наш производитель
+    our_brand: Mapped[str_x(256)]
+    # 09Код
+    code_09: Mapped[str_x(256)]
+    # Предложений опт
+    offers_wh: Mapped[intgr]
+    # Отказано шт
+    refuse: Mapped[intgr]
+    # Заявка сумма
+    ord_sum: Mapped[numeric]
+    # Сумма в закупке
+    buy_sum: Mapped[numeric]
+    # ВП по подтверждённому
+    vp_accept: Mapped[numeric]
+    # Сумма подтверждённого
+    sum_accept: Mapped[numeric]
+    # Тип товара
+    product_type: Mapped[str_x(30)]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)

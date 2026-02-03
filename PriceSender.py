@@ -1,6 +1,6 @@
 import time
 from PySide6.QtCore import QThread, Signal
-from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column
+from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
@@ -92,7 +92,7 @@ class Sender(QThread):
                     # print(prices)
 
                 # price_name_list = []
-                price_name_list = ["Прайс АвтоПитер", ]
+                # price_name_list = ["Прайс АвтоПитер", ]
                 # price_name_list = ["2 Прайс ПРИЧАЛ", ]
 
                 self.cur_file_count = 0
@@ -206,7 +206,7 @@ class Sender(QThread):
                 return
 
             allow_prices = self.get_allow_prises(sess)
-
+            # TotalPrice_2.code_pb_p
             cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                               TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
@@ -218,7 +218,7 @@ class Sender(QThread):
                               TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
                               TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                               TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
-                              TotalPrice_2.code_pb_p, TotalPrice_2.mult_less, TotalPrice_2.buy_count,
+                              TotalPrice_2.mult_less, TotalPrice_2.buy_count,
                               TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
             price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(and_(TotalPrice_2.to_price == self.price_settings.period,
@@ -288,8 +288,8 @@ class Sender(QThread):
 
             cur_time = datetime.datetime.now()
             # is_sended = False
-            self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
-
+            # self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
+            self.send_time = None
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
             elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА':
@@ -319,7 +319,7 @@ class Sender(QThread):
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
-            send_time_val = 'NULL' if self.send_time is None else f"'{self.send_time}'"
+            send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'" if self.send_time is None else f"'{self.send_time}'"
 
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
                            literal_column(send_time_val), *cols_for_price.keys())
@@ -452,8 +452,10 @@ class Sender(QThread):
         sess.execute(update(FinalPrice).where(and_(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting,
                                                    FinalPrice._14brand_filled_in == Brands_3.correct)).values(brand=Brands_3.brand))
 
+
     def update_price(self, sess):
         # ntt = datetime.datetime.now()
+        # nt = datetime.datetime.now()
         sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
                                                    SaleDK.price_code == FinalPrice._07supplier_code,
                                                    SaleDK.val is not None)).
@@ -466,7 +468,8 @@ class Sender(QThread):
                                                        FinalPrice.offers_wh != None)).
                          values(price=FinalPrice._05price_plus * (FinalPrice.min_markup - (FinalPrice.markup_os *
                                         (FinalPrice.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
-
+        #     print('0+')
+        # print(f"0 {str(datetime.datetime.now() - nt)[:7]}")
 
         # nt = datetime.datetime.now()
         # БазоваяНаценка, МножительПокупателя
@@ -478,7 +481,7 @@ class Sender(QThread):
                                                    FinalPrice.base_markup == None)).
                      values(base_markup=FinalPrice.min_wholesale_markup + (FinalPrice.wh_step * FinalPrice._13grad),
                             buyer_mult=self.price_settings.markup_buyer_wh + 1))
-        # print(f"1 {str(datetime.datetime.now() - nt)[:7]}")
+        # print(f"1 {str(datetime.datetime.now() - nt)[:7]} {rc}")
         # nt = datetime.datetime.now()
         # ЦенаСНаценкой
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).
@@ -504,7 +507,7 @@ class Sender(QThread):
         # print(f"5 {str(datetime.datetime.now() - nt)[:7]}")
         # nt = datetime.datetime.now()
         sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
-        # print(f"6 {str(datetime.datetime.now() - nt)[:7]}")
+        # print(f"6 {str(datetime.datetime.now() - nt)[:7]} {cn6}")
         # nt = datetime.datetime.now()
         self.price_del = sess.query(FinalPrice).where(or_(FinalPrice.price<=0, FinalPrice.price==None)).delete()
         # print(f"7 {str(datetime.datetime.now() - nt)[:7]}")

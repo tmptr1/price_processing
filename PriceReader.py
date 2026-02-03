@@ -485,10 +485,10 @@ class MainWorker(QThread):
 
                 # n_dt = datetime.datetime.now()
                 # 12Сумма
-                numeric_max = 9999999999 # numeric 12,2
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s < numeric_max).
-                             values(_12sum=self.TmpPrice_1.count_s * self.TmpPrice_1.price_s))
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
+                # numeric_max = 9999999999 # numeric 12,2
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s < numeric_max).
+                #              values(_12sum=self.TmpPrice_1.count_s * self.TmpPrice_1.price_s))
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
                 # print(f"12Сумма {datetime.datetime.now() - n_dt}")
 
                 # n_dt = datetime.datetime.now()
@@ -537,7 +537,7 @@ class MainWorker(QThread):
 
                 sess.commit()#sess.flush()
                 # add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
-                self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", cur_time)
+                self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
@@ -569,13 +569,13 @@ class MainWorker(QThread):
                                  "02Производитель": self.TmpPrice_1._02brand,
                                  "14Производитель заполнен": self.TmpPrice_1._14brand_filled_in,
                                  "03Наименование": self.TmpPrice_1._03name, "04Количество": self.TmpPrice_1._04count,
-                                 "05Цена": self.TmpPrice_1._05price, "12Сумма": self.TmpPrice_1._12sum, "06Кратность": self.TmpPrice_1._06mult,
+                                 "05Цена": self.TmpPrice_1._05price, "06Кратность": self.TmpPrice_1._06mult,
                                  "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
                                  "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
                                  "17КодУникальности": self.TmpPrice_1._17code_unique,
                                  "18КороткоеНаименование": self.TmpPrice_1._18short_name,
                                  }
-
+                # "12Сумма": self.TmpPrice_1._12sum,
                 sess.commit()
                 self.cur_file_count += 1
                 # to csv
@@ -586,11 +586,11 @@ class MainWorker(QThread):
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Запись обработанных данных в БД ..."])
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
-
+                # self.TmpPrice_1._12sum,
                 cols_for_total = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
                                   self.TmpPrice_1.count_s, self.TmpPrice_1.price_s, self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
                                   self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name,
-                                  self.TmpPrice_1._04count, self.TmpPrice_1._05price, self.TmpPrice_1._12sum, self.TmpPrice_1._06mult,
+                                  self.TmpPrice_1._04count, self.TmpPrice_1._05price, self.TmpPrice_1._06mult,
                                   self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
                                   self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name]
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}

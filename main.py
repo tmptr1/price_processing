@@ -392,7 +392,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                   AppSettings(param="mb_limit_2", var="25"),
                                   CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Базовая цена', updated_at='2025-01-01 01:01:01'),
-                                  CatalogUpdateTime(catalog_name='Предложений в опте', updated_at='2025-01-01 01:01:01')])
+                                  CatalogUpdateTime(catalog_name='Предложений в опте', updated_at='2025-01-01 01:01:01'),
+                                  CatalogUpdateTime(catalog_name='Заказы', updated_at='2025-01-01 01:01:01'),
+                                  ])
                     sess.commit()
                 print('БД обновлена')
             except Exception as ex:

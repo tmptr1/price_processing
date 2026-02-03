@@ -7,13 +7,14 @@ import requests
 import os
 import shutil
 import pandas as pd
-from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct
+import openpyxl
+from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm, FinalPriceHistory)
+                    Brands_3, SuppliersForm, FinalPriceHistory, Orders)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -54,6 +55,7 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
+                self.update_orders_table()
                 self.send_tg_notification()
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
@@ -561,6 +563,7 @@ class CatalogUpdate(QThread):
                      PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
             if expired_prices:
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message2="Срок обновления"))
                 self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
                              f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
@@ -593,7 +596,7 @@ class CatalogUpdate(QThread):
 
             sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
                                                     TotalPrice_2._14brand_filled_in == Data07_14.correct))
-                         .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
+                         .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
 
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
                 buy_count=Buy_for_OS.buy_count))
@@ -607,6 +610,81 @@ class CatalogUpdate(QThread):
 
             sess.commit()
             return True
+
+
+    def update_orders_table(self):
+        try:
+            with session() as sess:
+                last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Заказы')).scalar()
+                now = datetime.datetime.now()
+                if now.date() == last_update.date() or now.hour < 12:
+                    return
+
+                self.log.add(LOG_ID, f"Загзузка заказов в БД ...",
+                             f"Загзузка <span style='color:{colors.green_log_color};font-weight:bold;'>заказов</span> в БД ...")
+                start_time = datetime.datetime.now()
+                workbook = openpyxl.load_workbook(filename=settings_data["orders"])
+                lists = workbook.sheetnames
+                sheet_names = []
+                for list_name in lists:
+                    for table_name in workbook[list_name]._tables: #workbook['AvtoTO']._tables:
+                        if str(table_name).startswith('таб'):
+                            # print(list_name, table_name)
+                            sheet_names.append(list_name)
+
+                table_name = 'orders'
+                table_class = Orders
+                cols = {"order_time": ["Заказ"], "client": ["Клиент"], "auto": ["Автомат"], "manually": ["В ручную"],
+                        "for_sort": ["Для сортировки"], "key_1_ord": ["Ключ1 в заказ"],
+                        "article_ord": ["Артикул в заказ"],
+                        "brand_ord": ["Производитель в заказ"], "count_ord": ["Заказ шт"],
+                        "price_ord": ["Цена в заказ"],
+                        "code_1c": ["В 1С Код наш"], "article_1c": ["В 1С Артикул наш"], "article": ["Тех. Артикул"],
+                        "brand": ["Тех. Производитель"], "count": ["Тех. Кол-во"], "price": ["Тех. Цена"],
+                        "name": ["Тех. Наименование"], "code_optt": ["Код ТутОптТорг"],
+                        "our_brand": ["Наш производитель"],
+                        "code_09": ["09Код"], }
+
+                for sheet_name in sheet_names:
+                    # self.log.add(LOG_ID, sheet_name)
+                    update_catalog(sess, settings_data["orders"], cols, table_name, table_class, sheet_name=sheet_name,
+                                   del_table=False, skiprows=3, orders_table=True)
+
+                # Предложений опт
+                sess.execute(update(Orders).where(and_(Orders.updated_at == None, Orders.code_optt == func.concat(MassOffers.article, MassOffers.brand)))
+                             .values(offers_wh=MassOffers.offers_count))
+                # Отказано шт
+                conditions = [(Orders.auto == Orders.manually, func.greatest(0, Orders.count - Orders.count_ord))]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(refuse=case(*conditions, else_=0)))
+                # Заявка сумма
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(ord_sum=Orders.count * Orders.price))
+                # Сумма в закупке
+                conditions = [(Orders.count_ord == 0, 0),
+                              (Orders.price_ord == 0, Orders.count_ord * Orders.price)]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(buy_sum=case(*conditions, else_=Orders.count_ord * Orders.price_ord)))
+                # ВП по подтверждённому
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(vp_accept=(Orders.price - Orders.price_ord) * Orders.count_ord))
+                # Сумма подтверждённого
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(sum_accept=Orders.price_ord * Orders.count_ord))
+                # Тип товара
+                conditions = [(Orders.offers_wh >= 2, 'Опт'),]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(product_type=case(*conditions, else_='УТ')))
+
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(updated_at=now))
+
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Заказы').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Заказы', updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                sess.commit()
+                self.log.add(LOG_ID,
+                             f"Заказы загружены в БД [{str(datetime.datetime.now() - start_time)[:7]}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>Заказы</span> загружены в БД "
+                             f"[{str(datetime.datetime.now() - start_time)[:7]}]")
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"update_orders_table Error", ex_text)
 
     def update_base_price(self, force_update=False):
         '''Формирование справочника Базовая цена'''
@@ -1314,16 +1392,17 @@ class CreateTotalCsv(QThread):
                         sep=';', decimal=',',
                         encoding="windows-1251", index=False, errors='ignore')
                     # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
+                    # TotalPrice_2._10original, TotalPrice_2._19min_price, TotalPrice_2.code_pb_p,
                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
                                  TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
                                  TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
-                                 TotalPrice_2._10original, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-                                 TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._19min_price, TotalPrice_2._20exclude,
+                                 TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
+                                 TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._20exclude,
                                  TotalPrice_2.to_price, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
                                  TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
-                                 TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.code_pb_p,
+                                 TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
                                  TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
                                  TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
                                  ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
@@ -1370,16 +1449,17 @@ def get_catalogs_time_update():
         return None
 
 
-def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=0):
+def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=0, del_table=True, skiprows=0, orders_table=False):
     '''for varchar(x), real, numeric, integer'''
     con = ses.connection()
     pk = []
     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
     # with engine.connect() as sess:
     # print(table_name)
-    req = delete(table_class)
-    con.execute(req)
-    con.execute(text(f"ALTER SEQUENCE {table_name}_id_seq restart 1"))
+    if del_table:
+        req = delete(table_class)
+        con.execute(req)
+        con.execute(text(f"ALTER SEQUENCE {table_name}_id_seq restart 1"))
     # sess.commit()
     res = con.execute(text(
         f"SELECT column_name, character_maximum_length FROM information_schema.columns WHERE table_name = '{table_name}' "
@@ -1392,7 +1472,7 @@ def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=
         f"and column_name != 'id'")).all()
     pk = [i[0] for i in res]
 
-    df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False, sheet_name=sheet_name)
+    df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False, sheet_name=sheet_name, skiprows=skiprows)
     df = df.rename(columns={cols[c][0]: c for c in cols})
 
     for c in cols:
@@ -1409,6 +1489,10 @@ def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=
             df = df[df[c].notna()]
     # return (df)
     # print(df)
+    if orders_table:
+        df = df[df['count'] > 0]  # Тех. Кол-во
+        # now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # df['updated_at'] = now
     df.to_sql(name=table_name, con=con, if_exists='append', index=False, index_label=False, chunksize=CHUNKSIZE)
 
 def to_float(x):

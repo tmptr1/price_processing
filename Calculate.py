@@ -256,7 +256,6 @@ class CalculateClass(QThread):
                 cur_time = datetime.datetime.now()
 
                 data7_set = sess.execute(select(Data07).where(Data07.setting == price_code)).scalar()
-                # print(data7_set.setting, data7_set.markup_os, data7_set.delay)
                 sess.execute(update(self.TmpPrice_2).values(delay=data7_set.delay, to_price=data7_set.to_price, sell_for_OS=data7_set.sell_os,
                     markup_os=data7_set.markup_os, max_decline=data7_set.max_decline, markup_holidays=data7_set.markup_holidays,
                     markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, min_wholesale_markup=data7_set.min_wholesale_markup,
@@ -288,14 +287,14 @@ class CalculateClass(QThread):
 
                 sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._07supplier_code == Data07_14.setting,
                                                         self.TmpPrice_2._14brand_filled_in == Data07_14.correct))
-                             .values(markup_pb=Data07_14.markup_pb, code_pb_p=Data07_14.code_pb_p))
+                             .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
 
                 self.add_log(self.file_size_type, price_code, 'data 07&14', cur_time)
 
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
                 cur_time = datetime.datetime.now()
 
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.price_b != None).values(low_price=self.TmpPrice_2._05price/self.TmpPrice_2.price_b))
+                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.price_b != None).values(low_price=self.TmpPrice_2._05price/self.TmpPrice_2.price_b))
                 sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
                              .values(_06mult_new=self.TmpPrice_2._06mult))
                 sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
@@ -321,22 +320,23 @@ class CalculateClass(QThread):
                 self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
 
                 cur_time = datetime.datetime.now()
+                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p,
                 cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
                                   self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand, self.TmpPrice_2._03name, self.TmpPrice_2._04count,
                                   self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods,
-                                  self.TmpPrice_2._10original, self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
+                                  self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
                                   self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._19min_price,
+                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
                                   self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
                                   self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.max_decline,
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp, self.TmpPrice_2.unload_percent,
-                                  self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b, self.TmpPrice_2.low_price,
-                                  self.TmpPrice_2.count, self.TmpPrice_2.markup_pb, self.TmpPrice_2.code_pb_p, self.TmpPrice_2._06mult_new,
+                                  self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b,
+                                  self.TmpPrice_2.count, self.TmpPrice_2.markup_pb, self.TmpPrice_2._06mult_new,
                                   self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus, self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count,
                                   self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier,
                                   ]
@@ -571,16 +571,17 @@ class CalculateClass(QThread):
             limit = CHUNKSIZE
             loaded = 0
             while True:
+                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.code_pb_p,
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
                                   self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code, self.TmpPrice_2._09code_supl_goods,
-                                  self.TmpPrice_2._10original, self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._19min_price, self.TmpPrice_2._20exclude,
+                                  self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
+                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
                                   self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.markup_R,
                                   self.TmpPrice_2.markup_pb, self.TmpPrice_2.min_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step,  self.TmpPrice_2.access_pp, self.TmpPrice_2.put_away_zp,
-                                  self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b, self.TmpPrice_2.count, self.TmpPrice_2.code_pb_p,
+                                  self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b, self.TmpPrice_2.count,
                                   self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
                                   self.TmpPrice_2.buy_count, self.TmpPrice_2.unload_percent, self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier)\
                     .order_by(self.TmpPrice_2.id).offset(loaded).limit(limit)
