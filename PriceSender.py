@@ -190,7 +190,8 @@ class Sender(QThread):
             sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
             # sess.execute(text(f"ALTER TABLE {FinalPriceDuplDel.__tablename__} SET (autovacuum_enabled = false);"))
             sess.commit()
-            self.price_settings = sess.execute(select(BuyersForm).where(BuyersForm.price_name == name)).scalar()
+            self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.price_name == name,
+                                                                             func.upper(BuyersForm.included)=='ДА'))).scalar()
             self.add_log(self.price_settings.buyer_price_code,f" ...")
 
             allow_brands = sess.execute(
@@ -617,8 +618,8 @@ class Sender(QThread):
                 base_name = str(p).rstrip('.xlsx')
                 price_path = fr"{settings_data['send_dir']}/{base_name}.csv"
                 if os.path.exists(price_path):
-                    period = sess.execute(select(BuyersForm.period).where(BuyersForm.file_name == p)).scalar()
-                    if period is None:
+                    # period = sess.execute(select(BuyersForm.period).where(BuyersForm.file_name == p)).scalar()
+                    if self.price_settings.period is None:
                         continue
                     # print('MP', price_path)
                     main_price = pd.read_csv(price_path, header=0, sep=';', encoding='windows-1251',
@@ -627,7 +628,7 @@ class Sender(QThread):
                     main_price = main_price.rename(columns={"Артикул": FinalComparePrice._01article.__dict__['name'],
                                                             "Бренд": FinalComparePrice._14brand_filled_in.__dict__['name'],
                                                             "Цена": FinalComparePrice.price.__dict__['name']})
-                    main_price['period'] = period
+                    main_price['period'] = self.price_settings.period
                     main_price['price'] = main_price['price'].str.replace(',', '.')
                     main_price.to_sql(name=FinalComparePrice.__tablename__, con=sess.connection(), if_exists='append',
                                       index=False)
