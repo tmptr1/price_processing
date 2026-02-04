@@ -560,6 +560,7 @@ class CatalogUpdate(QThread):
 
             expired_prices = set(sess.execute(select(PriceReport.price_code).where(
                 and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step is not None,
+                     SupplierPriceSettings.update_time > 0,
                      PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
             if expired_prices:
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
