@@ -289,8 +289,9 @@ class Sender(QThread):
 
             cur_time = datetime.datetime.now()
             # is_sended = False
-            # self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
-            self.send_time = None
+            self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
+            # self.send_time = None
+            self.new_send_time = None
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
             elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА':
@@ -320,7 +321,7 @@ class Sender(QThread):
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
-            send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'" if self.send_time is None else f"'{self.send_time}'"
+            send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'" if self.new_send_time is None else f"'{self.send_time}'"
 
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
                            literal_column(send_time_val), *cols_for_price.keys())
@@ -347,7 +348,8 @@ class Sender(QThread):
 
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
-                                   update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), send_time=self.send_time,
+                                   update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                   send_time=self.new_send_time if self.new_send_time is None else self.send_time,
                                    info_msg='Ок', count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
@@ -756,7 +758,7 @@ class Sender(QThread):
                 finally:
                     s.quit()
 
-            self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+            self.new_send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
             self.add_log(self.price_settings.buyer_price_code, f"Отправлено ({self.price_settings.emails})")
             return True
         else:
