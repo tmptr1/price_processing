@@ -58,7 +58,7 @@ class MailParserClass(QThread):
                 # self.get_mail("86693", mail)
                 # self.get_mail("86422", mail)
                 # self.get_mail("86854", mail)
-                # self.get_mail("113019", mail)
+                # self.get_mail("118342", mail)
                 # self.get_mail("112898", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
@@ -445,6 +445,8 @@ class MailParserClass(QThread):
 
     def check_file_name(self, file_name, file_db_name, type):
         try:
+            file_name = str(file_name).lower()
+            file_db_name = str(file_db_name).lower()
             if not file_db_name:
                 return 0
 

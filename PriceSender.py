@@ -60,11 +60,17 @@ class Sender(QThread):
             start_cycle_time = datetime.datetime.now()
             try:
                 # with session() as sess:
+                #     ut = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code=='ABS-0')).scalar()
+                #     print(ut)
+                #     # print(type(ut))
+                #
                 #     cur_time = datetime.datetime.now()
-                #     sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
-                #                                             FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
-                #                                             FinalPriceHistory.send_time == None)).delete()
-                #     sess.commit()
+                #     t2 = datetime.datetime.strptime("2026-02-05 16:02:11", "%Y-%m-%d %H:%M:%S")
+                #     print((cur_time-t2) > datetime.timedelta(seconds=15*60))
+                # #     sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
+                # #                                             FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                # #                                             FinalPriceHistory.send_time == None)).delete()
+                # #     sess.commit()
                 # print('okk')
                 # return
                 # СНАЧАЛА С МИН СРОКОМ
@@ -290,11 +296,15 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
             # is_sended = False
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
+            recent_sent = False
+            if self.send_time:
+                if (datetime.datetime.now()-self.send_time) < datetime.timedelta(seconds=15*60):
+                    recent_sent = True
             # self.send_time = None
             self.new_send_time = None
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
-            elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА':
+            elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_sent:
                 if self.send_mail():
                     # self.send_time = datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")
 
@@ -355,7 +365,7 @@ class Sender(QThread):
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                   send_time=self.new_send_time if self.new_send_time is None else self.send_time,
+                                   send_time=send_time_val,
                                    info_msg='Ок', count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,

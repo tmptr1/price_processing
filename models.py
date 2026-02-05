@@ -46,6 +46,7 @@ class SupplierPriceSettings(Base):
     # file_name_cond: Mapped[str_x(20)]
     # Срок_обновление_не_более real,
     update_time: Mapped[real]
+    update_time_str: Mapped[str_x(50)]
     # Имя_файла varchar(256),
     # file_name: Mapped[str_x(256)]
     # Прайс_оптовый varchar(20),

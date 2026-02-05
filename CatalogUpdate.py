@@ -8,7 +8,7 @@ import os
 import shutil
 import pandas as pd
 import openpyxl
-from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case
+from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case, cast, REAL
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
@@ -58,7 +58,7 @@ class CatalogUpdate(QThread):
                 self.update_orders_table()
                 self.send_tg_notification()
                 self.update_currency()
-                # self.update_price_settings_catalog_4_0()
+                self.update_price_settings_catalog_4_0()
                 if self.update_price_settings_catalog_3_0():
                     # self.CreateTotalCsvSignal.emit(True)
                     # self.CTC.start()
@@ -292,7 +292,7 @@ class CatalogUpdate(QThread):
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
-                        "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "update_time": ["Срок обновление не более"],
+                        "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "update_time_str": ["Срок обновление не более"],
                         "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
                         "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
                         "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],
@@ -306,6 +306,7 @@ class CatalogUpdate(QThread):
                 sheet_name = "Настройка прайсов"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
+                sess.execute(update(SupplierPriceSettings).values(update_time=cast(func.regexp_substr(SupplierPriceSettings.update_time_str, r'\d+'), REAL)))
 
                 table_name = 'cols_fix'
                 table_class = ColsFix
