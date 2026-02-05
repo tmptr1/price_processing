@@ -75,11 +75,16 @@ class CalculateClass(QThread):
                         price_code = '.'.join(file.split('.')[:-1])
 
                         req = select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.price_code == price_code,
-                                                                                  SupplierPriceSettings.calculate == 'ДА'))
+                                                                                  func.upper(SupplierPriceSettings.calculate) == 'ДА',
+                                                                                  func.upper(SupplierPriceSettings.works) == 'ДА'))
                         res = sess.execute(req).scalar()
                         if not res:
                             # удаляются раз в день в CatalogUpdate
                             # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
+                            # нет в условиях именно в info_message
+                            sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
+                                         values(info_message="Нет в условиях (4.0 - Настройка прайсов)",
+                                                updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
                             continue
 
                         req = select(PriceReport.price_code).where(and_(PriceReport.price_code == price_code,
@@ -100,6 +105,8 @@ class CalculateClass(QThread):
 
                         if res:
                             time_edit = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['exit_1_dir']}/{file}"))
+                            # time_update = sess.execute(select(SupplierPriceSettings.update_time).where(and_(SupplierPriceSettings.price_code == price_code,
+                            #          func.upper(SupplierPriceSettings.calculate) == 'ДА', func.upper(SupplierPriceSettings.works) == 'ДА'))).scalar()
                             if (datetime.datetime.now() - time_edit).days - update_time >= 30:
                                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                              values(info_message2='Не подходит период обновления',

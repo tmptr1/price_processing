@@ -14,7 +14,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm, FinalPriceHistory, Orders)
+                    Brands_3, SuppliersForm, FinalPriceHistory, Orders, PriceSendTime)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -193,23 +193,92 @@ class CatalogUpdate(QThread):
                 diff = now - last_tg_nt
                 if diff.days >= 1:
                     msg = ''
-                    problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
-                                                                                              PriceReport.info_message != None)).
-                                                    order_by(PriceReport.price_code)).scalars().all()
-                    if problem_prices_1:
-                        problem_prices_1 = ', '.join(problem_prices_1)
-                    else:
-                        problem_prices_1 = '-'
-                    msg += f"Не прошли Первый этап: {problem_prices_1}\n\n"
 
-                    problem_prices_2 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message2 != 'Ок',
-                                                                                              PriceReport.info_message2 != None)).
-                                                    order_by(PriceReport.price_code)).scalars().all()
-                    if problem_prices_2:
-                        problem_prices_2 = ', '.join(problem_prices_2)
-                    else:
-                        problem_prices_2 = '-'
-                    msg += f"Не прошли Второй этап: {problem_prices_2}\n\n"
+                    miss_brands_prices = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Не указаны бренды в Справочник_Бренд3').
+                                                          order_by(PriceSendTime.price_code)).scalars().all()
+                    if miss_brands_prices:
+                        miss_brands_prices = ', '.join(miss_brands_prices)
+                        msg += f"📧 Не указаны бренды в Справочник_Бренд3: {miss_brands_prices}\n\n"
+
+                    zero_count = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Итоговое кол-во 0, не отправлен').
+                                                          order_by(PriceSendTime.price_code)).scalars().all()
+                    if zero_count:
+                        zero_count = ', '.join(zero_count)
+                        msg += f"📧 Итоговое кол-во 0: {zero_count}\n\n"
+
+                    miss_email = sess.execute(select(distinct(PriceSendTime.price_code)).where(and_(PriceSendTime.info_msg=='Не отправлено, почта для отправки не указана',
+                                                                                                    PriceSendTime.price_code == BuyersForm.buyer_price_code,
+                                                                                                    func.upper(BuyersForm.for_send) == 'ДА')).
+                                                          order_by(PriceSendTime.price_code)).scalars().all()
+                    if miss_email:
+                        miss_email = ', '.join(miss_email)
+                        msg += f"📧 Почта для отправки не указана: {miss_email}\n\n"
+
+                    # problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
+                    #                                                                           PriceReport.info_message != None)).
+                    #                                 order_by(PriceReport.price_code)).scalars().all()
+                    miss_4_settings_prices = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message.contains('Нет в условиях'))).order_by(PriceReport.price_code)).scalars().all()
+                    if miss_4_settings_prices:
+                        miss_4_settings_prices = ', '.join(miss_4_settings_prices)
+                        msg += f"Нет в условиях (4.0 - Настройка прайсов): {miss_4_settings_prices}\n\n"
+                    # else:
+                    #     problem_prices_1 = '-'
+
+                    not_standarted = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Не указана стандартизация")).order_by(PriceReport.price_code)).scalars().all()
+                    if not_standarted:
+                        not_standarted = ', '.join(not_standarted)
+                        msg += f"Не указана стандартизация: {not_standarted}\n\n"
+
+                    not_save = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Не указано сохранение")).order_by(PriceReport.price_code)).scalars().all()
+                    if not_save:
+                        not_save = ', '.join(not_save)
+                        msg += f"Не указано сохранение: {not_save}\n\n"
+
+                    update_times = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Не подходит по сроку обновления")).order_by(PriceReport.price_code)).scalars().all()
+                    if update_times:
+                        update_times = ', '.join(update_times)
+                        msg += f"Не подходит по сроку обновления: {update_times}\n\n"
+
+                    miss_4_settings_cols = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Нет настроек")).order_by(PriceReport.price_code)).scalars().all()
+                    if miss_4_settings_cols:
+                        miss_4_settings_cols = ', '.join(miss_4_settings_cols)
+                        msg += f"Нет в условиях (4.0 - Настройка строк): {miss_4_settings_cols}\n\n"
+
+                    cols_uncomp = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message.contains("Нет подходящих настроек столбцов"))).order_by(PriceReport.price_code)).scalars().all()
+                    if cols_uncomp:
+                        cols_uncomp = ', '.join(cols_uncomp)
+                        msg += f"Нет подходящих настроек столбцов: {cols_uncomp}\n\n"
+
+                    format_problem = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Ошибка формата")).order_by(PriceReport.price_code)).scalars().all()
+                    if format_problem:
+                        format_problem = ', '.join(format_problem)
+                        msg += f"Нестандартный формат входящих прайсов: {format_problem}\n\n"
+
+                    cols_uncomp_2 = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
+                                  PriceReport.info_message=="Настройки столбцов не подошли")).order_by(PriceReport.price_code)).scalars().all()
+                    if cols_uncomp_2:
+                        cols_uncomp_2 = ', '.join(cols_uncomp_2)
+                        msg += f"Настройки столбцов не подошли: {cols_uncomp_2}\n\n"
+
+                    miss_07data = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message2 != None,
+                                  PriceReport.info_message2=="Нет настроек или срока обновления в 07Данные")).order_by(PriceReport.price_code)).scalars().all()
+                    if miss_07data:
+                        miss_07data = ', '.join(miss_07data)
+                        msg += f"Нет настроек или срока обновления в 07Данные: {miss_07data}\n\n"
+
+                    update_times_07data = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message2 != None,
+                                  PriceReport.info_message2=="Не подходит период обновления")).order_by(PriceReport.price_code)).scalars().all()
+                    if update_times_07data:
+                        update_times_07data = ', '.join(update_times_07data)
+                        msg += f"Не подходит период обновления из 07Данные: {update_times_07data}\n\n"
+
 
                     total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                     total_cnt = '{0:,d}'.format(total_cnt)
@@ -565,7 +634,7 @@ class CatalogUpdate(QThread):
                      PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
             if expired_prices:
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
-                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message2="Срок обновления"))
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message="Не подходит по сроку обновления"))
                 self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
                              f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 

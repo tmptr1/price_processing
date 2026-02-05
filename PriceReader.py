@@ -121,7 +121,7 @@ class MainWorker(QThread):
                         standard = sess.execute(req).scalar()
                         if not standard:
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
-                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code, info_message="Нет в условиях",
+                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code, info_message="Нет в условиях (4.0 - Настройка прайсов)",
                                                  updated_at=new_update_time))
                             self.log.add(LOG_ID, f"{price_code} Нет в условиях", f"<span style='color:{colors.orange_log_color};"
                                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
@@ -148,6 +148,18 @@ class MainWorker(QThread):
                             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
                                          f"<span style='color:{colors.orange_log_color};"
                                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
+                            continue
+
+                        works = sess.execute(select(func.upper(SupplierPriceSettings.works)).where(SupplierPriceSettings.price_code == price_code)).scalar()
+                        if not works or works != 'ДА':
+                            sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
+                            sess.add(PriceReport(file_name=base_file_name, price_code=price_code,
+                                                 info_message="Не работаем",
+                                                 updated_at=new_update_time))
+                            sess.execute(req)
+                            self.log.add(LOG_ID, f"{price_code} Не работаем",
+                                         f"<span style='color:{colors.orange_log_color};"
+                                         f"font-weight:bold;'>{price_code}</span> Не работаем")
                             continue
 
                         if not last_update_tile:
