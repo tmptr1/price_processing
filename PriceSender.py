@@ -104,7 +104,7 @@ class Sender(QThread):
 
                 # price_name_list = []
                 # price_name_list = ["Прайс АвтоПитер", ]
-                # price_name_list = ["2 Прайс ПРИЧАЛ", ]
+                # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
@@ -372,7 +372,7 @@ class Sender(QThread):
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                   send_time="'NULL'" if send_time_val == "NULL" else send_time_val,
+                                   send_time=None if send_time_val == "NULL" else send_time_val,
                                    info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
