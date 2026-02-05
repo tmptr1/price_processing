@@ -372,7 +372,8 @@ class Sender(QThread):
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
                                    update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                   send_time=send_time_val, info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
+                                   send_time="'NULL'" if send_time_val == "NULL" else send_time_val,
+                                   info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
