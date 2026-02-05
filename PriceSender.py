@@ -321,7 +321,7 @@ class Sender(QThread):
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
-            send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'" if self.new_send_time is None else f"'{self.send_time}'"
+            send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'" if self.new_send_time is not None else f"'{self.send_time}'"
 
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
                            literal_column(send_time_val), *cols_for_price.keys())

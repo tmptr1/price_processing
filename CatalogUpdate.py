@@ -58,7 +58,7 @@ class CatalogUpdate(QThread):
                 self.update_orders_table()
                 self.send_tg_notification()
                 self.update_currency()
-                self.update_price_settings_catalog_4_0()
+                # self.update_price_settings_catalog_4_0()
                 if self.update_price_settings_catalog_3_0():
                     # self.CreateTotalCsvSignal.emit(True)
                     # self.CTC.start()
