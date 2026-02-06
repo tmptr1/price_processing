@@ -1230,7 +1230,7 @@ class FinalPrice(Base3):
 
 class FinalPriceHistory(Base):
     __tablename__ = "final_price_history"
-    __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
+    # __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
 
     id: Mapped[uuidpk]
     # info_id: Mapped[intgr]
@@ -1285,6 +1285,64 @@ class FinalPriceHistory(Base):
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
+class FinalPriceHistoryDel(Base):
+    __tablename__ = "final_price_history_del"
+    # __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
+
+    id: Mapped[uuidpk]
+    # info_id: Mapped[intgr]
+    price_code: Mapped[str_x(20)]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[intgr]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _01article_comp: Mapped[str_x(256)]
+    _01article_comp: Mapped[str_x(256)]
+    _02brand: Mapped[str_x(256)]
+    brand: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(256)]
+    _03name_old: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
+    # _05Цена_плюс NUMERIC(12,2),
+    _05price_plus: Mapped[numeric]
+    # _06Кратность REAL,
+    _06mult_new: Mapped[intgr]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    reason: Mapped[str_x(100)]
+    # Кол_во REAL,
+    count: Mapped[intgr]
+    count_old: Mapped[intgr]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
+    supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
 
 class FinalComparePrice(Base3):
     __tablename__ = "final_compare_price"
@@ -1328,6 +1386,33 @@ class PriceSendTime(Base):
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     prices_count: Mapped[str_x(5000)]
 
+class PriceSendTimeHistory(Base):
+    __tablename__ = "price_send_time_history"
+    id: Mapped[uuidpk]
+    price_code: Mapped[str_x(20)]
+    # info_msg
+    info_msg: Mapped[str_x(50)]
+    # count
+    count: Mapped[intgr]
+    # кол-во после первого фильтра
+    count_after_filter: Mapped[intgr]
+    # Удал: ЦенаБ del_price_b
+    del_price_b: Mapped[intgr]
+    # Удал: словам исключения exception_words_del
+    exception_words_del: Mapped[intgr]
+    # Удал: кол-во, кратность count_mult_del
+    count_mult_del: Mapped[intgr]
+    # Удал: правильные бренды correct_brands_del
+    correct_brands_del: Mapped[intgr]
+    # Удал: Цена ноль price_del
+    price_del: Mapped[intgr]
+    # Удал: дубли dup_del
+    dup_del: Mapped[intgr]
+    # Удал: сравнение цен с осн. прайсом price_compare_del
+    price_compare_del: Mapped[intgr]
+    update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    prices_count: Mapped[str_x(5000)]
 
 class FileSettings(Base):
     __tablename__ = "file_settings"

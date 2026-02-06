@@ -14,7 +14,8 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm, FinalPriceHistory, Orders, PriceSendTime)
+                    Brands_3, SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
+                    MailReportUnloaded)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -592,17 +593,35 @@ class CatalogUpdate(QThread):
                 return
 
             # удалить позиции старше 14 дней + неактуальные прайсы
-            cur_time = datetime.datetime.now()
             if self.del_history_day != cur_time.day:
                 self.del_history_day = cur_time.day
-                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code)),
-                                                    FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                # FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code
+                cur_time = datetime.datetime.now()
+                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
                                                     FinalPriceHistory.send_time == None)).delete()
                 if dels:
                     total_fph_rows = sess.execute(func.count(FinalPriceHistory.id)).scalar()
                     self.log.add(LOG_ID, f"Удалено строк из истории: {dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}",
                                      f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
                                      f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
+
+                cur_time = datetime.datetime.now()
+                delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=14),
+                                                    FinalPriceHistoryDel.send_time == None)).delete()
+                if delsD:
+                    total_fphd_rows = sess.execute(func.count(FinalPriceHistoryDel.id)).scalar()
+                    self.log.add(LOG_ID, f"Удалено строк из истории удалённых строк: {delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}",
+                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории удалённых строк</span>: "
+                                     f"{delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}")
+
+                cur_time = datetime.datetime.now()
+                delsPST = sess.query(PriceSendTimeHistory).where(PriceSendTimeHistory.update_time < cur_time - datetime.timedelta(days=62)).delete()
+                if delsPST:
+                    self.log.add(LOG_ID, f"Удалено строк из отчёта по отправленым прайсам: {delsPST} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>отчёта по отправленым прайсам</span>: "
+                                     f"{delsPST} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+                sess.query(MailReportUnloaded).where(MailReportUnloaded.date < cur_time - datetime.timedelta(days=62))
             # price_code_list = select(BuyersForm.buyer_price_code))
             # id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
             # if id_list:
