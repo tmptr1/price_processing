@@ -483,11 +483,11 @@ class CatalogUpdate(QThread):
                 sheet_name = "07Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
-                table_name = 'data15'
-                table_class = Data15
-                cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
-                sheet_name = "15Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                # table_name = 'data15'
+                # table_class = Data15
+                # cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
+                # sheet_name = "15Данные"
+                # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
                 table_name = 'data09'
                 table_class = Data09
