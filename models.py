@@ -1644,6 +1644,7 @@ class PriceReport(Base):
     row_wo_article: Mapped[intgr]
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     updated_at_2_step: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    db_added: Mapped[datetime.datetime] = mapped_column(nullable=True)
     row_count_2: Mapped[intgr]
     del_art: Mapped[intgr]
     del_brand: Mapped[intgr]

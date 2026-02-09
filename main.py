@@ -109,13 +109,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CU = CatalogUpdate.CatalogUpdate(log=Log)
         self.CU.StartTablesUpdateSignal.connect(self.update_catalogs_update_time_table)
         self.CU.StartTablesUpdateSignal.connect(self.update_currency_table)
-        self.CU.CreateTotalCsvSignal.connect(self.start_create_total_csv)
+        # self.CU.CreateTotalCsvSignal.connect(self.start_create_total_csv)
         # self.CU.CreateBasePriceSignal.connect(lambda b: self.CreateBasePriceButton_2.setEnabled(b))
         # self.CU.CreateMassOffersSignal.connect(lambda b: self.CreateMassOffersButton_2.setEnabled(b))
 
         self.Calculate = CalculateClass(file_size_limit=f">{self.FileSizeLimit_spinBox_2.value()}", log=Log)
         self.Calculate2 = CalculateClass(file_size_limit=f"<{self.FileSizeLimit_spinBox_2.value()}", log=Log)
-        self.CreateTotalCsv = CatalogUpdate.CreateTotalCsv(log=Log)
+        # self.CreateTotalCsv = CatalogUpdate.CreateTotalCsv(log=Log)
         self.PriceReportUpdate_2 = PriceReportUpdate_2(log=Log)
         self.PriceReportUpdate_2.UpdateInfoTableSignal.connect(self.add_item_to_price_2_report_table)
         self.PriceReportUpdate_2.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_3.setText(x))
@@ -249,7 +249,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CurrencyTableUpdateButton_2.clicked.connect(self.update_currency_table)
         self.CreateBasePriceButton_2.clicked.connect(self.update_base_price)
         self.CreateMassOffersButton_2.clicked.connect(self.update_mass_offers)
-        self.CreateTotalCsv_2.clicked.connect(self.start_create_total_csv)
+        # self.CreateTotalCsv_2.clicked.connect(self.start_create_total_csv)
         self.OpenPriceStatusButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         self.ResetPriceStatusButton_2.clicked.connect(self.reset_price_1_report)
         self.CreatePriceStatusButton_2.clicked.connect(self.update_price_1_report_table)
@@ -651,9 +651,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.Calculate2.isRunning():
             self.Calculate2.start()
 
-    def start_create_total_csv(self):
-        if not self.CreateTotalCsv.isRunning():
-            self.CreateTotalCsv.start()
+    # def start_create_total_csv(self):
+    #     if not self.CreateTotalCsv.isRunning():
+    #         self.CreateTotalCsv.start()
 
     def update_status_table_1(self, row_id, price_code, status, total_timer):
         # price_code, status, total_timer = info

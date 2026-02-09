@@ -130,7 +130,7 @@ class CalculateClass(QThread):
                     # print(files)
                 # new_files = ['2IMP.csv', ]
                 # new_files = ['1LAM.csv', ]
-                # new_files = ['3МСК.csv', ]
+                # new_files = ['1AVX.csv', ]
                 # new_files = ['2VAL.csv', '1VAL.csv',]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -370,9 +370,10 @@ class CalculateClass(QThread):
 
                 # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
-                             .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"), row_count_2=cnt,
-                                     del_art=del_art, del_brand=del_brand, del_price=del_price, del_count=del_count,
-                                     del_20=del_20, del_dupl=del_dupl))
+                             .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"),
+                                     db_added=start_time.strftime("%Y.%m.%d %H:%M:%S"),
+                                     row_count_2=cnt, del_art=del_art, del_brand=del_brand, del_price=del_price,
+                                     del_count=del_count, del_20=del_20, del_dupl=del_dupl))
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
                 self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)

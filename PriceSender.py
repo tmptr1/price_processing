@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
                     SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
-                    FinalPriceHistoryDel)
+                    FinalPriceHistoryDel, SupplierPriceSettings)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -321,9 +321,9 @@ class Sender(QThread):
                     # info_row = FinalPriceInfo(price_code=self.price_settings.buyer_price_code, send_time=self.send_time)
                     # sess.add(info_row)
                     # sess.flush()
-                    last_supplier_price_updates = select(PriceReport.price_code, PriceReport.updated_at_2_step)
+                    last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
                     sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                 values(supplier_update_time=last_supplier_price_updates.c.updated_at_2_step))
+                                 values(supplier_update_time=last_supplier_price_updates.c.db_added))
 
                     # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
                     #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
@@ -427,8 +427,9 @@ class Sender(QThread):
         return cnt
 
     def get_allow_prises(self, sess):
-        allow_prices = set(sess.execute(select(Data07.setting).where(
-            Data07.access_pp.like(f"%{self.price_settings.buyer_price_code}%"))).scalars().all())
+        allow_prices = set(sess.execute(select(Data07.setting).where(and_(Data07.access_pp.like(f"%{self.price_settings.buyer_price_code}%")),
+                             SupplierPriceSettings.price_code==Data07.setting, func.upper(SupplierPriceSettings.works)=='ДА', func.upper(SupplierPriceSettings.calculate)=='ДА',
+                                                                     PriceReport.price_code==Data07.setting, PriceReport.info_message2=='Ок')).scalars().all())
         # print(allow_prices)
         weekday = WEEKDAYS[datetime.datetime.now().weekday()]
         # weekday = 'сре'

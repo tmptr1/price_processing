@@ -36,7 +36,7 @@ class CatalogUpdate(QThread):
     StartTablesUpdateSignal = Signal(bool)
     CreateBasePriceSignal = Signal(bool)
     CreateMassOffersSignal = Signal(bool)
-    CreateTotalCsvSignal = Signal(bool)
+    # CreateTotalCsvSignal = Signal(bool)
 
     isPause = None
     del_history_day = (datetime.datetime.now() - datetime.timedelta(days=1)).day
@@ -45,7 +45,7 @@ class CatalogUpdate(QThread):
         self.log = log
         self.CBP = CreateBasePrice(log=log)
         self.CMO = CreateMassOffers(log=log)
-        self.CTC = CreateTotalCsv(log=log)
+        # self.CTC = CreateTotalCsv(log=log)
         QThread.__init__(self, parent)
 
     def run(self):
@@ -68,13 +68,14 @@ class CatalogUpdate(QThread):
 
                 # + удаление из final_price_history и удаление неактуальных прайсов
                 if self.update_DB_3():
-                    self.CTC.start()
-                    self.CTC.wait()
+                    pass
+                    # self.CTC.start()
+                    # self.CTC.wait()
 
-                self.update_base_price()
-                self.CBP.wait()
                 self.update_mass_offers()
                 self.CMO.wait()
+                self.update_base_price()
+                self.CBP.wait()
                 # if not self.CBP.isRunning():
                 #     self.CBP.start()
                 if datetime.datetime.now().hour != last_update_h:
@@ -639,12 +640,13 @@ class CatalogUpdate(QThread):
 
             # проверка неактуальных прайсов
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
-            actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
+            actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.calculate == 'ДА',
+                                                                                                 SupplierPriceSettings.works == 'ДА'))).scalars().all())
             useless_prices = (loaded_prices - actual_prices)
             # print(useless_prices)
             if useless_prices:
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
-                self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем != ДА): {dels}",
+                self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем != ДА): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             expired_prices = set(sess.execute(select(PriceReport.price_code).where(
@@ -985,9 +987,9 @@ class CreateBasePrice(QThread):
                     if cur_time.hour > 8 or (cur_time - compare_time).days < 1:
                         return
 
-                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
-                if report_parts_count < 1:
-                    report_parts_count = 1
+                # report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
+                # if report_parts_count < 1:
+                #     report_parts_count = 1
                 # return
                 # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
                 # time.sleep(2)
@@ -1033,6 +1035,7 @@ class CreateBasePrice(QThread):
                          TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article_comp != None))
                 sess.execute(insert(BasePrice).from_select(['article', 'brand', 'price_b', 'min_supplier'], subq))
                 sess.query(BasePrice).where(BasePrice.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.base_price != 'ДА'))).delete()
+                sess.query(BasePrice).where(and_(BasePrice.article == MassOffers.article, BasePrice.brand == MassOffers.brand, MassOffers.offers_count < 1)).delete()
                 sess.commit()  # sess.flush()
                 #     cur.execute(f"""with min_supl_T as (with min_price_T as (select Артикул, Бренд, min(ЦенаБ) as min_price
                 #         from base_price group by Артикул, Бренд having count(*) > 1) select base_price.Артикул as min_art,
@@ -1076,44 +1079,44 @@ class CreateBasePrice(QThread):
                 # connection.close()
                 #
                 # Удаление старых данных
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
-                    if file.startswith('Справочник Базовая цена - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/{file}")
-
-                loaded = 0
-                for i in range(1, report_parts_count + 1):
-                    df = pd.DataFrame(columns=['Артикул', 'Бренд', 'ЦенаБ', 'Мин. Цена', 'Мин. Поставщик'])
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
-                        sep=';', decimal=',',
-                        encoding="windows-1251", index=False, errors='ignore')
-                    req = select(BasePrice.article, BasePrice.brand, BasePrice.price_b, BasePrice.min_price,
-                                 BasePrice.min_supplier). \
-                        order_by(BasePrice.id).offset(loaded).limit(limit)
-                    df = pd.read_sql_query(req, sess.connection(), index_col=None)
-
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
-                        mode='a',
-                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-
-                    df_len = len(df)
-                    loaded += df_len
-
-                # create_csv_catalog(path_to_catalogs + "/pre Справочник Базовая цена/Базовая цена - страница {}.csv",
-                #                    """SELECT base_price.Артикул as "Артикул", base_price.Бренд as "Бренд",
-                #                         base_price.ЦенаБ as "ЦенаБ", base_price.ЦенаМин as "Мин. Цена", ЦенаМинПоставщик
-                #                         as "Мин. Поставщик" FROM base_price ORDER BY Бренд OFFSET {} LIMIT {}""",
-                #                    host, user, password, db_name, report_parts_count)
+                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
+                #     if file.startswith('Справочник Базовая цена - страница'):
+                #         os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/{file}")
                 #
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена"):
-                    if file.startswith('Справочник Базовая цена - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/{file}")
-
-                for i in range(1, report_parts_count + 1):
-                    shutil.copy(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
-                        fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv")
+                # loaded = 0
+                # for i in range(1, report_parts_count + 1):
+                #     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'ЦенаБ', 'Мин. Цена', 'Мин. Поставщик'])
+                #     df.to_csv(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
+                #         sep=';', decimal=',',
+                #         encoding="windows-1251", index=False, errors='ignore')
+                #     req = select(BasePrice.article, BasePrice.brand, BasePrice.price_b, BasePrice.min_price,
+                #                  BasePrice.min_supplier). \
+                #         order_by(BasePrice.id).offset(loaded).limit(limit)
+                #     df = pd.read_sql_query(req, sess.connection(), index_col=None)
+                #
+                #     df.to_csv(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
+                #         mode='a',
+                #         sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
+                #
+                #     df_len = len(df)
+                #     loaded += df_len
+                #
+                # # create_csv_catalog(path_to_catalogs + "/pre Справочник Базовая цена/Базовая цена - страница {}.csv",
+                # #                    """SELECT base_price.Артикул as "Артикул", base_price.Бренд as "Бренд",
+                # #                         base_price.ЦенаБ as "ЦенаБ", base_price.ЦенаМин as "Мин. Цена", ЦенаМинПоставщик
+                # #                         as "Мин. Поставщик" FROM base_price ORDER BY Бренд OFFSET {} LIMIT {}""",
+                # #                    host, user, password, db_name, report_parts_count)
+                # #
+                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена"):
+                #     if file.startswith('Справочник Базовая цена - страница'):
+                #         os.remove(fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/{file}")
+                #
+                # for i in range(1, report_parts_count + 1):
+                #     shutil.copy(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv",
+                #         fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/Справочник Базовая цена - страница {i}.csv")
 
                 # Обновление итога
                 sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._01article_comp == BasePrice.article,
@@ -1264,36 +1267,36 @@ class CreateMassOffers(QThread):
 
                 sess.commit()
 
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте"):
-                    if file.startswith('Справочник Предложений в опте - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/{file}")
-
-                loaded = 0
-                for i in range(1, report_parts_count + 1):
-                    df = pd.DataFrame(columns=['Артикул', 'Бренд', 'Предложений в опте'])
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
-                        sep=';', decimal=',',
-                        encoding="windows-1251", index=False, errors='ignore')
-                    req = select(MassOffers.article, MassOffers.brand, MassOffers.offers_count).order_by(MassOffers.id).offset(loaded).limit(limit)
-                    df = pd.read_sql_query(req, sess.connection(), index_col=None)
-
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
-                        mode='a',
-                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-
-                    df_len = len(df)
-                    loaded += df_len
-
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте"):
-                    if file.startswith('Справочник Предложений в опте - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/{file}")
-
-                for i in range(1, report_parts_count + 1):
-                    shutil.copy(
-                        fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
-                        fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv")
+                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте"):
+                #     if file.startswith('Справочник Предложений в опте - страница'):
+                #         os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/{file}")
+                #
+                # loaded = 0
+                # for i in range(1, report_parts_count + 1):
+                #     df = pd.DataFrame(columns=['Артикул', 'Бренд', 'Предложений в опте'])
+                #     df.to_csv(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
+                #         sep=';', decimal=',',
+                #         encoding="windows-1251", index=False, errors='ignore')
+                #     req = select(MassOffers.article, MassOffers.brand, MassOffers.offers_count).order_by(MassOffers.id).offset(loaded).limit(limit)
+                #     df = pd.read_sql_query(req, sess.connection(), index_col=None)
+                #
+                #     df.to_csv(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
+                #         mode='a',
+                #         sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
+                #
+                #     df_len = len(df)
+                #     loaded += df_len
+                #
+                # for file in os.listdir(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте"):
+                #     if file.startswith('Справочник Предложений в опте - страница'):
+                #         os.remove(fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/{file}")
+                #
+                # for i in range(1, report_parts_count + 1):
+                #     shutil.copy(
+                #         fr"{settings_data['catalogs_dir']}/pre Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv",
+                #         fr"{settings_data['catalogs_dir']}/Справочник Предложений в опте/Справочник Предложений в опте - страница {i}.csv")
 
                 # Обновление итога
                 sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._01article_comp == MassOffers.article,
@@ -1415,116 +1418,116 @@ class CurrencyUpdateTable(QThread):
             self.log.error(LOG_ID, f"CurrencyUpdateTable Error", ex_text)
 
 
-class CreateTotalCsv(QThread):
-    def __init__(self, log=None, parent=None):
-        self.log = log
-        QThread.__init__(self, parent)
-
-    def run(self):
-        try:
-            cur_time = datetime.datetime.now()
-            self.log.add(LOG_ID, f"Формирование Итога ...",
-                         f"Формирование <span style='color:{colors.green_log_color};font-weight:bold;'>Итога</span> ...")
-            with session() as sess:
-                # sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Reserve.code_09)
-                #              .values(reserve_count=Reserve.reserve_count))
-                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2.count - TotalPrice_2.reserve_count))
-                # sess.query(TotalPrice_2).where(TotalPrice_2.count <= 0).delete()
-
-                ### sess.execute(update(TotalPrice_2).where(TotalPrice_2._06mult_new == None).values(_06mult_new=1))
-                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
-
-                # sess.commit()
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
-                    if file.startswith('pre Итог - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
-
-                limit = 1_048_500
-                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
-                if report_parts_count < 1:
-                    report_parts_count = 1
-
-                loaded = 0
-                for i in range(1, report_parts_count + 1):
-                    header = ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
-                                               "Наименование поставщика",
-                                               "Количество поставщика", "Цена поставщика", "Кратность поставщика",
-                                               "Примечание поставщика", "01Артикул", "02Производитель",
-                                               "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-                                               "09Код + Поставщик + Товар", "10Оригинал",
-                                               "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-                                               "17КодУникальности", "18КороткоеНаименование",
-                                               "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
-                                               "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
-                                               "Наценка на оптовые товары", "Шаг градации",
-                                               "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
-                                               "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
-                                               "Количество закупок", "% Отгрузки",
-                                               "Мин. Цена", "Мин. Поставщик"]
-                    df = pd.DataFrame(columns=header)
-                                      # ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
-                                      #          "Наименование поставщика",
-                                      #          "Количество поставщика", "Цена поставщика", "Кратность поставщика",
-                                      #          "Примечание поставщика", "01Артикул", "02Производитель",
-                                      #          "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-                                      #          "09Код + Поставщик + Товар", "10Оригинал",
-                                      #          "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-                                      #          "17КодУникальности", "18КороткоеНаименование",
-                                      #          "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
-                                      #          "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
-                                      #          "Наценка на оптовые товары", "Шаг градаци",
-                                      #          "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
-                                      #          "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
-                                      #          "Количество закупок", "% Отгрузки",
-                                      #          "Мин. Цена", "Мин. Поставщик"])
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-                        sep=';', decimal=',',
-                        encoding="windows-1251", index=False, errors='ignore')
-                    # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
-                    # TotalPrice_2._10original, TotalPrice_2._19min_price, TotalPrice_2.code_pb_p,
-                    req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
-                                 TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
-                                 TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
-                                 TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
-                                 TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-                                 TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._20exclude,
-                                 TotalPrice_2.to_price, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
-                                 TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
-                                 TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
-                                 TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
-                                 TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
-                                 TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
-                                 ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
-                    # TotalPrice_2.max_decline, TotalPrice_2.markup_holidays,
-                    # TotalPrice_2.low_price,
-                    # TotalPrice_2.reserve_count,
-                    df = pd.read_sql_query(req, sess.connection(), index_col=None)
-
-                    df.to_csv(
-                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-                        mode='a',
-                        sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-                    # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
-
-                    df_len = len(df)
-                    loaded += df_len
-
-                for file in os.listdir(fr"{settings_data['catalogs_dir']}/Итог"):
-                    if file.startswith('Итог - страница'):
-                        os.remove(fr"{settings_data['catalogs_dir']}/Итог/{file}")
-
-                for i in range(1, report_parts_count + 1):
-                    shutil.copy(
-                        fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",   # xlsx
-                        fr"{settings_data['catalogs_dir']}/Итог/Итог - страница {i}.csv")
-
-            self.log.add(LOG_ID, f"Итог сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>Итог</span> "
-                         f"сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]")
-        except Exception as ex:
-            ex_text = traceback.format_exc()
-            self.log.error(LOG_ID, f"CreateTotalCsv Error", ex_text)
+# class CreateTotalCsv(QThread):
+#     def __init__(self, log=None, parent=None):
+#         self.log = log
+#         QThread.__init__(self, parent)
+#
+#     def run(self):
+#         try:
+#             cur_time = datetime.datetime.now()
+#             self.log.add(LOG_ID, f"Формирование Итога ...",
+#                          f"Формирование <span style='color:{colors.green_log_color};font-weight:bold;'>Итога</span> ...")
+#             with session() as sess:
+#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Reserve.code_09)
+#                 #              .values(reserve_count=Reserve.reserve_count))
+#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2.count - TotalPrice_2.reserve_count))
+#                 # sess.query(TotalPrice_2).where(TotalPrice_2.count <= 0).delete()
+#
+#                 ### sess.execute(update(TotalPrice_2).where(TotalPrice_2._06mult_new == None).values(_06mult_new=1))
+#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
+#
+#                 # sess.commit()
+#                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
+#                     if file.startswith('pre Итог - страница'):
+#                         os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
+#
+#                 limit = 1_048_500
+#                 report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
+#                 if report_parts_count < 1:
+#                     report_parts_count = 1
+#
+#                 loaded = 0
+#                 for i in range(1, report_parts_count + 1):
+#                     header = ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
+#                                                "Наименование поставщика",
+#                                                "Количество поставщика", "Цена поставщика", "Кратность поставщика",
+#                                                "Примечание поставщика", "01Артикул", "02Производитель",
+#                                                "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
+#                                                "09Код + Поставщик + Товар", "10Оригинал",
+#                                                "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
+#                                                "17КодУникальности", "18КороткоеНаименование",
+#                                                "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
+#                                                "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
+#                                                "Наценка на оптовые товары", "Шаг градации",
+#                                                "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
+#                                                "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
+#                                                "Количество закупок", "% Отгрузки",
+#                                                "Мин. Цена", "Мин. Поставщик"]
+#                     df = pd.DataFrame(columns=header)
+#                                       # ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
+#                                       #          "Наименование поставщика",
+#                                       #          "Количество поставщика", "Цена поставщика", "Кратность поставщика",
+#                                       #          "Примечание поставщика", "01Артикул", "02Производитель",
+#                                       #          "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
+#                                       #          "09Код + Поставщик + Товар", "10Оригинал",
+#                                       #          "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
+#                                       #          "17КодУникальности", "18КороткоеНаименование",
+#                                       #          "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
+#                                       #          "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
+#                                       #          "Наценка на оптовые товары", "Шаг градаци",
+#                                       #          "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
+#                                       #          "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
+#                                       #          "Количество закупок", "% Отгрузки",
+#                                       #          "Мин. Цена", "Мин. Поставщик"])
+#                     df.to_csv(
+#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
+#                         sep=';', decimal=',',
+#                         encoding="windows-1251", index=False, errors='ignore')
+#                     # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
+#                     # TotalPrice_2._10original, TotalPrice_2._19min_price, TotalPrice_2.code_pb_p,
+#                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
+#                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
+#                                  TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
+#                                  TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
+#                                  TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
+#                                  TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._20exclude,
+#                                  TotalPrice_2.to_price, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
+#                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
+#                                  TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
+#                                  TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
+#                                  TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
+#                                  TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
+#                                  ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
+#                     # TotalPrice_2.max_decline, TotalPrice_2.markup_holidays,
+#                     # TotalPrice_2.low_price,
+#                     # TotalPrice_2.reserve_count,
+#                     df = pd.read_sql_query(req, sess.connection(), index_col=None)
+#
+#                     df.to_csv(
+#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
+#                         mode='a',
+#                         sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
+#                     # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
+#
+#                     df_len = len(df)
+#                     loaded += df_len
+#
+#                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/Итог"):
+#                     if file.startswith('Итог - страница'):
+#                         os.remove(fr"{settings_data['catalogs_dir']}/Итог/{file}")
+#
+#                 for i in range(1, report_parts_count + 1):
+#                     shutil.copy(
+#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",   # xlsx
+#                         fr"{settings_data['catalogs_dir']}/Итог/Итог - страница {i}.csv")
+#
+#             self.log.add(LOG_ID, f"Итог сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]",
+#                          f"<span style='color:{colors.green_log_color};font-weight:bold;'>Итог</span> "
+#                          f"сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]")
+#         except Exception as ex:
+#             ex_text = traceback.format_exc()
+#             self.log.error(LOG_ID, f"CreateTotalCsv Error", ex_text)
 
 
 def get_catalogs_time_update():
