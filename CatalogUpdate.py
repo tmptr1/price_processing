@@ -1035,7 +1035,7 @@ class CreateBasePrice(QThread):
                          TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article_comp != None))
                 sess.execute(insert(BasePrice).from_select(['article', 'brand', 'price_b', 'min_supplier'], subq))
                 sess.query(BasePrice).where(BasePrice.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.base_price != 'ДА'))).delete()
-                sess.query(BasePrice).where(and_(BasePrice.article == MassOffers.article, BasePrice.brand == MassOffers.brand, MassOffers.offers_count < 1)).delete()
+                sess.query(BasePrice).where(and_(BasePrice.article == MassOffers.article, BasePrice.brand == MassOffers.brand, MassOffers.offers_count <= 1)).delete()
                 sess.commit()  # sess.flush()
                 #     cur.execute(f"""with min_supl_T as (with min_price_T as (select Артикул, Бренд, min(ЦенаБ) as min_price
                 #         from base_price group by Артикул, Бренд having count(*) > 1) select base_price.Артикул as min_art,
