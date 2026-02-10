@@ -80,10 +80,14 @@ class Sender(QThread):
                 # print('okk')
                 # return
                 # СНАЧАЛА С МИН СРОКОМ
+                weekday = WEEKDAYS[datetime.datetime.now().weekday()]
+
                 price_name_list = []
                 with session() as sess:
                     prices = sess.execute(select(BuyersForm).where(func.upper(BuyersForm.included)=='ДА').order_by(BuyersForm.period)).scalars().all()
                     for p in prices:
+                        if not datetime_check(weekday, p.send_days):
+                            continue
                         send_times = [p.time1, p.time2, p.time3, p.time4, p.time5, p.time6]
                         last_update = sess.execute(select(PriceSendTime.update_time).where(PriceSendTime.price_code==p.buyer_price_code)).scalar()
                         for st in send_times:
@@ -101,7 +105,7 @@ class Sender(QThread):
                                     pass
 
                 # print(price_name_list)
-                    # print(prices)
+                # return
 
                 # price_name_list = []
                 # price_name_list = ["2 Прайс ПРИЧАЛ", ]
@@ -439,19 +443,10 @@ class Sender(QThread):
 
         allow_prices_wd = set()
         for price in allow_prices_wd_settings:
-            # if price.setting in ['AVT0', 'CCXT']:
             # print(price.setting, price.days)
-            price_time = re.search(weekday + ' \d{1,2}:\d{2}', str(price.days))
-            if price_time:
-                price_time = price_time.group()
-                price_time = price_time.strip(weekday).strip()
-                h, m = map(int, price_time.split(':'))
-                price_time = datetime.time(hour=h, minute=m)
-                cur_time = datetime.datetime.now().time()
-                # print(cur_time, price_time)
-                if price_time < cur_time:
-                    continue
-            allow_prices_wd.add(price.setting)
+            if datetime_check(weekday, price.days):
+                allow_prices_wd.add(price.setting)
+
             # print(price_time)
         allow_prices = allow_prices & allow_prices_wd
         # print(allow_prices)
@@ -850,6 +845,31 @@ class Sender(QThread):
                          log_text.format(f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>",
                                          '</span>', price=price_code, log_main_text=msg))
 
+
+def datetime_check(weekday, days):
+    price_times = re.search(weekday + r' \d{1,2}:\d{2}.?-.?\d{1,2}:\d{2}', str(days))
+    if price_times:
+        price_times = price_times.group()
+        price_times = price_times.strip(weekday).strip()
+        time_list = [None] * 2
+        time_list[0], time_list[1] = map(str.strip, price_times.split('-'))
+        time_list = [datetime.time(hour=int(t.split(':')[0]), minute=int(t.split(':')[1])) for t in time_list]
+
+        cur_time = datetime.datetime.now().time()
+        if time_list[0] > cur_time or time_list[1] < cur_time:
+            return False
+    else:
+        price_time = re.search(weekday + ' \d{1,2}:\d{2}', str(days))
+        if price_time:
+            price_time = price_time.group()
+            price_time = price_time.strip(weekday).strip()
+            h, m = map(int, price_time.split(':'))
+            price_time = datetime.time(hour=h, minute=m)
+            cur_time = datetime.datetime.now().time()
+            # print(cur_time, price_time)
+            if price_time < cur_time:
+                return False
+    return True
 
 
 class FinalPriceReportReset(QThread):

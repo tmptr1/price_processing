@@ -57,12 +57,59 @@ parallel_tuple_cost = 0.1
 
 ?UNLOGGED
 
-до 14 00
+ytopttorg@mail.ru
+
+отправка прайсов только если недавно не отправлялся прайс
+удалять через год заказы
+дни отправки в справочнике!!!
+.subquery
+mult_less from calc
++ убрать доп поля
+у всех продаём для ос (да) высчитать цену заранее, а в PriceSender по обратному условию (FinalPrice.delay > self.price_settings.delay)
+cte с КФом по каждому прайсу поставщика
+вынести сохранение прайсов, чтобы не тормозило отправку (сохранить final_price в сыром виде, дальше отдельным модулем сохранять его в историю)
+Уведомление в отчёт об отключении прайса
+логи БД log_truncate_on_rotation=on, log_rotation_age=5d
+
++ сохранять все прайсы в историю
++ удаление прайсов по сроку обновления
+не создавать csv при кол-во 0
+2 потока PriceSender
+конфиг БД под м2
+?органичение по МБ
+прайсы по api
++ удаление неактуальных прайсов из истории
++ отправка 4
++ send_mail
++ DUPL
++ сортировка в ;;;
++ статус с 0 колвом, не формировать заново такие прайсы
++ указывать список прайсов которые были загружены и которые остались ; 1MIK 2300/1700;
++ итоговая таблица для прайсов
+ШтР расчёт?? при обновлении 3.0
++ время в таблицах
++ новый код в брендах (оставить только уникальные)
++ отчёт с доп инфой
+?добавить в конце
+-доп столбец
+-проверить прогу на ссд
++ конфиг
++ кратность
++ при удалении дублей всегда c_art=art
++ вернуть старое удаление дублей
++ checkbox "отправлять", progress bar
++ отправка по времени
++ доп папка
++ инфо таблица
+-именно отправка до 14
 (после запуска нового модуля) отнимать ШтР только при формировании прайса на отправку + проверять время обновоения 3.0 и ласт время вычета ШтР
 ошибка при записи в TP2 (добавить try начиная с TP2 delete)
     - psycopg2.errors.DeadlockDetected: deadlock detected
     - sqlalchemy.exc.OperationalError: (psycopg2.errors.DeadlockDetected) deadlock detected
-инфо таблица
++ оптимизировать удаление дублей в обработке
++ пересохранение прайсов
++ удалить 0 цена
++ дни недели, до 14 00
 + пробелы в почте
 +-доп столбец (кол-вом - штр) (название оставить старое), отнимать штр от обычного кол-ва при расчёте прайса + при обновлении 3.0 обнулять штр и пересчитывать кол-во - штр
 ? поменять кол-во воркеров
@@ -257,3 +304,98 @@ mult_less as ""Кратность меньше"", _05price_plus as ""05Цена+
 unload_percent as ""% Отгрузки"", min_price as ""Мин. Цена"", min_supplier as ""Мин. Поставщик"" from total_price_2", null, [EnableFolding=true])
 
 select key1_s as ""Ключ1 поставщика"", article_s as ""Артикул поставщика"", brand_s as ""Производитель поставщика"", name_s as ""Наименование поставщика"", count_s as ""Количество поставщика"", price_s as ""Цена поставщика"", mult_s as ""Кратность поставщика"", notice_s as ""Примечание поставщика"", _01article as ""01Артикул"", _02brand as ""02Производитель"", _03name as ""03Наименование"", _05price as ""05Цена"", _06mult as ""06Кратность-"", _07supplier_code as ""07Код поставщика"", _09code_supl_goods as ""09Код + Поставщик + Товар"", _10original as ""10Оригинал"", _13grad as ""13Градация"", _14brand_filled_in as ""14Производитель заполнен"", _15code_optt as ""15КодТутОптТорг"", _17code_unique as ""17КодУникальности"", _18short_name as ""18КороткоеНаименование"", _19min_price as ""19МинЦенаПоПрайсу"", _20exclude as ""20ИсключитьИзПрайса"", delay as ""Отсрочка"", ""sell_for_OS"" as ""Продаём для ОС"", markup_os as ""Наценка для ОС"", ""markup_R"" as ""Наценка Р"", markup_pb as ""Наценка ПБ"", min_markup as ""Мин наценка"", min_wholesale_markup as ""Мин опт наценка"", markup_wh_goods as ""Наценка на оптовые товары"", grad_step as ""Шаг градаци"", wh_step as ""Шаг опт"",  access_pp as ""Разрешения ПП"", put_away_zp as ""УбратьЗП"", offers_wh as ""Предложений опт"", price_b as ""ЦенаБ"", count as ""Кол-во"", code_pb_p as ""Код ПБ_П"", _06mult_new as ""06Кратность"", mult_less as ""Кратность меньше"", _05price_plus as ""05Цена+"", buy_count as ""Количество закупок"", unload_percent as ""% Отгрузки"", min_price as ""Мин. Цена"", min_supplier as ""Мин. Поставщик"" from total_price_2
+
+
+================
+
+UPDATE price_2 SET _20exclude='D2' FROM (SELECT price_2._01article_comp AS _01article_comp,
+price_2._14brand_filled_in AS _14brand_filled_in FROM price_2
+GROUP BY price_2._01article_comp, price_2._14brand_filled_in
+HAVING count(price_2.id) > 1) AS anon_1,
+(SELECT price_2._01article_comp AS _01article_comp, price_2._14brand_filled_in AS _14brand_filled_in,
+max(price_2._04count) AS max_c FROM price_2
+WHERE price_2._20exclude = 'D1' GROUP BY price_2._01article_comp, price_2._14brand_filled_in) AS anon_2
+WHERE price_2._01article_comp = anon_1._01article_comp AND price_2._14brand_filled_in = anon_1._14brand_filled_in
+AND price_2._04count = anon_2.max_c RETURNING price_2.id
+
+UPDATE price_2_2 SET _20exclude='D1' FROM (SELECT price_2_2._01article_comp AS _01article_comp,
+price_2_2._14brand_filled_in AS _14brand_filled_in FROM price_2_2 GROUP BY price_2_2._01article_comp, price_2_2._14brand_filled_in
+HAVING count(price_2_2.id) > 1) AS anon_1, (SELECT price_2_2._01article_comp AS _01article_comp,
+price_2_2._14brand_filled_in AS _14brand_filled_in, min(price_2_2._05price) AS min_p
+FROM price_2_2 WHERE price_2_2._20exclude = 'D' GROUP BY price_2_2._01article_comp, price_2_2._14brand_filled_in)
+AS anon_2 WHERE price_2_2._01article_comp = anon_1._01article_comp AND price_2_2._14brand_filled_in =
+anon_1._14brand_filled_in AND price_2_2._05price = anon_2.min_p RETURNING price_2_2.id
+
+
+UPDATE price_2_2 SET _20exclude='D1' FROM (SELECT price_2_2._01article_comp AS _01article_comp, price_2_2._14brand_filled_in AS _14brand_filled_in
+FROM price_2_2 GROUP BY price_2_2._01article_comp, price_2_2._14brand_filled_in
+HAVING count(price_2_2.id) > 1) AS anon_1, (SELECT price_2_2._01article_comp AS _01article_comp, price_2_2._14brand_filled_in AS _14brand_filled_in, min(price_2_2._05price) AS min_p
+FROM price_2_2
+WHERE price_2_2._20exclude = 'D' GROUP BY price_2_2._01article_comp, price_2_2._14brand_filled_in) AS anon_2 WHERE price_2_2._01article_comp = anon_1._01article_comp AND price_2_2._14brand_filled_in = anon_1._14brand_filled_in AND price_2_2._05price = anon_2.min_p RETURNING price_2_2.id
+
+
+===============
+
+
+Код прайса покупателя: price_code
+Ключ1 поставщика: key1_s
+Артикул поставщика: article_s
+Производитель поставщика: brand_s
+Наименование поставщика: name_s
+Количество поставщика: count_s
+Цена поставщика: price_s
+Валюта поставщика: currency_s
+Кратность поставщика: mult_s
+Примечание поставщика: notice_s
+Чистый 01Артикул: _01article_comp
+02Производитель: _02brand
+03Наименование: _03name_old
+04Количество: _04count
+05Цена: _05price
+05Цена плюс: _05price_plus
+07Код_поставщика: _07supplier_code
+14Производитель заполнен: _14brand_filled_in
+15КодТутОптТорг: _15code_optt
+Старое кол-во: count_old
+----------
+Артикул: _01article
+Бренд: brand
+Наименование: _03name
+Кол-во: count
+Цена: price
+Кратность: _06mult_new
+17КодУникальности: _17code_unique
+----------
+Время обновления прайса поставщика: supplier_update_time
+Время отправки прайса покупателю: send_time
+
+---------------
+Заказ: order_time
+Клиент: client
+Автомат: auto
+В ручную: manually
+Для сортировки: for_sort
+Ключ1 в заказ: key_1_ord
+Артикул в заказ: article_ord
+Производитель в заказ: brand_ord
+Заказ шт: count_ord
+Цена в заказ: price_ord
+В 1С Код наш: code_1c
+В 1С Артикул наш: article_1c
+Тех. Артикул: article
+Тех.Производитель: brand
+Тех. Кол-во: count
+Тех. Цена: price
+Тех. Наименование: name
+Код ТутОптТорг: code_optt
+Наш производитель: our_brand
+09Код: code_09
+Предложений опт: offers_wh
+Отказано шт: refuse
+Заявка сумма: ord_sum
+Сумма в закупке: buy_sum
+ВП по подтверждённому: vp_accept
+Сумма подтверждённого: sum_accept
+Тип товара: product_typ
+
+Время загрузки: updated_at

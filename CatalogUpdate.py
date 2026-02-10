@@ -620,7 +620,7 @@ class CatalogUpdate(QThread):
                 if delsPST:
                     self.log.add(LOG_ID, f"Удалено строк из отчёта по отправленым прайсам: {delsPST} [{str(datetime.datetime.now() - cur_time)[:7]}]",
                                      f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>отчёта по отправленым прайсам</span>: "
-                                     f"{delsPST} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                                     f"<span style='color:{colors.orange_log_color};font-weight:bold;'>{delsPST}</span> [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
                 sess.query(MailReportUnloaded).where(MailReportUnloaded.date < cur_time - datetime.timedelta(days=62))
             # price_code_list = select(BuyersForm.buyer_price_code))
@@ -647,7 +647,7 @@ class CatalogUpdate(QThread):
             if useless_prices:
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
-                             f"Удалено строк (Обрабаытваем != ДА): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
+                             f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             expired_prices = set(sess.execute(select(PriceReport.price_code).where(
                 and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step is not None,
