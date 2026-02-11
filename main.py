@@ -6,8 +6,6 @@ from price_processing_2_ui import Ui_MainWindow
 import time
 import datetime
 import os
-# from multiprocessing import Pipe
-import multiprocessing as mp
 from sqlalchemy import text, select
 from sqlalchemy.orm import sessionmaker
 
@@ -36,8 +34,7 @@ import Logs
 from PriceReader import MainWorker, PriceReportUpdate, PriceReportReset, SaveMBVAlue
 import MailParser
 from Timer import MyTimer
-# from PipeListener import PipeListener
-import CatalogUpdate # import CatalogUpdate, SaveTime, get_catalogs_time_update, CatalogsUpdateTable
+import CatalogUpdate
 from Calculate import CalculateClass, PriceReportUpdate_2
 from PriceSender import Sender, FinalPriceReportReset, FinalPriceReportUpdate
 
@@ -45,7 +42,6 @@ Log = Logs.LogClass()
 Log.start()
 
 MAX_LOG_ROWS_IN_TEXT_BROWSER = 200
-# DEFAULT_THREAD_COUNT = settings_data["thread_count"]
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, autostart):
@@ -73,17 +69,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except Exception as get_tg_n_time_ex:
                 pass
 
-        # self.ThreadSpinBox.setProperty("value", DEFAULT_THREAD_COUNT)
         self.MW = MainWorker(file_size_limit=f">{self.FileSizeLimit_spinBox_1.value()}", log=Log)  #, sender=self.sender)
         self.MW2 = MainWorker(file_size_limit=f"<{self.FileSizeLimit_spinBox_1.value()}", log=Log)
 
-        # self.sender, self.listener = Pipe()
-        # self.PipeL = PipeListener(self.listener, Log)
-        # self.PipeL.UpdateinfoTableSignal.connect(self.update_table)
-        # self.PipeL.SetNewRowSignal.connect(self.add_new_row)
-        # self.PipeL.ResetTableSignal.connect(self.reset_table)
-        # self.PipeL.StopTimerSignal.connect(self.stop_timer)
-        # self.PipeL.start()
 
         self.MP = None
         self.ST = None
@@ -160,13 +148,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ResetPriceReportButton_1.clicked.connect(self.reset_price_1_report)
         self.OpenReportButton_1.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         self.MB_SaveButton_1.clicked.connect(lambda _: self.save_MB_limit(0))
-        # self.pushButton_2.clicked.connect(self.start_mult)  # start mult
 
-        # взять паузу
-        # self.LThread = LoopThread()
-        # self.LThread.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_1, self.PauseCheckBox_1))
-        # self.LThread.isPause = self.PauseCheckBox_1.isChecked()
-        # self.LThread.UpdateinfoTableSignal.connect(self.update_table)
+        # пауза
         self.PauseCheckBox_0.checkStateChanged.connect(lambda b: self.setPause(b, self.MP))
         self.PauseCheckBox_1.checkStateChanged.connect(lambda b: self.setPause(b, self.MW))
         self.PauseCheckBox_1.checkStateChanged.connect(lambda b: self.setPause(b, self.MW2))
@@ -176,7 +159,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PauseCheckBox_4.checkStateChanged.connect(lambda b: self.setPause(b, self.PriceSender))
 
 
-        # self.MW.StartTotalTimeSignal.connect(self.set_total_time)
         self.MW.UpdateReportSignal.connect(self.update_price_1_report_table)
         self.MW.UpdatePriceStatusTableSignal.connect(lambda r_id, p, s, t: self.update_status_table_1(r_id, p, s, t))
         self.MW2.UpdatePriceStatusTableSignal.connect(lambda r_id, p, s, t: self.update_status_table_1(r_id, p, s, t))
@@ -196,10 +178,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceStatusTableView_1.setEditTriggers(QTableView.NoEditTriggers)
         self.PriceStatusTableView_1.horizontalHeader().setStretchLastSection(True)
         self.PriceStatusTableView_1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        # self.PriceStatusTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        # self.PriceStatusTableView_1.horizontalHeader().stretchLastSection()
-        # for i in range(self.PriceStatusTableView_1.horizontalHeader().count()):
-        #     self.PriceStatusTableView_1.horizontalHeader().resizeSection(i, 200)
         self.timer_1 = [None, None]
         self.total__table_timer_1 = [None, None]
         self.total_timers_1 = [None, None]
@@ -214,8 +192,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.NotMatchedTableView_1.verticalHeader().hide()
         self.NotMatchedTableView_1.setEditTriggers(QTableView.NoEditTriggers)
         self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        # self.NotMatchedTableView_1.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
 
         self.StartButton_2.clicked.connect(self.start_catalog_update)
@@ -226,7 +202,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CatalogUpdateTimeTableView_2.setModel(self.model_2_1)
         self.CatalogUpdateTimeTableView_2.verticalHeader().hide()
         self.CatalogUpdateTimeTableView_2.setEditTriggers(QTableView.NoEditTriggers)
-        # self.CatalogUpdateTimeTableView_2.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.CatalogUpdateTimeTableView_2.horizontalHeader().resizeSection(0, 170)
         self.CatalogUpdateTimeTableView_2.horizontalHeader().setStretchLastSection(True)
 
@@ -235,7 +210,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CurrencyTableView_2.setModel(self.model_2_2)
         self.CurrencyTableView_2.verticalHeader().hide()
         self.CurrencyTableView_2.setEditTriggers(QTableView.NoEditTriggers)
-        # self.CurrencyTableView_2.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.CurrencyTableView_2.horizontalHeader().resizeSection(0, 170)
         self.CurrencyTableView_2.horizontalHeader().setStretchLastSection(True)
 
@@ -249,7 +223,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.CurrencyTableUpdateButton_2.clicked.connect(self.update_currency_table)
         self.CreateBasePriceButton_2.clicked.connect(self.update_base_price)
         self.CreateMassOffersButton_2.clicked.connect(self.update_mass_offers)
-        # self.CreateTotalCsv_2.clicked.connect(self.start_create_total_csv)
         self.OpenPriceStatusButton_2.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         self.ResetPriceStatusButton_2.clicked.connect(self.reset_price_1_report)
         self.CreatePriceStatusButton_2.clicked.connect(self.update_price_1_report_table)
@@ -284,8 +257,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ToReportDirButton_3.clicked.connect(lambda _: self.open_dir(settings_data['catalogs_dir']))
         self.OpenReportButton_3.clicked.connect(lambda _: self.open_dir(fr"{settings_data['catalogs_dir']}/price_report.csv"))
         self.ResetPriceReportButton_3.clicked.connect(self.reset_price_1_report)
-        # self.Calculate.SetButtonEnabledSignal.connect(
-        #     lambda _: self.set_enabled_start_buttons(_, self.StartButton_3, self.PauseCheckBox_3))
         self.Calculate.UpdatePriceStatusTableSignal.connect(lambda r_id, p, s, t: self.update_status_table_3(r_id, p, s, t))
         self.Calculate2.UpdatePriceStatusTableSignal.connect(lambda r_id, p, s, t: self.update_status_table_3(r_id, p, s, t))
         self.Calculate.UpdatePriceReportTableSignal.connect(self.update_price_2_report_table)
@@ -350,9 +321,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.totalFiles = 0
         self.doneFiles = 0
 
-        # self.statusBar.showMessage("sb")
-        # self.progressBar_1.setStyleSheet('background-color: lightblue;')
-
         self.ConsoleTextBrowser_0.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_1.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_2.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
@@ -366,7 +334,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.dbWorker = None
 
         # AUTO START
-        # if os.path.exists('autostart.txt'):
         if self.autostart:
             self.start_mail_parser()
             self.start_mult()
@@ -550,19 +517,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.MW.start()
         if not self.MW2.isRunning():
             self.MW2.start()
-    #     if not self.MW:
-    #         self.create_worker()
-    #         return
-    #     if not self.MW.isRunning():
-    #         self.create_worker()
-    #
-    # def create_worker(self):
-    #     self.MW = MainWorker('<1', log=Log, sender=self.sender) # threads_count=self.ThreadSpinBox.value()
-    #     self.MW.SetButtonEnabledSignal.connect(
-    #         lambda _: self.set_enabled_start_buttons(_, self.StartButton_1, self.PauseCheckBox_1))
-    #     self.MW.start()
-    #     self.MW.StartTotalTimeSignal.connect(self.set_total_time)
-    #     self.MW.UpdateReportSignal.connect(self.update_price_1_report_table)
+
 
     def start_mail_parser(self):
         if not self.MP:
@@ -656,13 +611,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     #         self.CreateTotalCsv.start()
 
     def update_status_table_1(self, row_id, price_code, status, total_timer):
-        # price_code, status, total_timer = info
-        # self.model_3.removeRow(0)
-        # self.model_3.appendRow([QStandardItem(f"{price_code}"), QStandardItem(f"{status}")])
-        # self.model_3.appendRow()
         self.model_1.setData(self.model_1.index(row_id, 0), f"{price_code}")
         self.model_1.setData(self.model_1.index(row_id, 1), f"{status}")
-        # self.model_3.setData(self.model_3.index(0, 2), self.timers[r])
         self.timer_1[row_id] = MyTimer(row_id, 2)
         self.model_1.setData(self.model_1.index(row_id, 2), self.timer_1[row_id])
         self.timer_1[row_id].SetTimeInTableSignal.connect(self.set_time_1)
@@ -690,13 +640,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             TotalTimeLabels_1[type_id].setText(TotalTimeLabels_1[type_id].text())
 
     def update_status_table_3(self, row_id, price_code, status, total_timer):
-        # price_code, status, total_timer = info
-        # self.model_3.removeRow(0)
-        # self.model_3.appendRow([QStandardItem(f"{price_code}"), QStandardItem(f"{status}")])
-        # self.model_3.appendRow()
         self.model_3.setData(self.model_3.index(row_id, 0), f"{price_code}")
         self.model_3.setData(self.model_3.index(row_id, 1), f"{status}")
-        # self.model_3.setData(self.model_3.index(0, 2), self.timers[r])
         self.timer_3[row_id] = MyTimer(row_id, 2)
         self.model_3.setData(self.model_3.index(row_id, 2), self.timer_3[row_id])
         self.timer_3[row_id].SetTimeInTableSignal.connect(self.set_time_3)
@@ -711,11 +656,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def reset_model_3(self, row_id):
         self.timer_3[row_id] = None
         self.total__table_timer_3[row_id] = None
-        # self.model_3.removeRow(r_id)
-        # items = [QStandardItem('') for _ in range(self.model_3.columnCount())]
-        # self.model_3.appendRow(items)
-        # self.model_3.setData(r_id, items)
-        # print(f"{r_id=}")
         for c in range(self.model_3.columnCount()):
             self.model_3.setItem(row_id, c, QStandardItem(''))
 
@@ -731,9 +671,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.total_timers_3[type_id] = None
             TotalTimeLabels_3[type_id].setText(TotalTimeLabels_3[type_id].text())
-    # def stop_total_time_3(self):
-    #     self.total_timer_3 = None
-    #     self.TotalTimeLabel_3.setText('[0:00:00]')
 
     def start_send(self):
         if not self.PriceSender.isRunning():
@@ -741,22 +678,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_text_to_label(self, label, text):
         label.setText(text)
-    # def add_text_to_list(self):
-    #     self.x += 1
-    #     self.ConsoleTextBrowser_1.append(f"Лог номер <span style='color:red; font-weight:bold;'>{self.x}</span>. ок")
-    #
-    # def set_row_count(self):
-    #     self.x += 1
-    #     d = [f"{self.x}", 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
-    #     items = [QStandardItem(i) for i in d]
-    #     self.model_1.appendRow(items)
-    #
-    # def add_row(self):
-    #     # d = ['1', 'Aaaaaaaaaaaaaaaaasssssssssssssssssssssssssss', '0:00:15']
-    #     # self.items = [QStandardItem(i) for i in d]
-    #     # self.model.appendRow(self.items)
-    #
-    #     self.model_1.setData(self.model_1.index(0,1), 'ffffffffffffffg')
 
     def setPause(self, state, some_class):
         if some_class:
@@ -777,9 +698,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
 def main():
-    # with engine.connect() as con:
-    #     res = con.execute(text("select count(*) from data07")).scalar()
-    #     print(f"ff {res=}")
     autostart = False
     if len(sys.argv) > 1:
         autostart = bool(sys.argv[1])

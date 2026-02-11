@@ -56,6 +56,12 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
+                # with session() as sess:
+                #     working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(
+                #         func.upper(SupplierPriceSettings.works) == 'ДА')).scalars().all()
+                #     sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
+                #     sess.commit()
+                # return
                 self.update_orders_table()
                 self.send_tg_notification()
                 self.update_currency()
@@ -76,8 +82,7 @@ class CatalogUpdate(QThread):
                 self.CMO.wait()
                 self.update_base_price()
                 self.CBP.wait()
-                # if not self.CBP.isRunning():
-                #     self.CBP.start()
+
                 if datetime.datetime.now().hour != last_update_h:
                     last_update_h = datetime.datetime.now().hour
                     self.StartTablesUpdateSignal.emit(1)
@@ -106,7 +111,7 @@ class CatalogUpdate(QThread):
     def update_currency(self):
         try:
             with session() as sess:
-                now = datetime.datetime.now()#.strftime("%Y-%m-%d %H:%M:%S")
+                now = datetime.datetime.now()  #.strftime("%Y-%m-%d %H:%M:%S")
                 req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Курс валют')
                 res = sess.execute(req).scalar()
 
@@ -138,8 +143,7 @@ class CatalogUpdate(QThread):
                              .values(_05price=TotalPrice_2.price_s * ExchangeRate.rate))
 
                 discounts = sess.execute(select(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика']))).scalars().all()
-                # price_cols = {'05Цена': TotalPrice_1._05price, 'Цена поставщика': TotalPrice_1._05price} # price_s
-                # price_cols2 = {'05Цена': TotalPrice_2._05price, 'Цена поставщика': TotalPrice_2._05price} # price_s
+
                 for dscnt in discounts:
                     if not isinstance(dscnt.set, (float, int)):
                         continue
@@ -216,16 +220,11 @@ class CatalogUpdate(QThread):
                         miss_email = ', '.join(miss_email)
                         msg += f"📧 Почта для отправки не указана: {miss_email}\n\n"
 
-                    # problem_prices_1 = sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message != 'Ок',
-                    #                                                                           PriceReport.info_message != None)).
-                    #                                 order_by(PriceReport.price_code)).scalars().all()
                     miss_4_settings_prices = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
                                   PriceReport.info_message.contains('Нет в условиях'))).order_by(PriceReport.price_code)).scalars().all()
                     if miss_4_settings_prices:
                         miss_4_settings_prices = ', '.join(miss_4_settings_prices)
                         msg += f"Нет в условиях (4.0 - Настройка прайсов): {miss_4_settings_prices}\n\n"
-                    # else:
-                    #     problem_prices_1 = '-'
 
                     not_standarted = sess.execute(select(distinct(PriceReport.price_code)).where(and_(PriceReport.info_message != None,
                                   PriceReport.info_message=="Не указана стандартизация")).order_by(PriceReport.price_code)).scalars().all()
@@ -350,8 +349,6 @@ class CatalogUpdate(QThread):
                            ]
                 req = ''
                 for r, c, rc in rc_cols:
-                    # req += (f"update file_settings set {r} = (regexp_split_to_array({rc}, '[RC]'))[2]::INTEGER, "
-                    #                 f"{c} = (regexp_split_to_array({rc}, '[RC]'))[3]::INTEGER where {rc} is not NULL;")
                     req += (f"update file_settings set {r} = (regexp_split_to_array({rc}, '[RC]'))[2]::INTEGER, "
                             f"{c} = (regexp_split_to_array({rc}, '[RC]'))[3]::INTEGER where {rc} SIMILAR TO 'R[0-9]{{1,}}C[0-9]{{1,}}';")
                 sess.execute(text(req))
@@ -385,9 +382,7 @@ class CatalogUpdate(QThread):
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
                 sheet_name = "ИсправНомПоУсл"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                # sess.execute(update(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])).values(find=func.upper(ColsFix.find)))
                 sess.execute(update(ColsFix).values(find=func.upper(ColsFix.find)))
-                # sess.query(ArticleFix).filter(ArticleFix.price_code == None).delete()
 
                 table_name = 'brands'
                 table_class = Brands
@@ -396,20 +391,6 @@ class CatalogUpdate(QThread):
                 sheet_name = "Справочник Бренды"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W', '', 'g'))))
-
-
-                # table_name = 'price_change'
-                # table_class = PriceChange
-                # cols = {"price_code": ["Код прайса"], "brand": ["Производитель поставщика"], "discount": ["Скидка, %"]}
-                # sheet_name = "Изменение цены по условиям"
-                # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                #
-                # table_name = 'words_of_exception'
-                # table_class = WordsOfException
-                # cols = {"price_code": ["Код прайса"], "colunm_name": ["Столбец поиска"], "condition": ["Условие"],
-                #         "text": ["Текст"]}
-                # sheet_name = "Слова_исключения"
-                # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
                 table_name = 'price_exception'
                 table_class = PriceException
@@ -568,7 +549,6 @@ class CatalogUpdate(QThread):
                              f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
                 return 1
 
-            # self.CreateTotalCsvSignal.emit(True)
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
         except Exception as ex:
@@ -596,7 +576,6 @@ class CatalogUpdate(QThread):
             # удалить позиции старше 14 дней + неактуальные прайсы
             if self.del_history_day != cur_time.day:
                 self.del_history_day = cur_time.day
-                # FinalPriceHistory.price_code.not_in(select(BuyersForm.buyer_price_code
                 cur_time = datetime.datetime.now()
                 dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
                                                     FinalPriceHistory.send_time == None)).delete()
@@ -623,20 +602,6 @@ class CatalogUpdate(QThread):
                                      f"<span style='color:{colors.orange_log_color};font-weight:bold;'>{delsPST}</span> [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
                 sess.query(MailReportUnloaded).where(MailReportUnloaded.date < cur_time - datetime.timedelta(days=62))
-            # price_code_list = select(BuyersForm.buyer_price_code))
-            # id_list = sess.execute(select(FinalPriceInfo.id).where(FinalPriceInfo.send_time < cur_time - datetime.timedelta(days=3))).scalars().all()
-            # if id_list:
-            #     self.log.add(LOG_ID, f"Удаление прайсов из истории...",
-            #                  f"Удаление прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span> ...")
-            #     cur_time = datetime.datetime.now()
-            #     del_prices_count = len(id_list)
-            #     sess.query(FinalPriceHistory).where(FinalPriceHistory.info_id.in_(select(FinalPriceInfo.id)
-            #     .where(FinalPriceInfo.send_time > cur_time - datetime.timedelta(days=3)))).delete()
-            #     sess.query(FinalPriceInfo).where(FinalPriceInfo.id.in_(id_list)).delete()
-            #     sess.commit()
-            #     self.log.add(LOG_ID, f"Удалено прайсов из истории: {del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]",
-            #                  f"Удалено прайсов из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
-            #                  f"{del_prices_count} [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             # проверка неактуальных прайсов
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
@@ -659,6 +624,8 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
                              f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
+            working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
+            sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
             sess.commit()
 
             if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
@@ -781,7 +748,7 @@ class CatalogUpdate(QThread):
     def update_base_price(self, force_update=False):
         '''Формирование справочника Базовая цена'''
         try:
-            if not self.CBP.isRunning():# and not self.CMO.isRunning():
+            if not self.CBP.isRunning():  # and not self.CMO.isRunning():
                 # self.CreateBasePriceSignal.emit(False)
                 self.CBP = CreateBasePrice(log=self.log, force_update=force_update)
                 self.CBP.start()
@@ -790,8 +757,6 @@ class CatalogUpdate(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_base_price Error", ex_text)
-        # finally:
-        #     self.CreateBasePriceSignal.emit(True)
 
     def update_mass_offers(self, force_update=False):
         '''Формирование справочника Базовая цена'''
@@ -806,149 +771,6 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_mass_offers Error", ex_text)
 
-        # self.CreateBasePriceSignal.emit(False)
-        # try:
-        #     catalog_name = 'Базовая цена'
-        #     with session() as sess:
-        #         # report_parts_count = sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar()
-        #         # report_parts_count = math.ceil(report_parts_count / 1_040_500)
-        #         # print(f"{report_parts_count=}")
-        #         report_parts_count = 4
-        #         hm = sess.execute(select(AppSettings.var).where(AppSettings.param=="base_price_update")).scalar()
-        #         h, m = hm.split()
-        #         hm_time = datetime.time(int(h), int(m))
-        #         # if len(h) == 1:
-        #         #     h = f"0{h}"
-        #         # if len(m) == 1:
-        #         #     m = f"0{m}"
-        #         # cur_time = datetime.datetime.now()  # .strftime("%Y-%m-%d %H:%M:%S")
-        #         # cur_time = datetime.datetime(2025, 7, 24, 1, 51,  0)
-        #         cur_time = datetime.datetime.now()
-        #         # next_update_time = datetime.datetime.strptime(f"{cur_time.year}-{cur_time.month}-{cur_time.day} {h}:{m}:00",
-        #         #                                               "%Y-%m-%d %H:%M:%S")
-        #         last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == catalog_name)).scalar()
-        #         # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
-        #         # time.sleep(2)
-        #         # print(last_update, hm_time, cur_time)
-        #         if not force_update:
-        #             if last_update and last_update.date() == cur_time.date():
-        #                 if cur_time.time() > hm_time and last_update.time() < hm_time: # last_update.date() == cur_time.date() and
-        #                     print('+ 1 B')
-        #                     pass
-        #                 else:
-        #                     print('- 1 B')
-        #                     return
-        #             elif cur_time.time() > hm_time:
-        #                     print('+ 2 B')
-        #                     pass
-        #             elif not last_update:
-        #                 print('+ 3 B')
-        #                 pass
-        #             else:
-        #                 print('- 2 B')
-        #                 return
-        #
-        #         self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
-        #                      f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
-        #
-        #         sess.query(BasePrice).delete()
-        #         sess.execute(text(f"ALTER SEQUENCE {BasePrice.__tablename__}_id_seq restart 1"))
-        #         # sess.execute(text("delete from base_price"))
-        #         # sess.execute(text(f"ALTER SEQUENCE base_price_id_seq restart 1"))
-        #     #
-        #     #     # cur.execute(
-        #     #     #     f"insert into base_price (Артикул, Бренд, ЦенаБ) select UPPER(total.Артикул), UPPER(total.Бренд), (max(Цена)-min(Цена))/2 + min(Цена) "
-        #     #     #     f"from total, Настройки_прайса_поставщика where total.Код_поставщика = Код_прайса and "
-        #     #     #     f"Цену_считать_базовой = 'ДА' group by Артикул, Бренд")
-        #     #     cur.execute(f"""insert into base_price (Артикул, Бренд, ЦенаБ, ЦенаМинПоставщик) select UPPER(total.Артикул),
-        #     #         UPPER(total.Бренд), total.Цена, Настройки_прайса_поставщика.Код_поставщика from total, Настройки_прайса_поставщика where
-        #     #         total.Код_поставщика = Код_прайса and Цену_считать_базовой = 'ДА' and Бренд is not NULL""")
-        #         subq = select(TotalPrice_1._01article, TotalPrice_1._14brand_filled_in, TotalPrice_1._05price, TotalPrice_1._07supplier_code).where(
-        #             and_(TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code, SupplierPriceSettings.is_base_price == 'ДА',
-        #                  TotalPrice_1._20exclude == None, TotalPrice_1._05price > 0, TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article != None))
-        #         sess.execute(insert(BasePrice).from_select(['article', 'brand', 'price_b', 'min_supplier'], subq))
-        #         sess.commit()  # sess.flush()
-        #     #     cur.execute(f"""with min_supl_T as (with min_price_T as (select Артикул, Бренд, min(ЦенаБ) as min_price
-        #     #         from base_price group by Артикул, Бренд having count(*) > 1) select base_price.Артикул as min_art,
-        #     #         base_price.Бренд as min_brand, ЦенаМинПоставщик as min_supl from base_price, min_price_T
-        #     #         where base_price.Артикул = min_price_T.Артикул and base_price.Бренд = min_price_T.Бренд and
-        #     #         base_price.ЦенаБ = min_price_T.min_price) update base_price set ЦенаМинПоставщик = min_supl from min_supl_T
-        #     #         where Артикул = min_art and Бренд = min_brand""")
-        #         min_price_T = select(BasePrice.article, BasePrice.brand, func.min(BasePrice.price_b).label('min_price'))\
-        #             .group_by(BasePrice.article, BasePrice.brand).having(func.count(BasePrice.id) > 1)
-        #         min_supl_T = select(BasePrice.article.label('min_art'), BasePrice.brand.label('min_brand'), BasePrice.min_supplier.label('min_supl'))\
-        #             .where(and_(BasePrice.article == min_price_T.c.article, BasePrice.brand == min_price_T.c.brand, BasePrice.price_b == min_price_T.c.min_price))
-        #         sess.execute(update(BasePrice).where(and_(BasePrice.article == min_supl_T.c.min_art, BasePrice.brand == min_supl_T.c.min_brand)).
-        #                      values(min_supplier=min_supl_T.c.min_supl))
-        #
-        #     #     cur.execute(f"""with avg_price as (select Артикул, Бренд, avg(ЦенаБ) as avg_ЦенаБ, min(ЦенаБ) as min_ЦенаБ
-        #     #         from base_price group by Артикул, Бренд) update base_price set ЦенаБ = avg_price.avg_ЦенаБ,
-        #     #         ЦенаМин = avg_price.min_ЦенаБ from avg_price where base_price.Артикул = avg_price.Артикул
-        #     #         and base_price.Бренд = avg_price.Бренд""")
-        #         avg_price = select(BasePrice.article, BasePrice.brand, func.avg(BasePrice.price_b).label('avg_price_b'),
-        #                            func.min(BasePrice.price_b).label('min_price_b')).group_by(BasePrice.article, BasePrice.brand)
-        #         sess.execute(update(BasePrice).where(and_(BasePrice.article == avg_price.c.article, BasePrice.brand == avg_price.c.brand)).
-        #                      values(price_b=avg_price.c.avg_price_b, min_price=avg_price.c.min_price_b))
-        #     #     cur.execute(f"""with max_id_dupl as (select max(id) as max_id from base_price group by Артикул, Бренд)
-        #     #         update base_price set duple = False where id in (select max_id from max_id_dupl)""")
-        #         max_id_dupl = select(func.max(BasePrice.id).label('max_id')).group_by(BasePrice.article, BasePrice.brand)
-        #         sess.execute(update(BasePrice).where(BasePrice.id.in_(max_id_dupl)).values(duple=False))
-        #     #     cur.execute(f"delete from base_price where duple = True")
-        #         sess.query(BasePrice).where(BasePrice.duple == True).delete()
-        #         sess.commit()
-        #     #
-        #     #     # cur.execute(f"delete from base_price where Бренд is NULL")
-        #     # connection.commit()
-        #     # connection.close()
-        #     #
-        #     # # Удаление старых данных
-        #     # delete_files_from_dir(fr"{path_to_catalogs}/pre Справочник Базовая цена")
-        #     #     for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
-        #     #         os.remove(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/{file}")
-        #
-        #         # Артикул, Бренд, Предложений в опте
-        #         limit = 10000#1_048_500
-        #         loaded = 0
-        #         for i in range(1, report_parts_count + 1):
-        #             df = pd.DataFrame(columns=['Артикул', 'Бренд', 'ЦенаБ', 'Мин. Цена', 'Мин. Поставщик'])
-        #             df.to_csv(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/pre Справочник Базовая цена - страница {i}.csv", sep=';', decimal=',',
-        #                       encoding="windows-1251", index=False, errors='ignore')
-        #             req = select(BasePrice.article, BasePrice.brand, BasePrice.price_b, BasePrice.min_price, BasePrice.min_supplier).\
-        #                 order_by(BasePrice.id).offset(loaded).limit(limit)
-        #             df = pd.read_sql_query(req, sess.connection(), index_col=None)
-        #
-        #             df.to_csv(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/pre Справочник Базовая цена - страница {i}.csv", mode='a',
-        #                       sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-        #
-        #             df_len = len(df)
-        #             loaded += df_len
-        #
-        #     # create_csv_catalog(path_to_catalogs + "/pre Справочник Базовая цена/Базовая цена - страница {}.csv",
-        #     #                    """SELECT base_price.Артикул as "Артикул", base_price.Бренд as "Бренд",
-        #     #                         base_price.ЦенаБ as "ЦенаБ", base_price.ЦенаМин as "Мин. Цена", ЦенаМинПоставщик
-        #     #                         as "Мин. Поставщик" FROM base_price ORDER BY Бренд OFFSET {} LIMIT {}""",
-        #     #                    host, user, password, db_name, report_parts_count)
-        #     #
-        #         for i in range(1, report_parts_count + 1):
-        #             shutil.copy(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена/pre Справочник Базовая цена - страница {i}.csv",
-        #                         fr"{settings_data['catalogs_dir']}/Справочник Базовая цена/pre Справочник Базовая цена - страница {i}.csv")
-        #
-        #         sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
-        #         sess.add(CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
-        #         sess.commit()
-        #
-        #     self.log.add(LOG_ID, f"{catalog_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-        #                  f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> "
-        #                  f"обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]")
-        # except (OperationalError, UnboundExecutionError) as db_ex:
-        #     raise db_ex
-        # except Exception as ex:
-        #     ex_text = traceback.format_exc()
-        #     self.log.error(LOG_ID, f"update_base_price Error", ex_text)
-        # finally:
-        #     self.CreateBasePriceSignal.emit(True)
-
-
 class CreateBasePrice(QThread):
     CreateBasePriceSignal = Signal(bool)
 
@@ -959,7 +781,7 @@ class CreateBasePrice(QThread):
 
     def run(self):
         self.CreateBasePriceSignal.emit(False)
-        limit = 1_048_500
+        # limit = 1_048_500
         try:
             catalog_name = 'Базовая цена'
             with session() as sess:
@@ -969,16 +791,9 @@ class CreateBasePrice(QThread):
                 # report_parts_count = 4
                 hm = sess.execute(select(AppSettings.var).where(AppSettings.param == "base_price_update")).scalar()
                 h, m = hm.split()
-                # hm_time = datetime.time(int(h), int(m))
-                # if len(h) == 1:
-                #     h = f"0{h}"
-                # if len(m) == 1:
-                #     m = f"0{m}"
-                # cur_time = datetime.datetime.now()  # .strftime("%Y-%m-%d %H:%M:%S")
-                # cur_time = datetime.datetime(2025, 7, 24, 1, 51,  0)
+
                 cur_time = datetime.datetime.now()
-                # next_update_time = datetime.datetime.strptime(f"{cur_time.year}-{cur_time.month}-{cur_time.day} {h}:{m}:00",
-                #                                               "%Y-%m-%d %H:%M:%S")
+
                 if not self.force_update:
                     last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
                         CatalogUpdateTime.catalog_name == catalog_name)).scalar()
@@ -987,43 +802,11 @@ class CreateBasePrice(QThread):
                     if cur_time.hour > 8 or (cur_time - compare_time).days < 1:
                         return
 
-                # report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
-                # if report_parts_count < 1:
-                #     report_parts_count = 1
-                # return
-                # d1 = datetime.timedelta(hours=last_update.hour, minutes=last_update.minute)
-                # time.sleep(2)
-                # print(last_update, hm_time, cur_time)
-
-                # if not self.force_update:
-                #     if last_update and last_update.date() == cur_time.date():
-                #         if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
-                #             pass
-                #         else:
-                #             return
-                #     elif cur_time.time() > hm_time:
-                #         pass
-                #     elif not last_update:
-                #         pass
-                #     else:
-                #         return
-
                 self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
 
                 sess.query(BasePrice).delete()
                 sess.execute(text(f"ALTER SEQUENCE {BasePrice.__tablename__}_id_seq restart 1"))
-                # sess.execute(text("delete from base_price"))
-                # sess.execute(text(f"ALTER SEQUENCE base_price_id_seq restart 1"))
-                #
-                #     # cur.execute(
-                #     #     f"insert into base_price (Артикул, Бренд, ЦенаБ) select UPPER(total.Артикул), UPPER(total.Бренд), (max(Цена)-min(Цена))/2 + min(Цена) "
-                #     #     f"from total, Настройки_прайса_поставщика where total.Код_поставщика = Код_прайса and "
-                #     #     f"Цену_считать_базовой = 'ДА' group by Артикул, Бренд")
-                #     cur.execute(f"""insert into base_price (Артикул, Бренд, ЦенаБ, ЦенаМинПоставщик) select UPPER(total.Артикул),
-                #         UPPER(total.Бренд), total.Цена, Настройки_прайса_поставщика.Код_поставщика from total, Настройки_прайса_поставщика where
-                #         total.Код_поставщика = Код_прайса and Цену_считать_базовой = 'ДА' and Бренд is not NULL""")
-                # select distinct(price_code) from mail_report where current_timestamp - INTERVAL '1 day' < date
 
                 actual_prices = select(distinct(MailReport.price_code))\
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
@@ -1036,13 +819,8 @@ class CreateBasePrice(QThread):
                 sess.execute(insert(BasePrice).from_select(['article', 'brand', 'price_b', 'min_supplier'], subq))
                 sess.query(BasePrice).where(BasePrice.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.base_price != 'ДА'))).delete()
                 sess.query(BasePrice).where(and_(BasePrice.article == MassOffers.article, BasePrice.brand == MassOffers.brand, MassOffers.offers_count <= 1)).delete()
-                sess.commit()  # sess.flush()
-                #     cur.execute(f"""with min_supl_T as (with min_price_T as (select Артикул, Бренд, min(ЦенаБ) as min_price
-                #         from base_price group by Артикул, Бренд having count(*) > 1) select base_price.Артикул as min_art,
-                #         base_price.Бренд as min_brand, ЦенаМинПоставщик as min_supl from base_price, min_price_T
-                #         where base_price.Артикул = min_price_T.Артикул and base_price.Бренд = min_price_T.Бренд and
-                #         base_price.ЦенаБ = min_price_T.min_price) update base_price set ЦенаМинПоставщик = min_supl from min_supl_T
-                #         where Артикул = min_art and Бренд = min_brand""")
+                sess.commit()
+
                 min_price_T = select(BasePrice.article, BasePrice.brand,
                                      func.min(BasePrice.price_b).label('min_price')) \
                     .group_by(BasePrice.article, BasePrice.brand).having(func.count(BasePrice.id) > 1)
@@ -1054,10 +832,6 @@ class CreateBasePrice(QThread):
                     and_(BasePrice.article == min_supl_T.c.min_art, BasePrice.brand == min_supl_T.c.min_brand)).
                              values(min_supplier=min_supl_T.c.min_supl))
 
-                #     cur.execute(f"""with avg_price as (select Артикул, Бренд, avg(ЦенаБ) as avg_ЦенаБ, min(ЦенаБ) as min_ЦенаБ
-                #         from base_price group by Артикул, Бренд) update base_price set ЦенаБ = avg_price.avg_ЦенаБ,
-                #         ЦенаМин = avg_price.min_ЦенаБ from avg_price where base_price.Артикул = avg_price.Артикул
-                #         and base_price.Бренд = avg_price.Бренд""")
                 avg_price = select(BasePrice.article, BasePrice.brand,
                                    func.avg(BasePrice.price_b).label('avg_price_b'),
                                    func.min(BasePrice.price_b).label('min_price_b')).group_by(BasePrice.article,
@@ -1065,19 +839,13 @@ class CreateBasePrice(QThread):
                 sess.execute(update(BasePrice).where(
                     and_(BasePrice.article == avg_price.c.article, BasePrice.brand == avg_price.c.brand)).
                              values(price_b=avg_price.c.avg_price_b, min_price=avg_price.c.min_price_b))
-                #     cur.execute(f"""with max_id_dupl as (select max(id) as max_id from base_price group by Артикул, Бренд)
-                #         update base_price set duple = False where id in (select max_id from max_id_dupl)""")
+
                 max_id_dupl = select(func.max(BasePrice.id).label('max_id')).group_by(BasePrice.article,
                                                                                       BasePrice.brand)
                 sess.execute(update(BasePrice).where(BasePrice.id.in_(max_id_dupl)).values(duple=False))
-                #     cur.execute(f"delete from base_price where duple = True")
                 sess.query(BasePrice).where(BasePrice.duple == True).delete()
                 sess.commit()
-                #
-                #     # cur.execute(f"delete from base_price where Бренд is NULL")
-                # connection.commit()
-                # connection.close()
-                #
+
                 # Удаление старых данных
                 # for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Справочник Базовая цена"):
                 #     if file.startswith('Справочник Базовая цена - страница'):
@@ -1152,7 +920,7 @@ class CreateMassOffers(QThread):
 
     def run(self):
         self.CreateMassOffersSignal.emit(False)
-        limit = 1_048_500
+        # limit = 1_048_500
         try:
             catalog_name = 'Предложений в опте'
             with session() as sess:
@@ -1174,21 +942,10 @@ class CreateMassOffers(QThread):
                     if cur_time.hour > 8 or (cur_time - compare_time).days < 1:
                         return
 
-                report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
-                if report_parts_count < 1:
-                    report_parts_count = 1
-                # if not self.force_update:
-                #     if last_update and last_update.date() == cur_time.date():
-                #         if cur_time.time() > hm_time and last_update.time() < hm_time:  # last_update.date() == cur_time.date() and
-                #             pass
-                #         else:
-                #             return
-                #     elif cur_time.time() > hm_time:
-                #         pass
-                #     elif not last_update:
-                #         pass
-                #     else:
-                #         return
+                # report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_1)).scalar() / limit)
+                # if report_parts_count < 1:
+                #     report_parts_count = 1
+
 
                 self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...")
@@ -1196,10 +953,6 @@ class CreateMassOffers(QThread):
                 sess.query(MassOffers).delete()
                 sess.execute(text(f"ALTER SEQUENCE {MassOffers.__tablename__}_id_seq restart 1"))
 
-                # cur.execute(f"""insert into mass_offers (Артикул, Бренд, Код_прайса) select UPPER(Артикул), UPPER(Бренд),
-                #         Код_прайса from total, Настройки_прайса_поставщика where total.Код_поставщика = Код_прайса and
-                #         Прайс_оптовый = 'ДА' and Бренд is not NULL""")
-                # actual_prices = select(distinct(TotalPrice_1._07supplier_code))  # for test
                 actual_prices = select(distinct(MailReport.price_code))\
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
                 subq = select(TotalPrice_1._01article_comp, TotalPrice_1._14brand_filled_in, TotalPrice_1._07supplier_code).where(
@@ -1209,52 +962,31 @@ class CreateMassOffers(QThread):
                 sess.execute(insert(MassOffers).from_select(['article', 'brand', 'price_code'], subq))
                 sess.query(MassOffers).where(
                     MassOffers.brand.in_(select(distinct(Brands.correct_brand)).where(Brands.mass_offers != 'ДА'))).delete()
-                # sess.commit()  # sess.flush()
 
 
                 # # Замена 1MIK, 2MIK на MIK
-                # cur.execute(f"""update mass_offers set Код_прайса = Код_поставщика from Настройки_прайса_поставщика
-                #         where mass_offers.Код_прайса = Настройки_прайса_поставщика.Код_прайса""")
+
                 sess.execute(update(MassOffers).where(MassOffers.price_code == SupplierPriceSettings.price_code).
                              values(price_code=SupplierPriceSettings.supplier_code))
                 # # Удаление дублей в разрезе MIK
-                # cur.execute(
-                #     f"update mass_offers set duple = False where id in (select max(id) from mass_offers group by Артикул, Бренд, Код_прайса)")
-                # cur.execute(f"delete from mass_offers where duple = True")
-                # cur.execute(f"update mass_offers set duple = True")
-
-                # with duple_pos as (select article, brand, price_code from mass_offers group by article, brand, price_code having count(*) > 1)
-                # update mass_offers set duple = True from duple_pos where mass_offers.article = duple_pos.article and
-                # mass_offers.brand = duple_pos.brand and mass_offers.price_code = duple_pos.price_code
                 duple_pos = select(MassOffers.article, MassOffers.brand, MassOffers.price_code).\
                     group_by(MassOffers.article, MassOffers.brand, MassOffers.price_code).having(func.count(MassOffers.id) > 1)
                 sess.execute(update(MassOffers).where(and_(MassOffers.article == duple_pos.c.article, MassOffers.brand == duple_pos.c.brand,
                                                            MassOffers.price_code == duple_pos.c.price_code)).values(duple=True))
-                # update mass_offers set duple = False where duple = True and id in (select max(id) from mass_offers
-                # where duple = True group by article, brand, price_code)
+
                 max_id_in_duple = select(func.max(MassOffers.id)).where(MassOffers.duple == True).\
                     group_by(MassOffers.article, MassOffers.brand, MassOffers.price_code)
                 sess.execute(update(MassOffers).where(and_(MassOffers.duple == True, MassOffers.id.in_(max_id_in_duple))).
                              values(duple=False))
                 sess.query(MassOffers).where(MassOffers.duple == True).delete()
-                # # Предложений_в_опте
-                # cur.execute(f"""with cnt_price as (select Артикул, Бренд, count(*) as cnt from mass_offers group by
-                #         Артикул, Бренд) update mass_offers set Предложений_в_опте = cnt_price.cnt from cnt_price where
-                #         mass_offers.Артикул = cnt_price.Артикул and mass_offers.Бренд = cnt_price.Бренд""")
 
-                # with cnt_price as (select article, brand, count(*) as cnt from mass_offers group by
-                # article, brand having count(*) > 1) update mass_offers set offers_count = cnt_price.cnt from cnt_price where
-                # mass_offers.article = cnt_price.article and mass_offers.brand = cnt_price.brand
+                # # Предложений_в_опте
                 cnt_price = select(MassOffers.article, MassOffers.brand, func.count(MassOffers.id).label('cnt')).\
                     group_by(MassOffers.article, MassOffers.brand).having(func.count(MassOffers.id) > 1)
                 sess.execute(update(MassOffers).where(and_(MassOffers.article == cnt_price.c.article, MassOffers.brand == cnt_price.c.brand)).
                              values(offers_count=cnt_price.c.cnt))
 
                 # # Удаление дублей (Артикул, Бренд)
-                # cur.execute(
-                #     f"update mass_offers set duple = False where id in (select max(id) from mass_offers group by Артикул, Бренд)")
-                # cur.execute(f"delete from mass_offers where duple = True")
-                # cur.execute(f"delete from mass_offers where Предложений_в_опте <= 1 or Предложений_в_опте is NULL")
                 max_id_in_duple = select(MassOffers.article, MassOffers.brand).group_by(MassOffers.article, MassOffers.brand).\
                     having(func.count(MassOffers.id) > 1)
                 sess.execute(update(MassOffers).where(and_(MassOffers.article == max_id_in_duple.c.article,
@@ -1417,119 +1149,6 @@ class CurrencyUpdateTable(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"CurrencyUpdateTable Error", ex_text)
 
-
-# class CreateTotalCsv(QThread):
-#     def __init__(self, log=None, parent=None):
-#         self.log = log
-#         QThread.__init__(self, parent)
-#
-#     def run(self):
-#         try:
-#             cur_time = datetime.datetime.now()
-#             self.log.add(LOG_ID, f"Формирование Итога ...",
-#                          f"Формирование <span style='color:{colors.green_log_color};font-weight:bold;'>Итога</span> ...")
-#             with session() as sess:
-#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Reserve.code_09)
-#                 #              .values(reserve_count=Reserve.reserve_count))
-#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2.count - TotalPrice_2.reserve_count))
-#                 # sess.query(TotalPrice_2).where(TotalPrice_2.count <= 0).delete()
-#
-#                 ### sess.execute(update(TotalPrice_2).where(TotalPrice_2._06mult_new == None).values(_06mult_new=1))
-#                 # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
-#
-#                 # sess.commit()
-#                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/pre Итог"):
-#                     if file.startswith('pre Итог - страница'):
-#                         os.remove(fr"{settings_data['catalogs_dir']}/pre Итог/{file}")
-#
-#                 limit = 1_048_500
-#                 report_parts_count = math.ceil(sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar() / limit)
-#                 if report_parts_count < 1:
-#                     report_parts_count = 1
-#
-#                 loaded = 0
-#                 for i in range(1, report_parts_count + 1):
-#                     header = ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
-#                                                "Наименование поставщика",
-#                                                "Количество поставщика", "Цена поставщика", "Кратность поставщика",
-#                                                "Примечание поставщика", "01Артикул", "02Производитель",
-#                                                "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-#                                                "09Код + Поставщик + Товар", "10Оригинал",
-#                                                "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-#                                                "17КодУникальности", "18КороткоеНаименование",
-#                                                "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
-#                                                "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
-#                                                "Наценка на оптовые товары", "Шаг градации",
-#                                                "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
-#                                                "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
-#                                                "Количество закупок", "% Отгрузки",
-#                                                "Мин. Цена", "Мин. Поставщик"]
-#                     df = pd.DataFrame(columns=header)
-#                                       # ["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
-#                                       #          "Наименование поставщика",
-#                                       #          "Количество поставщика", "Цена поставщика", "Кратность поставщика",
-#                                       #          "Примечание поставщика", "01Артикул", "02Производитель",
-#                                       #          "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-#                                       #          "09Код + Поставщик + Товар", "10Оригинал",
-#                                       #          "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-#                                       #          "17КодУникальности", "18КороткоеНаименование",
-#                                       #          "19МинЦенаПоПрайсу", "20ИсключитьИзПрайса", "Отсрочка", "Продаём для ОС",
-#                                       #          "Наценка для ОС", "Наценка Р", "Наценка ПБ", "Мин наценка", "Мин опт наценка",
-#                                       #          "Наценка на оптовые товары", "Шаг градаци",
-#                                       #          "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
-#                                       #          "ЦенаБ", "Кол-во", "Код ПБ_П", "06Кратность", "Кратность меньше", "05Цена+",
-#                                       #          "Количество закупок", "% Отгрузки",
-#                                       #          "Мин. Цена", "Мин. Поставщик"])
-#                     df.to_csv(
-#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-#                         sep=';', decimal=',',
-#                         encoding="windows-1251", index=False, errors='ignore')
-#                     # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
-#                     # TotalPrice_2._10original, TotalPrice_2._19min_price, TotalPrice_2.code_pb_p,
-#                     req = select(TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
-#                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.mult_s, TotalPrice_2.notice_s,
-#                                  TotalPrice_2._01article, TotalPrice_2._02brand, TotalPrice_2._03name,
-#                                  TotalPrice_2._05price, TotalPrice_2._06mult, TotalPrice_2._07supplier_code, TotalPrice_2._09code_supl_goods,
-#                                  TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-#                                  TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2._20exclude,
-#                                  TotalPrice_2.to_price, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R,
-#                                  TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.markup_wh_goods,
-#                                  TotalPrice_2.grad_step, TotalPrice_2.wh_step,  TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
-#                                  TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
-#                                  TotalPrice_2._06mult_new, TotalPrice_2.mult_less, TotalPrice_2._05price_plus,
-#                                  TotalPrice_2.buy_count, TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.min_supplier
-#                                  ).order_by(TotalPrice_2._17code_unique).offset(loaded).limit(limit)
-#                     # TotalPrice_2.max_decline, TotalPrice_2.markup_holidays,
-#                     # TotalPrice_2.low_price,
-#                     # TotalPrice_2.reserve_count,
-#                     df = pd.read_sql_query(req, sess.connection(), index_col=None)
-#
-#                     df.to_csv(
-#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",
-#                         mode='a',
-#                         sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-#                     # df.to_excel(fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.xlsx", index=False, header=header)
-#
-#                     df_len = len(df)
-#                     loaded += df_len
-#
-#                 for file in os.listdir(fr"{settings_data['catalogs_dir']}/Итог"):
-#                     if file.startswith('Итог - страница'):
-#                         os.remove(fr"{settings_data['catalogs_dir']}/Итог/{file}")
-#
-#                 for i in range(1, report_parts_count + 1):
-#                     shutil.copy(
-#                         fr"{settings_data['catalogs_dir']}/pre Итог/pre Итог - страница {i}.csv",   # xlsx
-#                         fr"{settings_data['catalogs_dir']}/Итог/Итог - страница {i}.csv")
-#
-#             self.log.add(LOG_ID, f"Итог сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]",
-#                          f"<span style='color:{colors.green_log_color};font-weight:bold;'>Итог</span> "
-#                          f"сформирован [{str(datetime.datetime.now() - cur_time)[:7]}]")
-#         except Exception as ex:
-#             ex_text = traceback.format_exc()
-#             self.log.error(LOG_ID, f"CreateTotalCsv Error", ex_text)
-
-
 def get_catalogs_time_update():
     try:
         with session() as sess:
@@ -1547,13 +1166,11 @@ def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=
     con = ses.connection()
     pk = []
     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
-    # with engine.connect() as sess:
-    # print(table_name)
     if del_table:
         req = delete(table_class)
         con.execute(req)
         con.execute(text(f"ALTER SEQUENCE {table_name}_id_seq restart 1"))
-    # sess.commit()
+
     res = con.execute(text(
         f"SELECT column_name, character_maximum_length FROM information_schema.columns WHERE table_name = '{table_name}' "
         f"and column_name != 'id'")).all()
@@ -1598,342 +1215,3 @@ def to_float(x):
         return x
     except:
         return 0
-
-
-
-        # def update_price_settings_catalog(self):
-        #     path_to_file = fr"{data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
-        #     base_name = os.path.basename(path_to_file)
-        #     new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file))
-        #     with session() as sess:
-        #         req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==base_name)
-        #         res = sess.execute(req).scalar()
-        #         if res and res >= new_update_time:
-        #             return
-        #         cur_time = datetime.datetime.now()
-        #         self.log.add(LOG_ID, f"Обновление {base_name} ...",
-        #                      f"Обновление <span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> ...")
-        #
-        #         table_name = 'file_settings'
-        #         table_class = FileSettings
-        #         cols = {"price_code": ["Прайс"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
-        #                 "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
-        #                 "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"], "rc_brand_s": ["R/C БрендП"],
-        #                 "name_brand_s": ["Название БрендП"], "rc_name_s": ["R/C НаименованиеП"],
-        #                 "name_name_s": ["Название НаименованиеП"], "rc_count_s": ["R/C КоличествоП"],
-        #                 "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"], "name_price_s": ["Название ЦенаП"],
-        #                 "rc_mult_s": ["R/C КратностьП"], "name_mult_s": ["Название КратностьП"], "rc_notice_s": ["R/C ПримечаниеП"],
-        #                 "name_notice_s": ["Название ПримечаниеП"], "rc_currency_s": ["R/C Валюта"], "name_currency_s": ["Название Валюта"],
-        #                 }
-        #         sheet_name = "Настройка строк"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         rc_cols = [['r_key_s', 'c_key_s', 'rc_key_s'],
-        #                    ['r_article_s', 'c_article_s', 'rc_article_s'],
-        #                    ['r_brand_s', 'c_brand_s', 'rc_brand_s'],
-        #                    ['r_name_s', 'c_name_s', 'rc_name_s'],
-        #                    ['r_count_s', 'c_count_s', 'rc_count_s'],
-        #                    ['r_price_s', 'c_price_s', 'rc_price_s'],
-        #                    ['r_mult_s', 'c_mult_s', 'rc_mult_s'],
-        #                    ['r_notice_s', 'c_notice_s', 'rc_notice_s'],
-        #                    ['r_currency_s', 'c_currency_s', 'rc_currency_s'],
-        #                    ]
-        #         req = ''
-        #         for r, c, rc in rc_cols:
-        #             # req += (f"update file_settings set {r} = (regexp_split_to_array({rc}, '[RC]'))[2]::INTEGER, "
-        #             #                 f"{c} = (regexp_split_to_array({rc}, '[RC]'))[3]::INTEGER where {rc} is not NULL;")
-        #             req += (f"update file_settings set {r} = (regexp_split_to_array({rc}, '[RC]'))[2]::INTEGER, "
-        #                     f"{c} = (regexp_split_to_array({rc}, '[RC]'))[3]::INTEGER where {rc} SIMILAR TO 'R[0-9]{{1,}}C[0-9]{{1,}}';")
-        #         sess.execute(text(req))
-        #         sess.query(FileSettings).filter(FileSettings.price_code == None).delete()
-        #
-        #
-        #         table_name = 'supplier_price_settings'
-        #         table_class = SupplierPriceSettings
-        #         cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"], "save": ["Сохраняем"],
-        #                 "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
-        #                 "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
-        #                 "buy_for_working_capital": ["Закупка для оборотных средств"],
-        #                 "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "email": ["Почта"],
-        #                 "file_name_cond": ["Условие имени файла"], "update_time": ["Срок обновление не более"],
-        #                 "file_name": ["Имя файла"],
-        #                 "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
-        #                 "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
-        #                 "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],
-        #                 "markup_wholesale": ["Наценка опт"],
-        #                 "max_markup": ["Наценка макс"], "unload_percent": ["% Отгрузки"], "delay": ["Отсрочка"],
-        #                 "markup_os": ["Наценка для ОС"],
-        #                 "row_change_percent": ["Допустимый процент изменения количества строк"],
-        #                 "price_change_percent": ["Допустимый процент изменения цены"],
-        #                 "supplier_rating": ["Рейтинг поставщика"],
-        #                 }
-        #         sheet_name = "Настройка прайсов"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #         sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
-        #
-        #         table_name = 'article_fix'
-        #         table_class = ArticleFix
-        #         cols = {"price_code": ["Код прайса"], "change_type": ["Вариант исправления"], "find": ["Найти"], "change": ["Установить"],}
-        #         sheet_name = "Исправление Артикула"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #         # sess.query(ArticleFix).filter(ArticleFix.price_code == None).delete()
-        #
-        #         table_name = 'brands'
-        #         table_class = Brands
-        #         cols = {"correct_brand": ["Правильный Бренд"], "brand": ["Поиск"],}
-        #         sheet_name = "Справочник Бренды"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'price_change'
-        #         table_class = PriceChange
-        #         cols = {"price_code": ["Код прайса"], "brand": ["Производитель поставщика"], "discount": ["Скидка, %"]}
-        #         sheet_name = "Изменение цены по условиям"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'words_of_exception'
-        #         table_class = WordsOfException
-        #         cols = {"price_code": ["Код прайса"], "colunm_name": ["Столбец поиска"], "condition": ["Условие"], "text": ["Текст"]}
-        #         sheet_name = "Слова_исключения"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'supplie_goods_fix'
-        #         table_class = SupplierGoodsFix
-        #         cols = {"supplier": ["Поставщик"], "import_setting": ["Настройка импорта прайса"], "key1": ["Ключ1"],
-        #                 "article_s": ["Артикул поставщика"], "brand_s": ["Производитель поставщика"], "name": ["Наименование"],
-        #                 "brand": ["Производитель"], "article": ["Артикул"], "price_s": ["Цена поставщика"],
-        #                 "sales_ban": ["Запрет продажи"], "original": ["Оригинал"], "marketable_appearance": ["Товарный вид"],
-        #                 "put_away_percent": ["Убрать %"], "put_away_count": ["Убрать шт"], "nomenclature": ["Номенклатура"],
-        #                 "mult_s": ["Кратность поставщика"],
-        #                 }
-        #         sheet_name = "Исправление товаров поставщиков"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #
-        #         sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name==base_name).delete()
-        #         sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
-        #
-        #         sess.commit()
-        #
-        #     self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-        #                  f"<span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-        #                  f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-
-        # def update_rc_price_settings(self):
-        #     path_to_file = fr"{data['catalogs_dir']}\Справочник расположения столбцов и условий.xlsx"
-        #     base_name = os.path.basename(path_to_file)
-        #     new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file))
-        #     with session() as sess:
-        #         req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==base_name)
-        #         res = sess.execute(req).scalar()
-        #         if res and res >= new_update_time:
-        #             return
-        #         cur_time = datetime.datetime.now()
-        #         self.log.add(LOG_ID, f"Обновление {base_name} ...",
-        #                      f"Обновление <span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> ...")
-        #
-        #         table_name = 'file_settings'
-        #         table_class = FileSettings
-        #         cols = {"price_code": ["Прайс"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
-        #                 "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
-        #                 "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"], "rc_brand_s": ["R/C БрендП"],
-        #                 "name_brand_s": ["Название БрендП"], "rc_name_s": ["R/C НаименованиеП"],
-        #                 "name_name_s": ["Название НаименованиеП"], "rc_count_s": ["R/C КоличествоП"],
-        #                 "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"], "name_price_s": ["Название ЦенаП"],
-        #                 "rc_mult_s": ["R/C КратностьП"], "name_mult_s": ["Название КратностьП"], "rc_notice_s": ["R/C ПримечаниеП"],
-        #                 "name_notice_s": ["Название ПримечаниеП"], "rc_currency_s": ["R/C Валюта"], "name_currency_s": ["Название Валюта"],
-        #                 }
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class)
-        #
-        #         rc_cols = [['r_key_s', 'c_key_s', 'rc_key_s'],
-        #                    ['r_article_s', 'c_article_s', 'rc_article_s'],
-        #                    ['r_brand_s', 'c_brand_s', 'rc_brand_s'],
-        #                    ['r_name_s', 'c_name_s', 'rc_name_s'],
-        #                    ['r_count_s', 'c_count_s', 'rc_count_s'],
-        #                    ['r_price_s', 'c_price_s', 'rc_price_s'],
-        #                    ['r_mult_s', 'c_mult_s', 'rc_mult_s'],
-        #                    ['r_notice_s', 'c_notice_s', 'rc_notice_s'],
-        #                    ['r_currency_s', 'c_currency_s', 'rc_currency_s'],
-        #                    ]
-        #         req = ''
-        #         for r, c, rc in rc_cols:
-        #             req += (f"update file_settings set {r} = (regexp_split_to_array({rc}, '[RC]'))[2]::INTEGER, "
-        #                             f"{c} = (regexp_split_to_array({rc}, '[RC]'))[3]::INTEGER where {rc} is not NULL;")
-        #         sess.execute(text(req))
-        #         sess.query(FileSettings).filter(FileSettings.price_code == None).delete()
-        #
-        #         sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name==base_name).delete()
-        #         sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
-        #
-        #         sess.commit()
-        #
-        #     self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-        #                  f"<span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-        #                  f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-
-        # def update_supplier_price_settings(self):
-        #     path_to_file = fr"{data['catalogs_dir']}\Настройки прайса поставщика.xlsx"
-        #     base_name = os.path.basename(path_to_file)
-        #     new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file))
-        #     with session() as sess:
-        #         req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==base_name)
-        #         res = sess.execute(req).scalar()
-        #         if res and res >= new_update_time:
-        #             return
-        #         cur_time = datetime.datetime.now()
-        #         self.log.add(LOG_ID, f"Обновление {base_name} ...",
-        #                      f"Обновление <span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> ...")
-        #
-        #         table_name = 'supplier_price_settings'
-        #         table_class = SupplierPriceSettings
-        #         cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"], "save": ["Сохраняем"],
-        #                 "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
-        #                 "works": ["Работаем"], "wholesale": ["Прайс оптовый"], "buy_for_working_capital": ["Закупка для оборотных средств"],
-        #                 "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "email": ["Почта"],
-        #                 "file_name_cond": ["Условие имени файла"], "update_time": ["Срок обновление не более"], "file_name": ["Имя файла"],
-        #                 "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
-        #                 "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
-        #                 "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"], "markup_wholesale": ["Наценка опт"],
-        #                 "max_markup": ["Наценка макс"], "unload_percent": ["% Отгрузки"], "delay": ["Отсрочка"],
-        #                 "markup_os": ["Наценка для ОС"], "row_change_percent": ["Допустимый процент изменения количества строк"],
-        #                 "price_change_percent": ["Допустимый процент изменения цены"], "supplier_rating": ["Рейтинг поставщика"],
-        #                 }
-        #         sheet_name = "Справочник"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name==base_name).delete()
-        #         sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
-        #
-        #         sess.commit()
-        #
-        #     self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-        #                  f"<span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-        #                  f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-
-        # def update_3_0_condition(self):
-        #     path_to_file = fr"{data['catalogs_dir']}\3.0 Условия.xlsx"
-        #     base_name = os.path.basename(path_to_file)
-        #     new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file))
-        #     with session() as sess:
-        #         req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==base_name)
-        #         res = sess.execute(req).scalar()
-        #         if res and res >= new_update_time:
-        #             return
-        #         cur_time = datetime.datetime.now()
-        #         self.log.add(LOG_ID, f"Обновление {base_name} ...",
-        #                      f"Обновление <span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> ...")
-        #
-        #         table_name = 'data07_14'
-        #         table_class = Data07_14
-        #         cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-        #                 "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
-        #                 "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
-        #         sheet_name = "07&14Данные"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'data07'
-        #         table_class = Data07
-        #         cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-        #                 "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
-        #                 "max_decline": ["Макс снижение от базовой цены"],
-        #                 "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
-        #                 "min_markup": ["Мин наценка"], "markup_wholesale": ["Наценка на оптовые товары"],
-        #                 "grad_step": ["Шаг градаци"],
-        #                 "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
-        #         sheet_name = "07Данные"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'data15'
-        #         table_class = Data15
-        #         cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
-        #         sheet_name = "15Данные"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'data09'
-        #         table_class = Data09
-        #         cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
-        #         sheet_name = "09Данные"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'buy_for_os'
-        #         table_class = Buy_for_OS
-        #         cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
-        #         sheet_name = "Закупки для ОС"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #         table_name = 'reserve'
-        #         table_class = Reserve
-        #         cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
-        #         sheet_name = "Резерв_да"
-        #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-        #
-        #
-        #         sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name==base_name).delete()
-        #         sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
-        #
-        #         sess.commit()
-        #
-        #     self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-        #                  f"<span style='color:{green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-        #                  f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-
-    # def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=0):
-    #     '''for varchar(x), real, numeric, integer'''
-    #     con = ses.connection()
-    #     pk = []
-    #     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
-    #     # with engine.connect() as sess:
-    #     print(table_name)
-    #     req = delete(table_class)
-    #     con.execute(req)
-    #     con.execute(text(f"ALTER SEQUENCE {table_name}_id_seq restart 1"))
-    #     # sess.commit()
-    #     res = con.execute(text(
-    #         f"SELECT column_name, character_maximum_length FROM information_schema.columns WHERE table_name = '{table_name}' "
-    #         f"and column_name != 'id'")).all()
-    #     for i in res:
-    #         if cols.get(i[0], None):
-    #             cols[i[0]].append(i[1])
-    #     res = con.execute(text(
-    #         f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}' and is_nullable = 'NO' "
-    #         f"and column_name != 'id'")).all()
-    #     pk = [i[0] for i in res]
-    #
-    #     df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False,sheet_name=sheet_name)
-    #     df = df.rename(columns={cols[c][0]: c for c in cols})
-    #
-    #     for c in cols:
-    #         char_limit = cols[c][1]
-    #         if char_limit:  # str
-    #             df[c] = df[c].apply(lambda x: str(x)[:char_limit] or None)
-    #         else:  # float/int
-    #             df[c] = df[c].apply(to_float)
-    #             # df[c] = df[c].replace('', 0)
-    #             # df = df[df[c].apply(is_float)]
-    #             # df[c] = np.float64(df[c])
-    #         if c in pk:  # для PK
-    #             df = df[df[c].notna()]
-    #     # return (df)
-    #     # print(df)
-    #     df.to_sql(name=table_name, con=con, if_exists='append', index=False, index_label=False, chunksize=CHUNKSIZE)
-
-    # def is_float(x):
-    #     try:
-    #         x = float(str(x).replace(',', '.'))
-    #         if math.isnan(x) or math.isinf(x):
-    #             return False
-    #         if 1E+37 < x < 1E-37:  # real
-    #             return False
-    #         return True
-    #     except:
-    #         return False
-    #
-    # def to_float(x):
-    #     try:
-    #         x = float(str(x).replace(',', '.'))
-    #         if math.isnan(x) or math.isinf(x):
-    #             return 0
-    #         if 1E+37 < x < 1E-37:  # real
-    #             return 0
-    #         return x
-    #     except:
-    #         return 0

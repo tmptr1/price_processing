@@ -46,8 +46,6 @@ class MailParserClass(QThread):
         wait_sec = 80
 
         while not self.isPause:
-            # self.delete_irrelevant_prices()
-            # self.UpdateReportSignal.emit(True)
             start_cycle_time = datetime.datetime.now()
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
             self.now_time = datetime.datetime.now().strftime("%d-%b-%Y")
@@ -55,11 +53,8 @@ class MailParserClass(QThread):
                 mail = imaplib.IMAP4_SSL(host='imap.yandex.ru', port=993, timeout=25)
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
-                # self.get_mail("86693", mail)
-                # self.get_mail("86422", mail)
-                # self.get_mail("86854", mail)
-                # self.get_mail("118342", mail)
                 # self.get_mail("112898", mail)
+                # self.get_mail("119943", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -78,7 +73,6 @@ class MailParserClass(QThread):
 
                         if i not in self.letters_b:
                             self.letters_b.add(i)
-                            # logger.info(str(i))
                             self.log.add(LOG_ID, f"{i}")
                             self.get_mail(i, mail)  # получение необходимых файлов из письма
 
@@ -117,20 +111,6 @@ class MailParserClass(QThread):
                     time.sleep(1)
         else:
             self.SetButtonEnabledSignal.emit(True)
-
-    # def delete_irrelevant_prices(self):
-    #     try:
-    #         with session() as sess:
-    #             price_list = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
-    #             # print(price_list)
-    #         for price in os.listdir(f"{settings_data['mail_files_dir']}"):
-    #             price_code = price[:4]
-    #             if price_code not in price_list:
-    #                 os.remove(fr"{settings_data['mail_files_dir']}\{price}")
-    #
-    #     except Exception as del_ip_ex:
-    #         ex_text = traceback.format_exc()
-    #         self.log.error(LOG_ID, "ERROR", ex_text)
 
     def get_mail(self, id, mail):
         try:
@@ -190,27 +170,11 @@ class MailParserClass(QThread):
             received_time = datetime.datetime.strptime(str(received_time), "%d %b %Y %H-%M-%S")
 
             with session() as sess:
-                # sender = sender.replace('\'', '\'\'')
-                # req = select(SupplierPriceSettings.file_name, SupplierPriceSettings.file_name_cond,
-                #              SupplierPriceSettings.price_code
-                #              ).where(
-                #     and_(func.lower(SupplierPriceSettings.email) == str.lower(sender),
-                #          SupplierPriceSettings.save == "ДА"))
-                # db_data = sess.execute(req).all()
-
                 req = select(FileSettings.file_name, FileSettings.file_name_cond, FileSettings.price_code
                              ).where(
                     and_(func.lower(FileSettings.email) == str.lower(sender), func.upper(FileSettings.save) == "ДА"))
-                # FileSettings.price_code == FileSettings.price_code,
                 db_data = sess.execute(req).all()
 
-            # connection = psycopg2.connect(host=host, user=user, password=password, database=db_name)
-            # with connection.cursor() as cur:
-            #     sender = sender.replace('\'', '\'\'')
-            #     cur.execute(
-            #         f"SELECT Имя_файла, Условие_имени_файла, Код_прайса FROM Настройки_прайса_поставщика WHERE LOWER(Почта) = LOWER('{sender}') and Сохраняем = 'ДА'")
-            #     data = cur.fetchall()
-            # connection.close()
                 if not db_data:
                     # logger.info('Не подходит')
                     # logger.info('=' * 20)
@@ -226,7 +190,6 @@ class MailParserClass(QThread):
 
             self.log.add(LOG_ID, "*" * 35)
         except Exception as ex:
-            # logger.error("get_mail error:", exc_info=ex)
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "get_mail Error", ex_text)
 
@@ -237,7 +200,6 @@ class MailParserClass(QThread):
         loaded = False
 
         for part in message.walk():
-
             # Получение прайса по ссылке
             try:
                 if sender == 'no-reply@impeks-autoparts.ru' and str(part.get_content_type()).startswith('text/'):
@@ -279,7 +241,6 @@ class MailParserClass(QThread):
                 if part.get_content_maintype() != 'multipart' and part.get('Content-Disposition') is not None:
                     try:
                         enc = chardet.detect(decode_header(part.get_filename())[0][0])['encoding']
-                        # print(f"|{enc}|")
                         name = decode_header(part.get_filename())[0][0].decode(enc)
                         # print(name)
                     except:
@@ -296,8 +257,7 @@ class MailParserClass(QThread):
                             open(path_to_archive, 'wb').write(part.get_payload(decode=True))
                             if self.load_archieve(sess, tmp_dir, file_format, path_to_archive, db_data, sender, received_time):
                                 loaded = True
-                                    # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{f}'")
-                                    # cur.execute(f"insert into mail_report_tab values('{sender}', '{f}', '{received_time}')")
+
                             if not loaded:
                                 sess.query(MailReportUnloaded).where(and_(MailReportUnloaded.sender == sender,
                                                                           MailReportUnloaded.file_name == name)).delete()
@@ -359,13 +319,7 @@ class MailParserClass(QThread):
                                                                       MailReportUnloaded.file_name == name)).delete()
                             sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
                             sess.commit()
-                            #     sess.query(MailReportUnloaded).where(MailReportUnloaded.sender == sender).delete()
-                            #     sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
-                            #     sess.commit()
 
-                        # if not is_loaded:
-                            # cur.execute(f"delete from mail_report_tab where sender = '{sender}' and file_name = '{name}'")
-                            # cur.execute(f"insert into mail_report_tab values('{sender}', '{name}', '{received_time}')")
 
     def load_archieve(self, sess, tmp_dir, file_format, path_to_archive, db_data, sender, received_time):
         loaded = False
@@ -403,9 +357,7 @@ class MailParserClass(QThread):
 
                     shutil.move(fr"{tmp_dir}/{f}",
                                 fr"{settings_data['mail_files_dir']}\{price_code} {addition}")
-                    # shutil.copy(fr"{settings_data['mail_files_dir']}\{price_code} {addition}",
-                    #             fr"{settings_data['mail_files_dir_copy']}\{price_code} {addition}")
-                    # logger.info(f"+ ({price_code}) - {f}")
+
                     self.log.add(LOG_ID, f"+ ({price_code}) - {f}",
                                  f"✔ (<span style='color:{colors.green_log_color};"
                                  f"font-weight:bold;'>{price_code}</span>) - {f}")
@@ -434,12 +386,10 @@ class MailParserClass(QThread):
                 except Exception as e:
                     if id in self.letters_b:
                         self.letters_b.remove(id)
-                    # logger.error(f"del error ({file_code}):", exc_info=e)
                     ex_text = traceback.format_exc()
                     self.log.error(LOG_ID, f"del Error ({file_code})", ex_text)
 
         except Exception as ex:
-            # logger.error("del_duplicates error:", exc_info=ex)
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"del_duplicates Error", ex_text)
 
@@ -469,7 +419,6 @@ class MailParserClass(QThread):
                 return 0
 
         except Exception as ex:
-            # logger.error("Error:", exc_info=ex)
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"check_file_name Error", ex_text)
             return 0
@@ -506,7 +455,6 @@ class MailReportUnloadedDelete(QThread):
             self.log.error(LOG_ID, f"MailReportDelete Error", ex_text)
 
 class MailReportUpdate(QThread):
-    # UpdateInfoTableSignal = Signal(str, str, str, str)
     UpdateInfoTableSignal = Signal(str, str, str)
     UpdateMailReportTime = Signal(str)
     # first_start = True
@@ -516,24 +464,6 @@ class MailReportUpdate(QThread):
 
     def run(self):
         try:
-            # with session() as sess:
-            #     req = select(MailReport.price_code.label("Price code"), MailReport.sender.label("Sender"),
-            #                  MailReport.file_name.label("File name"), MailReport.date.label("Date"))
-            #     db_data = sess.execute(req).all()
-            #     for i in db_data:
-            #         self.UpdateInfoTableSignal.emit(i[0], i[1], i[2], str(i[3]))
-            #
-            #     sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Отчёт почта').delete()
-            #     sess.add(CatalogUpdateTime(catalog_name='Отчёт почта', updated_at=str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))))
-            #     sess.commit()
-            #
-            # self.UpdateMailReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
-            #
-            # # if not self.first_start:
-            # df = pd.read_sql(req, engine)
-            # df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
-            #           index=False, header=True, errors='ignore') # ['Sender', 'File name', 'Date']
-
             with session() as sess:
                 req = select(MailReportUnloaded.sender.label("Sender"),
                              MailReportUnloaded.file_name.label("File name"), MailReportUnloaded.date.label("Date"))
@@ -547,14 +477,10 @@ class MailReportUpdate(QThread):
 
             self.UpdateMailReportTime.emit(str(datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
 
-            # if not self.first_start:
             df = pd.read_sql(req, engine)
             df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
                       index=False, header=True, errors='ignore') # ['Sender', 'File name', 'Date']
 
-            # self.first_start = False
-
-            # self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"MailReportUpdate Error", ex_text)

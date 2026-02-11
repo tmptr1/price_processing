@@ -15,8 +15,6 @@ import pandas as pd
 # pd.set_option('future.no_silent_downcasting', True)
 import warnings
 warnings.filterwarnings('ignore')
-# from decimal import Decimal, ROUND_FLOOR
-# mp.freeze_support()
 
 import colors
 from models import (Base2, Base2_1, Price_2, Price_2_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings,
@@ -65,7 +63,6 @@ class CalculateClass(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
-                # print(os.listdir(settings_data['exit_1_dir']))
                 new_files = []
                 with session() as sess:
                     self.mb_limit = int(sess.execute(select(AppSettings.var).where(AppSettings.param == 'mb_limit_2')).scalar())
@@ -79,9 +76,6 @@ class CalculateClass(QThread):
                                                                                   func.upper(SupplierPriceSettings.works) == 'ДА'))
                         res = sess.execute(req).scalar()
                         if not res:
-                            # удаляются раз в день в CatalogUpdate
-                            # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
-                            # нет в условиях именно в info_message
                             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                          values(info_message="Нет в условиях (4.0 - Настройка прайсов)",
                                                 updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
@@ -96,7 +90,6 @@ class CalculateClass(QThread):
                         req = select(Data07.update_time).where(Data07.setting == price_code)
                         update_time = sess.execute(req).scalar()
                         if not update_time:
-                            # print(price_code, 'Нет настроек')
                             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                          values(info_message2='Нет настроек или срока обновления в 07Данные',
                                                 updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
@@ -105,32 +98,17 @@ class CalculateClass(QThread):
 
                         if res:
                             time_edit = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['exit_1_dir']}/{file}"))
-                            # time_update = sess.execute(select(SupplierPriceSettings.update_time).where(and_(SupplierPriceSettings.price_code == price_code,
-                            #          func.upper(SupplierPriceSettings.calculate) == 'ДА', func.upper(SupplierPriceSettings.works) == 'ДА'))).scalar()
+
                             if (datetime.datetime.now() - time_edit).days - update_time >= 30:
                                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).
                                              values(info_message2='Не подходит период обновления',
                                                     updated_at_2_step=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S")))
-                                # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
                                 continue
-                            # print(file, (datetime.datetime.now() - time_edit).days, (datetime.datetime.now() - time_edit).days - update_time,
-                            #       (datetime.datetime.now() - time_edit).days - update_time < 30)
-                            # self.calculate_file(file)
                             new_files.append(file)
-
-                    # проверка неактуальных прайсов
-                    # loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
-                    # actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.calculate == 'ДА')).scalars().all())
-                    # useless_prices = (loaded_prices - actual_prices)
-                    # # print(useless_prices)
-                    # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
 
                     sess.commit()
 
-                    # print(files)
-                # new_files = ['2IMP.csv', ]
-                # new_files = ['1LAM.csv', ]
-                # new_files = ['1AVX.csv', ]
+
                 # new_files = ['2VAL.csv', '1VAL.csv',]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -152,10 +130,6 @@ class CalculateClass(QThread):
                     self.SetTotalTome.emit(False)
                     self.UpdatePriceReportTableSignal.emit(True)
 
-                # self.total_file_count = 1
-                # self.cur_file_count = 0
-                # self.calculate_file('1APR')
-                # self.UpdatePriceStatusTableSignal.emit('1APR', '2 step', False)
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
                                                                          f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
@@ -188,7 +162,7 @@ class CalculateClass(QThread):
             if MB > self.mb_limit:
                 return True
             return False
-        # type = 0
+
         if MB <= self.mb_limit:
             return True
         return False
@@ -212,12 +186,6 @@ class CalculateClass(QThread):
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
                 cur_time = datetime.datetime.now()
 
-                # sess.query(Price_2).delete()
-
-                # sess.execute(text(f"ALTER SEQUENCE {Price_2.__tablename__}_id_seq restart 1"))
-                # перенос данных из total
-                # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
-
                 cols_for_price = [TotalPrice_1.key1_s, TotalPrice_1.article_s, TotalPrice_1.brand_s, TotalPrice_1.name_s,
                                   TotalPrice_1.count_s, TotalPrice_1.price_s, TotalPrice_1.currency_s, TotalPrice_1.mult_s,
                                   TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp, TotalPrice_1._02brand,
@@ -228,14 +196,9 @@ class CalculateClass(QThread):
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
                 sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
-                # sess.execute(update(Price_2).values(_14brand_filled_in_low=Price_2._14brand_filled_in))
                 sess.commit()
 
                 # Удаление по первому условию
-                                                # or_(self.TmpPrice_2._04count < 1, self.TmpPrice_2._04count == None,
-                                                # self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None,
-                                                # self.TmpPrice_2._14brand_filled_in == None, self.TmpPrice_2._01article == None,
-                                                # self.TmpPrice_2._20exclude != None)).delete()
                 del_art = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._01article == None).delete()
                 del_brand = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._14brand_filled_in == None).delete()
                 del_price = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None)).delete()
@@ -245,19 +208,13 @@ class CalculateClass(QThread):
 
                 # Удаление дублей 01Артикул, 14Производитель заполнен
                 del_dupl = self.del_duples(sess)
-                # del_total = del_positions_1 + del_positions_2
-                # self.add_log(price_code, f"Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_positions_2})", cur_time)
+
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
                 self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_dupl}) [{update_step_time}]",
                              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
                              f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
                              f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_dupl else 'black'};'>{del_dupl}</span>) [{update_step_time}]")
-                             #                         time_spent=, font-weight:bold;
-                             # log_text.format(
-                             #     f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>",
-                             #     '</span>',
-                             #     price=price_code, log_main_text=msg,
-                             #     time_spent=str(datetime.datetime.now() - cur_time)[:7]))
+
 
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07, 09 ...', False)
                 cur_time = datetime.datetime.now()
@@ -301,15 +258,12 @@ class CalculateClass(QThread):
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
                 cur_time = datetime.datetime.now()
 
-                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.price_b != None).values(low_price=self.TmpPrice_2._05price/self.TmpPrice_2.price_b))
                 sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
                              .values(_06mult_new=self.TmpPrice_2._06mult))
                 sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
                                                         self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count))
                              .values(_06mult_new=self.TmpPrice_2._04count))
-                # sess.execute(update(Price_2).where(Price_2._06mult_new == None)
-                #              .values(_06mult_new=func.ceil(func.greatest(Price_2._06mult, Price_2.markup_holidays / Price_2._05price) /
-                #                                            Price_2._06mult) * Price_2._06mult))
+
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None)
                              .values(_06mult_new=func.ceil(func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
 
@@ -359,16 +313,10 @@ class CalculateClass(QThread):
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_2).from_select(cols_for_total.values(), total))
 
-                # self.UpdatePriceStatusTableSignal.emit(price_code, 'step 2', False)
-                # cur_time = datetime.datetime.now()
-                # time.sleep(2)
-                # self.add_log(price_code, 'step 2', cur_time)
 
                 cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_2)).scalar()
-                # sess.query(Price_2).delete()
 
 
-                # cnt_wo_article = sess.execute(select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
                 sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
                              .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"),
                                      db_added=start_time.strftime("%Y.%m.%d %H:%M:%S"),
@@ -380,10 +328,7 @@ class CalculateClass(QThread):
 
             self.TotalCountSignal.emit(total_cnt)
 
-            # cur_time = datetime.datetime.now()
-            # self.UpdatePriceStatusTableSignal.emit(price_code, 'Удаление временных таблиц ...', False)
             self.TmpPrice_2.__table__.drop(engine)
-            # self.add_log(price_code, 'Временные таблицы удалены', cur_time)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID, f"+ {price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",
@@ -399,163 +344,34 @@ class CalculateClass(QThread):
 
     def del_duples(self, sess):
         # D для всех дублей
-        # cur_time = datetime.datetime.now()
         duples = select(self.TmpPrice_2._15code_optt).group_by(self.TmpPrice_2._15code_optt).having(func.count(self.TmpPrice_2.id) > 1)
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==duples.c._15code_optt).values(_20exclude='D'))
-        # self.add_log(self.file_size_type, price_code, f'D {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D')).scalar()}', cur_time)
 
-        # cur_time = datetime.datetime.now()
         # D1 не с мин. ценой среди D
         min_p_table = (select(self.TmpPrice_2._15code_optt, func.min(self.TmpPrice_2._05price).label('min_p')).
                        where(self.TmpPrice_2._20exclude=='D').group_by(self.TmpPrice_2._15code_optt))
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._15code_optt==min_p_table.c._15code_optt,
                                                    self.TmpPrice_2._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
-        # self.add_log(self.file_size_type, price_code, f'D1 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D1')).scalar()}', cur_time)
 
-        # cur_time = datetime.datetime.now()
         # D2 не с макс. кол-вом среди D1
         max_c_table = (select(self.TmpPrice_2._15code_optt, func.max(self.TmpPrice_2._04count).label('max_c')).where(self.TmpPrice_2._20exclude == 'D1').
                        group_by(self.TmpPrice_2._15code_optt))
         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._15code_optt==max_c_table.c._15code_optt,
                                                    self.TmpPrice_2._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
-        # self.add_log(self.file_size_type, price_code, f'D2 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D2')).scalar()}', cur_time)
 
-        # cur_time = datetime.datetime.now()
         # D3 не с макс. id среди D2
-        # max_id_table = sess.execute(select(func.max(self.TmpPrice_2.id).label('max_id')).where(
-        #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).scalars().all()
-        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
-        # max_id_table = select(func.max(self.TmpPrice_2.id).label('max_id')).where(
-        #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
-        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
-        # self.add_log(self.file_size_type, price_code, 'D3', cur_time)
-
-        # max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).
-        #                 where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).cte()
-        # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==max_id_table.c._01article_comp,
-        #                                                 self.TmpPrice_2._14brand_filled_in==max_id_table.c._14brand_filled_in,
-        #                                                 self.TmpPrice_2.id==max_id_table.c.max_id)).values(_20exclude='D3'))
         max_id_table = (select(self.TmpPrice_2._15code_optt, func.max(self.TmpPrice_2.id).label('max_id')).where(self.TmpPrice_2._20exclude == 'D2').
                         group_by(self.TmpPrice_2._15code_optt))
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id==max_id_table.c.max_id).values(_20exclude='D3'))
-        # self.add_log(self.file_size_type, price_code, f'D3 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D3')).scalar()}', cur_time)
 
 
-        # cur_time = datetime.datetime.now()
         sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
         dup_del = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
-        # self.add_log(self.file_size_type, price_code, 'D_', cur_time)
 
         return dup_del
 
-    # def del_duples(self, sess, price_code):
-    #     # D для всех дублей
-    #     cur_time = datetime.datetime.now()
-    #     duples = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
-    #               group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
-    #               having(func.count(self.TmpPrice_2.id) > 1))
-    #     sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==duples.c._01article_comp,
-    #                                                     self.TmpPrice_2._14brand_filled_in==duples.c._14brand_filled_in)).values(_20exclude='D'))
-    #     self.add_log(self.file_size_type, price_code, f'D {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D')).scalar()}', cur_time)
-    #     # self.add_log(self.file_size_type, price_code, 'D', cur_time)
-    #
-    #     cur_time = datetime.datetime.now()
-    #     # D1 не с мин. ценой среди D
-    #     min_p_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.min(self.TmpPrice_2._05price).label('min_p')).
-    #                    where(self.TmpPrice_2._20exclude=='D').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
-    #     sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==min_p_table.c._01article_comp,
-    #                                                     self.TmpPrice_2._14brand_filled_in==min_p_table.c._14brand_filled_in,
-    #                                                self.TmpPrice_2._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
-    #     self.add_log(self.file_size_type, price_code, f'D1 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D1')).scalar()}', cur_time)
-    #
-    #     cur_time = datetime.datetime.now()
-    #     # D2 не с макс. кол-вом среди D1
-    #     max_c_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in,
-    #                          func.max(self.TmpPrice_2._04count).label('max_c')).where(self.TmpPrice_2._20exclude == 'D1').
-    #                    group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in))
-    #     sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==max_c_table.c._01article_comp,
-    #                                                     self.TmpPrice_2._14brand_filled_in==max_c_table.c._14brand_filled_in,
-    #                                                self.TmpPrice_2._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
-    #     self.add_log(self.file_size_type, price_code, f'D2 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D2')).scalar()}', cur_time)
-    #
-    #     cur_time = datetime.datetime.now()
-    #     # D3 не с макс. id среди D2
-    #     # max_id_table = sess.execute(select(func.max(self.TmpPrice_2.id).label('max_id')).where(
-    #     #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).scalars().all()
-    #     # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
-    #     # max_id_table = select(func.max(self.TmpPrice_2.id).label('max_id')).where(
-    #     #     self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)
-    #     # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.id.in_(max_id_table)).values(_20exclude='D3'))
-    #     # self.add_log(self.file_size_type, price_code, 'D3', cur_time)
-    #
-    #     max_id_table = (select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in, func.max(self.TmpPrice_2.id).label('max_id')).
-    #                     where(self.TmpPrice_2._20exclude == 'D2').group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in)).cte()
-    #     sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp==max_id_table.c._01article_comp,
-    #                                                     self.TmpPrice_2._14brand_filled_in==max_id_table.c._14brand_filled_in,
-    #                                                     self.TmpPrice_2.id==max_id_table.c.max_id)).values(_20exclude='D3'))
-    #     self.add_log(self.file_size_type, price_code, f'D3 {sess.execute(select(func.count(self.TmpPrice_2.id)).where(self.TmpPrice_2._20exclude=='D3')).scalar()}', cur_time)
-    #
-    #
-    #     cur_time = datetime.datetime.now()
-    #     sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._20exclude=='D3').values(_20exclude=None))
-    #     dup_del = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
-    #     self.add_log(self.file_size_type, price_code, 'D_', cur_time)
-    #
-    #     return dup_del
-        # return -1
-
-    # def del_duples(self, sess, p):
-    #     # duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
-    #     #                       group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
-    #     #     func.count(self.TmpPrice_2.id) > 1)).scalars().all()
-    #     #
-    #     # self.log.add(LOG_ID, f"DP: {len(duples)}")
-    #
-    #     duples = sess.execute(select(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).
-    #     group_by(self.TmpPrice_2._01article_comp, self.TmpPrice_2._14brand_filled_in).having(
-    #         func.count(self.TmpPrice_2.id) > 1))
-    #
-    #     del_positions_2 = 0
-    #
-    #     for art, brnd in duples:
-    #         # DEL для всех повторений
-    #         sess.execute(
-    #             update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd)).values(
-    #                 _20exclude='DEL'))
-    #         # Устанавливается 'not DEL' в каждой группе повторения, если цена в группе минимальная
-    #         min_price = select(func.min(self.TmpPrice_2._05price)).where(
-    #             and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd))
-    #         sess.execute((update(self.TmpPrice_2)).where(and_(self.TmpPrice_2._20exclude == 'DEL', self.TmpPrice_2._01article_comp == art,
-    #                                                   self.TmpPrice_2._14brand_filled_in == brnd,
-    #                                                   self.TmpPrice_2._05price == min_price))
-    #                      .values(_20exclude='not DEL'))
-    #         # Среди записей с 'not DEL' ищутся записи не с максимальным кол-вом и на них устанавливается DEL
-    #         max_count = select(func.max(self.TmpPrice_2._04count)).where(
-    #             and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-    #                  self.TmpPrice_2._20exclude == 'not DEL'))
-    #         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._20exclude == 'not DEL', self.TmpPrice_2._01article_comp == art,
-    #                                                 self.TmpPrice_2._14brand_filled_in == brnd, self.TmpPrice_2._04count != max_count))
-    #                      .values(_20exclude='DEL'))
-    #         # В оставшихся группах, где совпадает мин. цена и макс. кол-вл, остаются лишь записи с максимальным id
-    #         max_id = select(func.max(self.TmpPrice_2.id)).where(
-    #             and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-    #                  self.TmpPrice_2._20exclude == 'not DEL'))
-    #         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-    #                                                 self.TmpPrice_2.id != max_id)).values(_20exclude='DEL'))
-    #
-    #         del_positions_2 += sess.query(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art,
-    #                                                                   self.TmpPrice_2._14brand_filled_in == brnd,
-    #                                                                   self.TmpPrice_2._20exclude == 'DEL')).delete()
-    #         sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == art, self.TmpPrice_2._14brand_filled_in == brnd,
-    #                                                         self.TmpPrice_2._20exclude != None)).values(_20exclude=None))
-    #     # if del_positions_2:
-    #     #     self.add_log(price_code, f"Удалено дблей: {del_positions_2}")
-    #     # sess.execute(update(self.TmpPrice_2).values(_20exclude=None))
-    #     return del_positions_2
-
     def create_csv(self, sess, price_code, start_time):
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Формирование csv ...', False)
-        # cur_time = datetime.datetime.now()
 
         try:
             df = pd.DataFrame(columns=["Ключ1 поставщика", "Артикул поставщика", "Производитель поставщика",
@@ -579,7 +395,6 @@ class CalculateClass(QThread):
             limit = CHUNKSIZE
             loaded = 0
             while True:
-                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.code_pb_p,
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
@@ -601,13 +416,7 @@ class CalculateClass(QThread):
                 df.to_csv(fr"{settings_data['exit_2_dir']}/{price_code}.csv", mode='a',
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
                 loaded += df_len
-                # print(df)
 
-            # self.add_log(self.file_size_type, price_code, 'csv сформирован', cur_time)
-
-            # cnt = sess.execute(select(func.count()).select_from(Price_1)).scalar()
-            # cnt_wo_article = sess.execute(
-            #     select(func.count()).select_from(Price_1).where(Price_1._01article == None)).scalar()
             return True
         except PermissionError:
             load_time = str(datetime.datetime.now() - start_time)[:7]
@@ -668,7 +477,8 @@ class PriceReportUpdate_2(QThread):
                 req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус стандартизации"),
                              PriceReport.row_count.label("Кол-во позиций"), PriceReport.row_wo_article.label("Позиций с пустым артикулом"),
                              PriceReport.updated_at.label("Время (1)"), PriceReport.info_message2.label("Статус обработки"),
-                             PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.row_count_2.label("Итоговое кол-во"),
+                             PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.db_added.label("Время добавления в БД"),
+                             PriceReport.row_count_2.label("Итоговое кол-во"),
                              PriceReport.del_art.label("Уд. 01Артикул"), PriceReport.del_brand.label("Уд. 14Производитель заполнен"),
                              PriceReport.del_price.label("Уд. 05Цена"), PriceReport.del_count.label("Уд. 04Количество "),
                              PriceReport.del_20.label("Уд. 20ИсключитьИзПрайса"), PriceReport.del_dupl.label("Уд. Дубли"),
@@ -678,7 +488,6 @@ class PriceReportUpdate_2(QThread):
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
                           index=False, header=True, errors='ignore')
 
-                # self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "PriceReportUpdate Error", ex_text)

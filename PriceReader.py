@@ -20,13 +20,10 @@ import openpyxl
 import xml.etree.ElementTree as ET
 import warnings
 warnings.filterwarnings('ignore')
-# from decimal import Decimal, ROUND_FLOOR
-# mp.freeze_support()
 
 import colors
 from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
                     ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings)
-# from Logs import add_log_cf
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -42,7 +39,6 @@ BASE = [Base1, Base1_1]
 
 
 class MainWorker(QThread):
-    # StartTotalTimeSignal = Signal(bool)
     UpdatePriceStatusTableSignal = Signal(int, str, str, bool)
     ResetPriceStatusTableSignal = Signal(int)
     SetProgressBarValue = Signal(int, int)
@@ -56,7 +52,6 @@ class MainWorker(QThread):
 
     def __init__(self, file_size_limit, log=None, parent=None): # threads_count=None, sender=None
         self.log = log
-        # self.sender = sender
         self.file_size_limit = file_size_limit
         if file_size_limit[0] == '>':
             self.file_size_type = 1  # 0 - light, 1 - heavy
@@ -73,20 +68,8 @@ class MainWorker(QThread):
         self.SetButtonEnabledSignal.emit(False)
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
-
-            # self.threads_count = 1
-
-            # time.sleep(1)
-            # print('C')
             try:
-                # Base.metadata.drop_all(engine)
-                # Base.metadata.create_all(engine)
-                # print('sql ok')
-                # return
-
-
                 # files = ['1FAL', '0MI1', '1IMP', '1PRD', '1VAL', '1АТХ', '1ГУД', '2AVX', '4MI0']
-
                 price_dir = settings_data["mail_files_dir"]
                 files = os.listdir(price_dir)
                 for file in files:
@@ -94,8 +77,7 @@ class MainWorker(QThread):
                         for file_in_dir in os.listdir(fr"{price_dir}\{file}"):
                             if not file_in_dir.startswith('~$'):
                                 files.append(fr"{file}\{file_in_dir}")
-                # print(files)
-                # return
+
                 new_files = []
 
                 with session() as sess:
@@ -127,8 +109,6 @@ class MainWorker(QThread):
                                                                                  f"font-weight:bold;'>{price_code}</span> Нет в условиях")
                             continue
                         elif str(standard).upper() != 'ДА':
-                            # req = update(PriceReport).where(PriceReport.price_code == price_code).values(info_message="Не указана стандартизация",
-                            #                                                                       updated_at=new_update_time)
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
                             sess.add(PriceReport(file_name=base_file_name, price_code=price_code, info_message="Не указана стандартизация",
                                                  updated_at=new_update_time))
@@ -183,11 +163,10 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['3МСК rostov_.xlsx']
+                # new_files = ['ЭНЯ0 Прайс-лист.html']
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]
-                # new_files = ['2VAL Шевелько 1.xlsx', "1VAL Шевелько 'Аккумуляторы' (XLSX).xlsx"]
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -196,35 +175,18 @@ class MainWorker(QThread):
                 if files:
                     self.log.add(LOG_ID, f"Начало обработки [{self.file_size_type+1}]") # (потоков: {self.threads_count})
                     cur_time = datetime.datetime.now()
-                    # with session() as sess:
-                    #     sess.execute(text(f"ALTER SEQUENCE sum_table_id_seq restart 1"))
-                    #     sess.execute(text(f"ALTER SEQUENCE price_1_id_seq restart 1"))
-                    #     sess.commit()
-
-                    # if len(new_files) < self.threads_count:
-                    #     self.threads_count = len(new_files)
-
-
                     self.SetTotalTome.emit(True)
-                    # self.StartTotalTimeSignal.emit(True)
-                    # self.sender.send(["new", len(files)])
 
-                    # with mp.Pool(processes=self.threads_count) as pool:
-                    #     args = [[file, self.sender, False] for file in new_files]
-                    #     pool.map(multi_calculate, args)
                     self.total_file_count = len(files)
                     self.cur_file_count = 0
                     for file in files:
                         self.multi_calculate([file, False])
                         # print(self.file_size_type, ']', file)
-                    # multi_calculate(args=['1ROS 155889.xlsx', self.sender])
 
                     self.log.add(LOG_ID, f"Обработка закончена [{str(datetime.datetime.now() - cur_time)[:7]}] [{self.file_size_type+1}]")
 
                     self.SetTotalTome.emit(False)
-                    # self.StartTotalTimeSignal.emit(False)
                     self.UpdateReportSignal.emit(1)
-                # self.log.add(1, "Начало обработки calc")
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
                                                                          f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
@@ -236,7 +198,6 @@ class MainWorker(QThread):
             except Exception as ex:
                 ex_text = traceback.format_exc()
                 self.log.error(LOG_ID, "ERROR", ex_text)
-                # self.sender.send(["error", LOG_ID, ex, "ERROR", ex_text]) # только для mp
             finally:
                 self.ResetPriceStatusTableSignal.emit(self.file_size_type)
                 self.SetTotalTome.emit(False)
@@ -273,7 +234,6 @@ class MainWorker(QThread):
                 price_code = file_name[:4]
             else:
                 price_code = custom_price_code
-            # sender.send(["add", mp.current_process().name, price_code, 1, f"Загрузка сырых дынных...", True])
             self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Загрузка сырых дынных...", True)
 
             path_to_price = fr"{settings_data['mail_files_dir']}/{file_path}"
@@ -283,18 +243,6 @@ class MainWorker(QThread):
             start_calc_price_time = datetime.datetime.now()
             cur_time = datetime.datetime.now()
 
-            # inspct = inspect(engine)
-            # if inspct.has_table(self.TmpPrice_1.__tablename__):
-            #     self.TmpPrice_1.__table__.drop(engine)
-            # if inspct.has_table(self.TmpSum.__tablename__):
-            #     self.TmpSum.__table__.drop(engine)
-
-            # try:
-            #     Base.metadata.create_all(engine)
-            # except:
-            #     pass
-
-            # print(f"[{self.file_size_type}] {}")
 
             inspct = inspect(engine)
             if inspct.has_table(self.TmpPrice_1.__tablename__):
@@ -327,7 +275,6 @@ class MainWorker(QThread):
                     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
                         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
                     sess.commit()
-                    # add_log_cf(LOG_ID, f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
                     self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
                     return
 
@@ -338,13 +285,12 @@ class MainWorker(QThread):
                     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
                         info_message=f"Нет настроек", updated_at=new_update_time))
                     sess.commit()
-                    # add_log_cf(LOG_ID, f"Нет настроек ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
                     self.add_log(self.file_size_type, price_code, f"Нет настроек ({self.cur_file_count}/{self.total_file_count})", cur_time)
                     return
 
                 # сопоставление столлцов
                 try:
-                    id_settig, rc_dict, new_frmt, reason = self.get_setting_id(price_table_settings, frmt, path_to_price)
+                    id_settig, rc_dict, new_frmt, reason = self.get_setting_id(sess, price_table_settings, frmt, path_to_price, price_code)
                     if not id_settig:
                         self.cur_file_count += 1
                         if reason:
@@ -352,7 +298,6 @@ class MainWorker(QThread):
                         sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
                             info_message=f"Нет подходящих настроек столбцов {reason}", updated_at=new_update_time))
                         sess.commit()
-                        # add_log_cf(LOG_ID, f"Нет подходящих настроек столбцов {reason} ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
                         self.add_log(self.file_size_type, price_code,
                                      f"Нет подходящих настроек столбцов {reason} ({self.cur_file_count}/{self.total_file_count})", cur_time)
                         return
@@ -361,10 +306,7 @@ class MainWorker(QThread):
                     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
                         info_message="Ошибка формата", updated_at=new_update_time))
                     sess.commit()
-                    # add_log_cf(LOG_ID, "Ошибка формата", sender, price_code, color)
-                    # sender.send(["log", LOG_ID, f"{price_code} Ошибка формата ({self.cur_file_count}/{self.total_file_count})",
-                    #              f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                    #              f"{price_code}</span> Ошибка формата  "])
+
                     self.add_log(self.file_size_type, price_code, f"Ошибка формата", cur_time)
                     raise val_ex
                     # return
@@ -374,6 +316,10 @@ class MainWorker(QThread):
 
                 # загрузка сырых данных
                 sett = sess.get(FileSettings, {'id': id_settig})
+
+                if new_frmt == 'tmp_csv':  # для html ЭНЯ0
+                    path_to_price = f"tmp_{self.file_size_type}.csv"
+                    frmt = 'csv'
 
                 if new_frmt == 'xml':
                     loaded = self.load_data_from_xml_to_db(rc_dict, path_to_price, price_code, sess)
@@ -397,62 +343,36 @@ class MainWorker(QThread):
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 ...", False)
 
-                # sess.execute(update(Price_1).where(func.nullif(Price_1.article_s, '')).values(article_s=None))
-                # sess.execute(update(Price_1).where(Price_1.brand_s.like('')).values(brand_s=None))
-                # sess.execute(update(Price_1).where(func.length(Price_1.brand_s) == 0).values(brand_s=None))
-                # sess.execute(update(Price_1).where(Price_1.brand_s == ' ').values(brand_s=None))
-                # sess.execute(update(Price_1).where(func.trim(Price_1.brand_s) == '').values(brand_s=None))
-                # x_null = sess.query(Price_1).filter(Price_1.name_s == 'Отвертка 3-х лучевая, 6мм.').all()
-                # x_null = sess.query(Price_1).where(func.length(Price_1.brand_s) == 1).all()
-                # print(len(x_null))
-                # print(f"|{x_null[0].brand_s}|")
-                # regexp_replace(';', ',', 'g')
-                # sess.execute(text(f"update {Price_1.__tablename__} set brand_s = NULL where brand_s = ''"))
-                # sess.execute(text(f"update {Price_1.__tablename__} set brand_s = NULL where brand_s = ''"))
-                # sess.execute(text("update price_1 set brand_s = NULL where brand_s like ''"))
-                # sess.execute(update(Price_1).where(Price_1.brand_s.is_('')).values(brand_s=None))
-
-                # n_dt = datetime.datetime.now()
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
                 if sett.replace_brand_s:
                     sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s==None).values(_02brand=sett.replace_brand_s))
                 # print(f"замена пустых бренд {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
                 self.suppliers_goods_compare(price_code, sett, sess)
                 # print(f"исправление товаров поставщиков {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # замена ; на ,
                 text_cols = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
                              self.TmpPrice_1.currency_s, self.TmpPrice_1.notice_s]
                 for c in text_cols:
                     sess.execute(update(self.TmpPrice_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
-                # print(f"замена ; на , {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # Исправление Номенклатуры
                 self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
-                # print(f"Исправление Номенклатуры {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 01Артикул
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
                 sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
                                                      .regexp_replace('^ | $', '', 'g'))))
                 sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W', '', 'g'))))
-                # print(f"01Артикул {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 02Производитель
                 sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W', '', 'g'))))
                 sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1.brand_s_low == Brands.brand_low,
                                                         self.TmpPrice_1._02brand == None)).values(_02brand=Brands.correct_brand))
-                # print(f"02Производитель {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 14Производитель заполнен
                 sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
                 # print(f"14Производитель заполнен {datetime.datetime.now() - n_dt}")
@@ -462,48 +382,36 @@ class MainWorker(QThread):
                 # Изменение цены по условиям (Цена поставщика)
                 # apply_discount(sess, price_code, 'Цена поставщика')
 
-                # n_dt = datetime.datetime.now()
                 # 03Наименование
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
                 sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace(' +', ' ', 'g')
                                      .regexp_replace('^ | $', '', 'g')))
                 # print(f"03Наименование {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 04Количество
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s-self.TmpPrice_1._04count))
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
-                # print(f"04Количество {datetime.datetime.now() - n_dt}")
 
-                sess.commit()#sess.flush()
-                # add_log_cf(LOG_ID, "Обработка 1, 2, 3, 4, 14 завершена", sender, price_code, color, cur_time)
+                sess.commit()  #sess.flush()
                 self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 5, 6, 12, 15, 17, 18, 20 ..."])
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 ...", False)
 
-                # n_dt = datetime.datetime.now()
                 # 05Цена
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s))
-                # print(f"05Цена {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # для валют
                 sess.execute(update(self.TmpPrice_1).where(
                     and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
                              .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate))
-                # print(f"для валют {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 12Сумма
                 # numeric_max = 9999999999 # numeric 12,2
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s < numeric_max).
                 #              values(_12sum=self.TmpPrice_1.count_s * self.TmpPrice_1.price_s))
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
-                # print(f"12Сумма {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # Настройка строк: Вариант изменения цены
                 if sett.change_price_type in ("- X %", "+ X %"):
                     percent = None
@@ -513,46 +421,34 @@ class MainWorker(QThread):
                         pass
                     if percent:
                         sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1._05price * (1+percent)))
-                # print(f"Настройка строк {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # Изменение цены по условиям (05Цена)
                 self.apply_discount(sess, price_code)
                 # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 06Кратность
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._06mult == None).values(_06mult=self.TmpPrice_1.mult_s))
                 sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
                 # print(f"06Кратность {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 15КодТутОптТорг
                 sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
                                                             regexp_replace(r"\W|_", "", 'g'))) # func.upper
-                # print(f"15КодТутОптТорг {datetime.datetime.now() - n_dt}")
                 self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
-                # n_dt = datetime.datetime.now()
+
                 # 20ИсключитьИзПрайса
                 self.words_except(sess, price_code)
-                # print(f"20ИсключитьИзПрайса {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 17КодУникальности
                 sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
-                # print(f"17КодУникальности {datetime.datetime.now() - n_dt}")
 
-                # n_dt = datetime.datetime.now()
                 # 18КороткоеНаименование
                 sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
-                # print(f"18КороткоеНаименование {datetime.datetime.now() - n_dt}")
 
-                sess.commit()#sess.flush()
-                # add_log_cf(LOG_ID, "Обработка 5, 6, 12, 15, 17, 18, 20 завершена", sender, price_code, color, cur_time)
+                sess.commit()  #sess.flush()
                 self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 13 ..."])
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
 
                 # 13Градация
@@ -564,12 +460,11 @@ class MainWorker(QThread):
                     and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
 
                 sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
-                sess.commit()#sess.flush()
+                sess.commit()  #sess.flush()
 
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
                 sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
 
-                # add_log_cf(LOG_ID, "Обработка 13 завершена", sender, price_code, color, cur_time)
                 self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
@@ -587,15 +482,12 @@ class MainWorker(QThread):
                                  "17КодУникальности": self.TmpPrice_1._17code_unique,
                                  "18КороткоеНаименование": self.TmpPrice_1._18short_name,
                                  }
-                # "12Сумма": self.TmpPrice_1._12sum,
                 sess.commit()
                 self.cur_file_count += 1
                 # to csv
                 if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
                     return
 
-                # cur_time = datetime.datetime.now()
-                # sender.send(["add", mp.current_process().name, price_code, 1, f"Запись обработанных данных в БД ..."])
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
                 # self.TmpPrice_1._12sum,
@@ -608,8 +500,6 @@ class MainWorker(QThread):
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
-
-                # add_log_cf(LOG_ID, "Запись обработанных данных в БД завершена", sender, price_code, color, cur_time)
 
                 # дочерние прайсы
                 children_prices = sess.execute(select(distinct(FileSettings.price_code))
@@ -630,79 +520,11 @@ class MainWorker(QThread):
 
             self.TmpPrice_1.__table__.drop(engine)
             self.TmpSum.__table__.drop(engine)
-                # sess.commit()
-            # print(f"{children_prices=}")
 
-
-                    # csv_cols_dict = {"Ключ1 поставщика": Price_1.key1_s, "Артикул поставщика": Price_1.article_s,
-                #                      "Производитель поставщика": Price_1.brand_s, "Наименование поставщика": Price_1.name_s,
-                #                      "Количество поставщика": Price_1.count_s, "Цена поставщика": Price_1.price_s,
-                #                      "ВалютаП": Price_1.currency_s, "Кратность поставщика": Price_1.mult_s,
-                #                      "Примечание поставщика": Price_1.notice_s,
-                #                      }
-                #     cols_for_total.pop(Price_1.id)
-                #     cols_for_total.pop(Price_1._07supplier_code)
-                #     cols_for_total.pop(Price_1._20exclude)
-                #
-                    # for children_price in children_prices:
-                    #     # print(children_price)
-                #         dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
-                #         sess.execute(insert(Price_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
-                #         words_except(sess, Price_1, children_price)
-                #
-                #         sess.query(Price_1).where(
-                #             and_(Price_1._07supplier_code == children_price, Price_1._20exclude != None)).delete()
-                #
-                #         create_children_csv(sess, sender, children_price, csv_cols_dict, color, price_code)
-                #
-                #         sess.query(Price_1).where(Price_1._07supplier_code == children_price).delete()
-
-                        # start_calc_price_time = datetime.datetime.now()
-                        # req = select(PriceReport).where(PriceReport.price_code == children_price)
-                        # is_report_exists = sess.execute(req).scalar()
-                        # if not is_report_exists:
-                        #     sess.add(PriceReport(file_name=file_name, price_code=children_price))
-                        #
-                        # # if not check_price_time(price_code, file_name, sender, sess):
-                        # #     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                        # #         info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                        # #     sess.commit()
-                        # #     add_log_cf(LOG_ID, "Не подходит по сроку обновления", sender, children_price, color)
-                        # #     continue
-                        #
-                        # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == children_price).delete()
-                        # dupl = select(func.concat(children_price).label('_07supplier_code'), *cols_for_total.keys()).where(Price_1._07supplier_code == price_code)
-                        # sess.execute(insert(TotalPrice_1).from_select(['_07supplier_code', *cols_for_total.values()], dupl))
-                        # words_except(sess, TotalPrice_1, children_price)
-                        # sess.query(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == children_price, TotalPrice_1._20exclude != None)).delete()
-                        #
-                        #
-                        #
-                        # create_csv(sess, sender, children_price, csv_cols_dict, color, start_calc_price_time,
-                        #            datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"), add_text=f"(родитель: {price_code})")
-
-                        # print(cols_for_total)
-                        # break
-
-                # sess.rollback()
-                # cur_time = datetime.datetime.now()
-                # sender.send(["add", mp.current_process().name, price_code, 1, f"Удаление временных таблиц ..."])
-                # self.TmpPrice_1.__table__.drop(engine)
-                # self.TmpSum.__table__.drop(engine)
-                # add_log_cf(LOG_ID, "Временные таблицы удалены", sender, price_code, color, cur_time)
-
-                # total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-                # sender.send(
-                #     ["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-                #      f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                #      f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-                #      f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
         except Exception as ex:
             ex_text = traceback.format_exc()
-            # sender.send(["error", LOG_ID, f"ERROR ({file_name})", ex_text])
             self.log.error(LOG_ID, "ERROR", ex_text)
         finally:
-            # sender.send(["end", mp.current_process().name, True if custom_price_code else False])
             self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count)  # +1
 
         if children_prices:
@@ -713,7 +535,6 @@ class MainWorker(QThread):
 
     def check_price_time(self, price_code, file_path, sess):
         '''Расчёт рабочих дней с последнего изменения прайса'''
-
 
         d1 = datetime.datetime.fromtimestamp(os.path.getmtime(fr"{settings_data['mail_files_dir']}/{file_path}"))
         d2 = datetime.datetime.today()
@@ -753,7 +574,7 @@ class MainWorker(QThread):
             return 0
         return 1
 
-    def get_setting_id(self, price_table_settings, frmt, path_to_price):
+    def get_setting_id(self, sess, price_table_settings, frmt, path_to_price, price_code):
         id_settig = None
         rc_dict = dict()
         new_frmt = None
@@ -814,6 +635,22 @@ class MainWorker(QThread):
             elif frmt == 'csv':
                 table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251', nrows=max_row,
                                     encoding_errors='ignore')
+            elif frmt == 'html':
+                try:
+                    mails = sess.execute(select(FileSettings.email).where(FileSettings.price_code==price_code)).scalars().all()
+                    if 'weichaibux@yandex.ru' in mails:
+                        df = pd.read_html(path_to_price)
+                        write_mode = 'w'
+                        for d in df:
+                            d.to_csv(f'tmp_{self.file_size_type}.csv', mode=write_mode, sep=';', decimal=',',
+                                     encoding="windows-1251", index=False, errors='ignore', header=None)
+                            write_mode = 'a'
+
+                        table = pd.read_csv(f'tmp_{self.file_size_type}.csv', header=None, sep=';', encoding='windows-1251',
+                                            nrows=max_row, encoding_errors='ignore')
+                        new_frmt = 'tmp_csv'
+                except:
+                    pass
 
             # для XML
             if table.empty and frmt in ('xls', 'xml'):
@@ -1091,94 +928,8 @@ class MainWorker(QThread):
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.mult_s != 0)).values(_06mult=SupplierGoodsFix.mult_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(_20exclude=SupplierGoodsFix.sales_ban))
 
-    # def cols_fix(self, price_code, sess, keys):
-    #     cols_name = {"01Артикул": [self.TmpPrice_1.article_s, "_01article"], "03Наименование": [self.TmpPrice_1.name_s, "_03name"],
-    #                  "Примечание поставщика": [self.TmpPrice_1.notice_s, "notice_s"],
-    #                  "06Кратность": [self.TmpPrice_1._06mult, "_06mult"],
-    #                  "15КодТутОптТорг": [self.TmpPrice_1._15code_optt, "_15code_optt"],
-    #                  }
-    #     cols_name = {k: cols_name[k] for k in keys}
-    #     custom_cols = {"Ключ1 поставщика": self.TmpPrice_1.key1_s.__dict__['name'],
-    #                    "Артикул поставщика": self.TmpPrice_1.article_s.__dict__['name'],
-    #                    "Производитель поставщика": self.TmpPrice_1.brand_s.__dict__['name'],
-    #                    "Наименование поставщика": self.TmpPrice_1.name_s.__dict__['name'],
-    #                    "Количество поставщика": self.TmpPrice_1.count_s.__dict__['name'],
-    #                    "Цена поставщика": self.TmpPrice_1.price_s.__dict__['name'],
-    #                    "Валюта поставщика": self.TmpPrice_1.currency_s.__dict__['name'], }
-    #     change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
-    #                     "Содержит": [lambda tb, x: tb.contains(x), '{}'],
-    #                     "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
-    #                     "Равно": [lambda tb, x: tb == x, '{}$'],
-    #                     "Не равно": [lambda tb, x: tb != x, '{}$'],
-    #                     "Добавить в конце": True,
-    #                     "Добавить в начале": True,
-    #                     }
-    #     req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name.keys())))
-    #     cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
-    #
-    #     for cs in cols_settings:
-    #         # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
-    #         change_type = change_types.get(cs.change_type, None)
-    #         col_name = cols_name.get(cs.col_change, None)
-    #         # print(f"{change_type}|{col_name}")
-    #         if change_type and col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
-    #             if cs.change_type in ("Добавить в конце", "Добавить в начале"):
-    #                 change = cs.set
-    #                 not_null_check = "and "
-    #
-    #                 for c in custom_cols:
-    #                     new_change = re.sub(c, f"',{custom_cols[c]},'", change)
-    #                     if new_change != change:
-    #                         change = new_change
-    #                         not_null_check += f"{custom_cols[c]} is not NULL and "
-    #
-    #                 if change.startswith("',"):
-    #                     change = change[2:]
-    #                 else:
-    #                     change = f"'{change}"
-    #                 if change.endswith(",'"):
-    #                     change = change[:-2]
-    #                 else:
-    #                     change = f"{change}'"
-    #                 # print(change)
-    #                 if not_null_check != "and ":
-    #                     not_null_check = not_null_check[:-5]
-    #                 else:
-    #                     not_null_check = ''
-    #
-    #                 if cs.change_type == "Добавить в конце":
-    #                     add_order = f"{cols_name[cs.col_change][0].__dict__['name']}, {change}"
-    #                 else:
-    #                     add_order = f"{change},{cols_name[cs.col_change][0].__dict__['name']}"
-    #
-    #                 sess.execute(text(f"update {self.TmpPrice_1.__tablename__} set {cols_name[cs.col_change][1]} = "
-    #                                   f"CONCAT({add_order}) "
-    #                                   f"where _07supplier_code = '{price_code}' {not_null_check}"))
-    #                 # return
-    #                 # pb = func.concat(Price_1.brand_s, ' ', func.cast(change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s), String))
-    #                 # req = update(Price_1).where(Price_1._07supplier_code == price_code
-    #                 #                             ).values({cols_name[a.col_name][1]: func.concat(cols_name[a.col_name][0],
-    #                 #                                                                             # pb
-    #                 #                         # change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s)
-    #                 #                                                                             )
-    #                 # })
-    #                 sess.execute(req)
-    #             elif cs.col_change == '06Кратность':
-    #                 req = update(self.TmpPrice_1).where(change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find)
-    #                 ).values({cols_name[cs.col_change][1]: int(cols_name[cs.col_change][0])})
-    #                 sess.execute(req)
-    #             else:
-    #                 req = update(self.TmpPrice_1).where(change_type[0](str(cols_name[cs.col_change][0]).upper(), cs.find)
-    #                 ).values({cols_name[cs.col_change][1]: cols_name[cs.col_change][0].
-    #                          regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
-    #                 sess.execute(req)
 
     def cols_fix(self, price_code, sess, keys):
-        # cols_name = {"01Артикул": [self.TmpPrice_1.article_s, "_01article"], "03Наименование": [self.TmpPrice_1.name_s, "_03name"],
-        #              "Примечание поставщика": [self.TmpPrice_1.notice_s, "notice_s"],
-        #              "15КодТутОптТорг": [self.TmpPrice_1._15code_optt, "_15code_optt"],
-        #              "06Кратность": [self.TmpPrice_1._06mult, "_06mult"],
-        #              }
         cols_name_find = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
                      "Производитель поставщика": self.TmpPrice_1.brand_s,
                      "Наименование поставщика": self.TmpPrice_1.name_s, "Валюта поставщика": self.TmpPrice_1.currency_s,
@@ -1334,8 +1085,6 @@ class MainWorker(QThread):
 
 
     def create_csv(self, sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
-        # cur_time = datetime.datetime.now()
-        # sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Формирование csv...", False)
 
         try:
@@ -1356,36 +1105,18 @@ class MainWorker(QThread):
                 df.to_csv(fr"{settings_data['exit_1_dir']}/{price_code}.csv", mode='a',
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
                 loaded += df_len
-                # print(df)
-            # add_log_cf(LOG_ID, "csv сформирован", sender, price_code, color, cur_time)
-            # self.add_log(self.file_size_type, price_code, "csv сформирован", cur_time)
 
-            # total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-            # sender.send(["log", LOG_ID, f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-            #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-            #              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-            #              f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]"])
-            # self.log.add(LOG_ID,
-            #              f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-            #              f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-            #              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-            #              f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
             cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_1)).scalar()
             cnt_wo_article = sess.execute(select(func.count()).select_from(self.TmpPrice_1).where(self.TmpPrice_1._01article == None)).scalar()
             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
                          .values(info_message="Ок", updated_at=new_update_time, row_count=cnt, row_wo_article=cnt_wo_article))
             return True
         except PermissionError:
-            # sender.send(["log", LOG_ID, f"Не удалось сформировать прайс {price_code} ({self.cur_file_count}/{self.total_file_count})",
-            #              f"<span style='color:{colors.orange_log_color};'>Не удалось сформировать прайс</span> "
-            #              f"<span style='background-color:hsl({color[0]}, {color[1]}%, {color[2]}%);'>"
-            #              f"{price_code}</span> ({self.cur_file_count}/{self.total_file_count})"])
             self.log.add(LOG_ID,
                          f"Не удалось сформировать прайс {price_code} ({self.cur_file_count}/{self.total_file_count})",
                          f"<span style='color:{colors.orange_log_color};'>Не удалось сформировать прайс</span> "
                          f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
                          f"{price_code}</span> ({self.cur_file_count}/{self.total_file_count})")
-            # self.add_log(self.file_size_type, price_code, f"Ошибка формата", cur_time)
             return False
 
     def add_log(self, row_id, price_code, msg, cur_time=None, new_row=False):
@@ -1405,31 +1136,6 @@ class MainWorker(QThread):
             self.log.add(LOG_ID, log_text.format('', '', price=price_code, log_main_text=msg),
                          log_text.format(f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>",
                                          '</span>', price=price_code, log_main_text=msg))
-# def create_children_csv(sess, sender, price_code, csv_cols_dict, color, parent_price_code):
-#     cur_time = datetime.datetime.now()
-#     sender.send(["add", mp.current_process().name, price_code, 1, f"Формирование csv..."])
-#
-#     try:
-#         df = pd.DataFrame(columns=csv_cols_dict.keys())
-#         df.to_csv(fr"{settings_data['mail_files_dir']}/{price_code} дочерний парйс {parent_price_code}.csv", sep=';', decimal=',',
-#                   encoding="windows-1251", index=False, errors='ignore')
-#
-#         limit = CHUNKSIZE
-#         loaded = 0
-#         while True:
-#             req = (select(*[csv_cols_dict[k].label(k) for k in csv_cols_dict]).order_by(Price_1._17code_unique).offset(loaded).limit(limit))
-#             df = pd.read_sql_query(req, sess.connection(), index_col=None)
-#             df_len = len(df)
-#             if not df_len:
-#                 break
-#             df.to_csv(fr"{settings_data['mail_files_dir']}/{price_code} дочерний парйс {parent_price_code}.csv", mode='a',
-#                       sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
-#             loaded += df_len
-#             # print(df)
-#             add_log_cf(LOG_ID, "сырой дочерний csv сформирован", sender, price_code, color, cur_time)
-#             return True
-#     except PermissionError:
-#         return False
 
 def to_int(x):
     try:
@@ -1484,7 +1190,8 @@ class PriceReportUpdate(QThread):
                 req = select(PriceReport.price_code.label("Код прайса"), PriceReport.info_message.label("Статус стандартизации"),
                              PriceReport.row_count.label("Кол-во позиций"), PriceReport.row_wo_article.label("Позиций с пустым артикулом"),
                              PriceReport.updated_at.label("Время (1)"), PriceReport.info_message2.label("Статус обработки"),
-                             PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.row_count_2.label("Итоговое кол-во"),
+                             PriceReport.updated_at_2_step.label("Время (2)"), PriceReport.db_added.label("Время добавления в БД"),
+                             PriceReport.row_count_2.label("Итоговое кол-во"),
                              PriceReport.del_art.label("Уд. 01Артикул"), PriceReport.del_brand.label("Уд. 14Производитель заполнен"),
                              PriceReport.del_price.label("Уд. 05Цена"), PriceReport.del_count.label("Уд. 04Количество "),
                              PriceReport.del_20.label("Уд. 20ИсключитьИзПрайса"), PriceReport.del_dupl.label("Уд. Дубли"),
@@ -1494,7 +1201,6 @@ class PriceReportUpdate(QThread):
                 df.to_csv(fr"{settings_data['catalogs_dir']}/{REPORT_FILE}", sep=';', encoding="windows-1251",
                           index=False, header=True, errors='ignore')
 
-                # self.log.add(LOG_ID, f"Отчёт обновлён", f"<span style='color:{colors.green_log_color};'>Отчёт обновлён</span>  ")
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "PriceReportUpdate Error", ex_text)
