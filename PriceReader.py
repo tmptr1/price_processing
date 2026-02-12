@@ -87,6 +87,8 @@ class MainWorker(QThread):
                         base_file_name = os.path.basename(file)
                         if file.startswith('~$'):
                             continue
+                        if file == 'Thumbs.db':  # системный файл
+                            continue
                         file_name = '.'.join(base_file_name.split('.')[:-1])
                         if len(file_name) < 4:
                             continue
