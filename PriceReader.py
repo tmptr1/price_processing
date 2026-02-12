@@ -151,15 +151,15 @@ class MainWorker(QThread):
                             new_files.append(file)
 
                     # Удаление неактуальных прайсов (сохранение != ДА)
-                    loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
-                    actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
-                    useless_prices = (loaded_prices-actual_prices)
-                    if useless_prices:
-                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
-                        cur_time = datetime.datetime.now()
-                        sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
-                        self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
-                    sess.commit()
+                    # loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
+                    # actual_prices = set(sess.execute(select(FileSettings.price_code).where(func.upper(FileSettings.save) == 'ДА')).scalars().all())
+                    # useless_prices = (loaded_prices-actual_prices)
+                    # if useless_prices:
+                    #     self.log.add(LOG_ID, f"Удаление неактуальных прайсов")
+                    #     cur_time = datetime.datetime.now()
+                    #     sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                    #     self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                    # sess.commit()
 
                 # print(f"{new_files=}")
                 # return

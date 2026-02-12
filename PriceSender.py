@@ -20,6 +20,7 @@ import datetime
 import re
 import os
 import shutil
+from zipfile import ZipFile, ZIP_DEFLATED
 import random
 
 from tg_users_id import USERS, TG_TOKEN
@@ -667,21 +668,35 @@ class Sender(QThread):
                     s.starttls()
                     s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
 
-                    file_path = fr"{settings_data['send_dir']}\{self.file_name}"
+                    if self.price_settings.file_extension == 'zip':
+                        file_path_csv = fr"{settings_data['send_dir']}/{self.file_name}"
+                        file_path_zip = fr"{settings_data['send_dir']}/{os.path.splitext(self.file_name)[0]}.zip"
+                        with ZipFile(file_path_zip, 'w', compression=ZIP_DEFLATED) as zf:
+                            zf.write(file_path_csv, arcname=os.path.basename(file_path_csv))
 
-                    with open(file_path, 'rb') as f:
-                        # file = MIMEApplication(f.read())
-                        file = MIMEBase('application', 'vnd.ms-excel')
-                        file.set_payload(f.read())
+                        with open(file_path_zip, 'rb') as f:
+                            file = MIMEApplication(f.read())
 
-                    encoders.encode_base64(file)
-                    file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-                    msg.attach(file)
+                        file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path_zip))
+                        msg.attach(file)
 
-                    s.sendmail(msg["From"], send_to, msg.as_string())
+                        s.sendmail(msg["From"], send_to, msg.as_string())
 
-                    shutil.copy(fr"{settings_data['send_dir']}/{self.file_name}",
-                                fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+                        shutil.copy(file_path_csv, fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+                    else:
+                        file_path = fr"{settings_data['send_dir']}/{self.file_name}"
+                        with open(file_path, 'rb') as f:
+                            file = MIMEBase('application', 'vnd.ms-excel')
+                            file.set_payload(f.read())
+
+                        encoders.encode_base64(file)
+                        file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                        msg.attach(file)
+
+                        s.sendmail(msg["From"], send_to, msg.as_string())
+
+                        shutil.copy(file_path, fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
+
                 except Exception as mail_ex:
                     raise mail_ex
                 finally:

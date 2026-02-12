@@ -513,8 +513,9 @@ class CatalogUpdate(QThread):
                 table_name = 'buyers_form'
                 table_class = BuyersForm  # "markup": ["Доп наценка"],
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
-                        "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "buyer_price_code": ["Код прайса покупателя"],
-                        "main_price": ["Основной прайс"], "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
+                        "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
+                        "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
+                        "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
                         "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
                         "us_set": ["Установить УС"], "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
@@ -610,7 +611,9 @@ class CatalogUpdate(QThread):
             useless_prices = (loaded_prices - actual_prices)
             # print(useless_prices)
             if useless_prices:
+                self.log.add(LOG_ID, f"Не обрабатываем или не работаем: {useless_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
+                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
@@ -619,14 +622,19 @@ class CatalogUpdate(QThread):
                      SupplierPriceSettings.update_time > 0,
                      PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
             if expired_prices:
+                self.log.add(LOG_ID, f"Не подходят по сроку обновления: {expired_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
+                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(expired_prices)).delete()
                 sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message="Не подходит по сроку обновления"))
                 self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
                              f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
             sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
+            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок')).values(updated_at=None))
             sess.commit()
+
+
 
             if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
                 return

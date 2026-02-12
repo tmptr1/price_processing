@@ -816,6 +816,8 @@ class BuyersForm(Base):
     price_name: Mapped[str_x(150)]
     # Имя файла
     file_name: Mapped[str_x(150)]
+    # Расширение файла
+    file_extension: Mapped[str_x(20)]
     # Код прайса покупателя
     buyer_price_code: Mapped[str_x(20)]
     # Основной прайс
