@@ -221,7 +221,7 @@ class Sender(QThread):
                                                               TotalPrice_2._07supplier_code.in_(allow_prices)))
             sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
 
-            sess.commit()
+            # sess.commit()
 
             sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
                 FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
