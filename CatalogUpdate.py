@@ -56,8 +56,8 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
-                # self.update_price_settings_catalog_3_0()
-                # return
+                self.update_price_settings_catalog_3_0()
+                return
                 # with session() as sess:
                 #     working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(
                 #         func.upper(SupplierPriceSettings.works) == 'ДА')).scalars().all()
@@ -513,14 +513,15 @@ class CatalogUpdate(QThread):
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
                 table_name = 'buyers_form'
-                table_class = BuyersForm  # "markup": ["Доп наценка"],
+                table_class = BuyersForm
+                # "us_set": ["Установить УС"],
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
                         "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
                         "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
                         "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
                         "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
-                        "us_set": ["Установить УС"], "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
+                        "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
                         "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
                         "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
                         "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],

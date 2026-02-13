@@ -839,7 +839,7 @@ class BuyersForm(Base):
     # Уровень сервиса не ниже
     us_above: Mapped[real]
     # Установить УС
-    us_set: Mapped[real]
+    # us_set: Mapped[real]
     # Динамика ВП
     vp_dynamic: Mapped[real]
     # Динамика Вал
