@@ -159,7 +159,7 @@ class MainWorker(QThread):
                     #     cur_time = datetime.datetime.now()
                     #     sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
                     #     self.log.add(LOG_ID, f"Удаление неактуальных прайсов завершено [{str(datetime.datetime.now() - cur_time)[:7]}]")
-                    # sess.commit()
+                    sess.commit()
 
                 # print(f"{new_files=}")
                 # return

@@ -56,6 +56,8 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
+                # self.update_price_settings_catalog_3_0()
+                # return
                 # with session() as sess:
                 #     working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(
                 #         func.upper(SupplierPriceSettings.works) == 'ДА')).scalars().all()

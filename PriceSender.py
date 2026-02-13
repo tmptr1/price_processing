@@ -83,7 +83,7 @@ class Sender(QThread):
                                     # print(p.buyer_price_code, t)
 
                                     if t_now > t and (not last_update or last_update < t):
-                                        price_name_list.append(p.price_name)
+                                        price_name_list.append(p.id)
                                         break
                                 except:
                                     pass
@@ -99,9 +99,9 @@ class Sender(QThread):
                     self.StartCreationSignal.emit(True)
                     start_creating = datetime.datetime.now()
                     self.log.add(LOG_ID, f"Начало формирования ...")
-                    for name in price_name_list:
+                    for id in price_name_list:
                         try:
-                            self.create_price(name)
+                            self.create_price(id)
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
@@ -164,7 +164,7 @@ class Sender(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "ERROR:", ex_text)
 
-    def create_price(self, name):
+    def create_price(self, id):
         start_time = datetime.datetime.now()
         cur_time = datetime.datetime.now()
         self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
@@ -184,7 +184,7 @@ class Sender(QThread):
             sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
             # sess.execute(text(f"ALTER TABLE {FinalPriceDuplDel.__tablename__} SET (autovacuum_enabled = false);"))
             sess.commit()
-            self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.price_name == name,
+            self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.id == id,
                                                                              func.upper(BuyersForm.included)=='ДА'))).scalar()
             self.add_log(self.price_settings.buyer_price_code,f" ...")
 
@@ -285,7 +285,7 @@ class Sender(QThread):
             if self.send_time:
                 if (datetime.datetime.now()-self.send_time) < datetime.timedelta(seconds=15*60):
                     recent_sent = True
-            # self.send_time = None
+
             self.new_info_msg = None
             self.new_send_time = None
             if total_rows == 0:
