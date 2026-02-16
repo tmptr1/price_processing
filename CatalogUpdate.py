@@ -638,6 +638,10 @@ class CatalogUpdate(QThread):
 
 
             if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+
+                sess.commit()
                 return
 
             # Обновление данных в total по новым 3.0 Условия
