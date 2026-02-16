@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['ЭНЯ0 Прайс-лист.html']
+                # new_files = ['TKTZ Печать.xls']
                 # new_files = ['ЭНЯ0 Прайс-лист.xlsx']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]

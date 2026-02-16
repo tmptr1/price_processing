@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = ["2 Прайс ПРИЧАЛ", ]
+                # price_name_list = [10, ]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -396,6 +396,7 @@ class Sender(QThread):
         return cnt
 
     def get_allow_prises(self, sess):
+        all_prices = set(sess.execute(select(Data07.setting)).scalars().all())
         allow_prices = set(sess.execute(select(Data07.setting).where(and_(Data07.access_pp.like(f"%{self.price_settings.buyer_price_code}%")),
                              SupplierPriceSettings.price_code==Data07.setting, func.upper(SupplierPriceSettings.works)=='ДА', func.upper(SupplierPriceSettings.calculate)=='ДА',
                                                                      PriceReport.price_code==Data07.setting, PriceReport.info_message2=='Ок')).scalars().all())
@@ -410,7 +411,12 @@ class Sender(QThread):
             if datetime_check(weekday, price.days):
                 allow_prices_wd.add(price.setting)
 
+        self.add_log(self.price_settings.buyer_price_code, f"{allow_prices_wd=}")
         allow_prices = allow_prices & allow_prices_wd
+
+        self.add_log(self.price_settings.buyer_price_code, f"{allow_prices=}")
+        self.add_log(self.price_settings.buyer_price_code, f"Не прошли: {all_prices-allow_prices}")
+
 
         return select(Data07.setting).where(Data07.setting.in_(allow_prices))
 
