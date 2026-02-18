@@ -56,15 +56,24 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
+                # self.update_DB_3()
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_3_0()
                 # self.update_price_settings_catalog_4_0_cond()
                 # return
                 # with session() as sess:
+                #     # engine.autocommit = True
+                #     cur_time = datetime.datetime.now()
+                #     self.log.add(LOG_ID, f"vacuum ...",
+                #                  f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> ... ")
+                #     sess.execute(text('VACUUM FULL'))
+                #     self.log.add(LOG_ID, f"vacuum завершен [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                #                  f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> завершен "
+                #                  f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                    # sess.commit()
                 #     working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(
                 #         func.upper(SupplierPriceSettings.works) == 'ДА')).scalars().all()
                 #     sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
-                #     sess.commit()
                 # return
                 self.update_orders_table()
                 self.send_tg_notification()
@@ -664,6 +673,8 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Не обрабатываем или не работаем: {useless_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices)).values(
+                    info_message="Не обрабатываем или не работаем", info_message2=None))
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
@@ -675,13 +686,14 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Не подходят по сроку обновления: {expired_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(expired_prices)).delete()
-                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message="Не подходит по сроку обновления"))
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(expired_prices)).values(info_message="Не подходит по сроку обновления", info_message2=None))
                 self.log.add(LOG_ID, f"Удалено строк (Срок обновления не более): {dels}",
                              f"Удалено строк (Срок обновления не более): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
             sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
-            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок')).values(updated_at=None))
+            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок',
+                                                       PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at=None))
             sess.commit()
 
 
@@ -729,14 +741,6 @@ class CatalogUpdate(QThread):
             sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
             sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
-            sess.commit()
-
-            cur_time = datetime.datetime.now()
-            self.log.add(LOG_ID, f"vacuum ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> ... ")
-            sess.execute(text('VACUUM FULL'))
-            self.log.add(LOG_ID, f"vacuum завершен [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> завершен "
-                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
             sess.commit()
             return True
 
