@@ -693,7 +693,8 @@ class CatalogUpdate(QThread):
             working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
             sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
             sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок',
-                                                       PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at=None))
+                                                       PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(
+                updated_at=None, updated_at_2_step=None))
             sess.commit()
 
 
