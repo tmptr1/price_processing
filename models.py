@@ -783,23 +783,23 @@ class Reserve(Base):
     # _07 (price_code) varchar(20)
     code_07: Mapped[str_x(20)]
 
-class SaleDK(Base):
-    __tablename__ = "sale_dk"
+# class SaleDK(Base):
+#     __tablename__ = "sale_dk"
+#
+#     id: Mapped[intpk]
+#     price_code: Mapped[str_x(20)]
+#     agr: Mapped[str_x(100)]
+#     val: Mapped[str_x(100)]
 
-    id: Mapped[intpk]
-    price_code: Mapped[str_x(20)]
-    agr: Mapped[str_x(100)]
-    val: Mapped[str_x(100)]
-
-class Brands_3(Base):
-    __tablename__ = "brands_3"
-    # __table_args__ = (Index("brands_3_correct_index", "correct"),)
-
-    id: Mapped[intpk]
-    correct: Mapped[str_x(256)]
-    zp_brands_setting: Mapped[str_x(100)]
-    brand: Mapped[str_x(256)]
-    short_name: Mapped[str_x(20)]
+# class Brands_3(Base):
+#     __tablename__ = "brands_3"
+#     # __table_args__ = (Index("brands_3_correct_index", "correct"),)
+#
+#     id: Mapped[intpk]
+#     correct: Mapped[str_x(256)]
+#     zp_brands_setting: Mapped[str_x(100)]
+#     brand: Mapped[str_x(256)]
+#     short_name: Mapped[str_x(20)]
 
 class BuyersForm(Base):
     __tablename__ = "buyers_form"
@@ -868,6 +868,7 @@ class BuyersForm(Base):
     kb_price: Mapped[real]
     # Проценты за период
     percent: Mapped[real]
+    base_price_tolerance_pct: Mapped[real]
     # Максимум строк
     max_rows: Mapped[intgr]
     # Максимальный рост

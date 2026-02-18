@@ -13,8 +13,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
-                    SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
-                    Brands_3, SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
+                    Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
+                    SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
                     MailReportUnloaded, CrossBrandTypeMarkupPct)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
@@ -56,7 +56,7 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
-                # self.update_DB_3()
+                # self.update_DB_4()
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_3_0()
                 # self.update_price_settings_catalog_4_0_cond()
@@ -80,14 +80,14 @@ class CatalogUpdate(QThread):
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
                 self.update_price_settings_catalog_4_0_cond()
-                if self.update_price_settings_catalog_3_0():
+                # if self.update_price_settings_catalog_3_0():
                     # self.CreateTotalCsvSignal.emit(True)
                     # self.CTC.start()
                     # self.CTC.wait()
-                    pass
+                    # pass
 
                 # + удаление из final_price_history и удаление неактуальных прайсов
-                if self.update_DB_3():
+                if self.update_DB_4():
                     pass
                     # self.CTC.start()
                     # self.CTC.wait()
@@ -442,135 +442,135 @@ class CatalogUpdate(QThread):
             self.log.error(LOG_ID, f"update_price_settings_catalog_4_0 Error", ex_text)
 
 
-    def update_price_settings_catalog_3_0(self):
-        try:
-            path_to_file = fr"{settings_data['3_cond_dir']}\3.0 Условия.xlsx"
-            base_name = os.path.basename(path_to_file)
-            new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime("%Y-%m-%d %H:%M:%S")
-            with session() as sess:
-                req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
-                last_time_update = sess.execute(req).scalar()
-
-                if last_time_update and str(last_time_update) >= new_update_time:
-                    return
-                cur_time = datetime.datetime.now()
-                self.log.add(LOG_ID, f"Обновление {base_name} ...",
-                             f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
-
-                table_name = 'data07_14'
-                table_class = Data07_14
-                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-                        "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
-                        "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
-                sheet_name = "07&14Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
-
-                table_name = 'data07'
-                table_class = Data07
-                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-                        "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
-                        "max_decline": ["Макс снижение от базовой цены"],
-                        "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
-                        "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
-                        "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
-                        "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
-                sheet_name = "07Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                # table_name = 'data15'
-                # table_class = Data15
-                # cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
-                # sheet_name = "15Данные"
-                # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'data09'
-                table_class = Data09
-                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
-                sheet_name = "09Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'buy_for_os'
-                table_class = Buy_for_OS
-                cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
-                sheet_name = "Закупки для ОС"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'reserve'
-                table_class = Reserve
-                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
-                sheet_name = "Резерв_да"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'sale_dk'
-                table_class = SaleDK
-                cols = {"price_code": ["Код покупателя / прайса поставщика"], "agr": ["Атрибут"], "val": ["Значение"]}
-                sheet_name = "СкидкиДК"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'brands_3'
-                table_class = Brands_3
-                cols = {"correct": ["Сюда правильное"], "zp_brands_setting": ["Настройка ЗП и Брендов"], "brand": ["Бренд"],
-                        "short_name": ["Короткое наименование бренда"], }
-                sheet_name = "Справочник_Бренд3"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                # unique rows
-                uniques_rows_id = select(func.max(Brands_3.id)).group_by(Brands_3.correct, Brands_3.zp_brands_setting)
-                sess.query(Brands_3).where(Brands_3.id.not_in(uniques_rows_id)).delete()
-
-                table_name = 'suppliers_form'
-                table_class = SuppliersForm
-                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "days": ["Дни трансляции"], }
-                sheet_name = "Анкета поставщика"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                table_name = 'buyers_form'
-                table_class = BuyersForm
-                # "us_set": ["Установить УС"],
-                cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
-                        "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
-                        "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
-                        "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
-                        "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
-                        "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
-                        "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
-                        "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
-                        "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
-                        "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],
-                        "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
-                        "kb_price": ["КБ цены"], "percent": ["Проценты за период"], "max_rows": ["Максимум строк"],
-                        "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
-                        "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],
-                        "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "send_days": ["Дни отправки"],
-                        "time1": ["Время 1"], "time2": ["Время 2"], "time3": ["Время 3"], "time4": ["Время 4"],
-                        "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
-                        "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],
-                        "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
-                        }
-                sheet_name = "Анкета покупателя"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
-                # sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
-                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
-                # sess.execute(update(TotalPrice_2).values(mult_less=None))
-                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
-                sess.commit()
-
-                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
-                sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
-
-                sess.commit()
-                self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-                             f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
-                return 1
-
-        except (OperationalError, UnboundExecutionError) as db_ex:
-            raise db_ex
-        except Exception as ex:
-            ex_text = traceback.format_exc()
-            self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
-        return None
+    # def update_price_settings_catalog_3_0(self):
+    #     try:
+    #         path_to_file = fr"{settings_data['3_cond_dir']}\3.0 Условия.xlsx"
+    #         base_name = os.path.basename(path_to_file)
+    #         new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime("%Y-%m-%d %H:%M:%S")
+    #         with session() as sess:
+    #             req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
+    #             last_time_update = sess.execute(req).scalar()
+    #
+    #             if last_time_update and str(last_time_update) >= new_update_time:
+    #                 return
+    #             cur_time = datetime.datetime.now()
+    #             self.log.add(LOG_ID, f"Обновление {base_name} ...",
+    #                          f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
+    #
+    #             table_name = 'data07_14'
+    #             table_class = Data07_14
+    #             cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+    #                     "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
+    #                     "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
+    #             sheet_name = "07&14Данные"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #             sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
+    #
+    #             table_name = 'data07'
+    #             table_class = Data07
+    #             cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+    #                     "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
+    #                     "max_decline": ["Макс снижение от базовой цены"],
+    #                     "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
+    #                     "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
+    #                     "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
+    #                     "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
+    #             sheet_name = "07Данные"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             # table_name = 'data15'
+    #             # table_class = Data15
+    #             # cols = {"code_15": ["15"], "offers_wholesale": ["Предложений опт"], "price_b": ["ЦенаБ"]}
+    #             # sheet_name = "15Данные"
+    #             # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             table_name = 'data09'
+    #             table_class = Data09
+    #             cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+    #             sheet_name = "09Данные"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             table_name = 'buy_for_os'
+    #             table_class = Buy_for_OS
+    #             cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
+    #             sheet_name = "Закупки для ОС"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             table_name = 'reserve'
+    #             table_class = Reserve
+    #             cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+    #             sheet_name = "Резерв_да"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             # table_name = 'sale_dk'
+    #             # table_class = SaleDK
+    #             # cols = {"price_code": ["Код покупателя / прайса поставщика"], "agr": ["Атрибут"], "val": ["Значение"]}
+    #             # sheet_name = "СкидкиДК"
+    #             # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             # table_name = 'brands_3'
+    #             # table_class = Brands_3
+    #             # cols = {"correct": ["Сюда правильное"], "zp_brands_setting": ["Настройка ЗП и Брендов"], "brand": ["Бренд"],
+    #             #         "short_name": ["Короткое наименование бренда"], }
+    #             # sheet_name = "Справочник_Бренд3"
+    #             # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #             # # unique rows
+    #             # uniques_rows_id = select(func.max(Brands_3.id)).group_by(Brands_3.correct, Brands_3.zp_brands_setting)
+    #             # sess.query(Brands_3).where(Brands_3.id.not_in(uniques_rows_id)).delete()
+    #
+    #             table_name = 'suppliers_form'
+    #             table_class = SuppliersForm
+    #             cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "days": ["Дни трансляции"], }
+    #             sheet_name = "Анкета поставщика"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             table_name = 'buyers_form'
+    #             table_class = BuyersForm
+    #             # "us_set": ["Установить УС"],
+    #             cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
+    #                     "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
+    #                     "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
+    #                     "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
+    #                     "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
+    #                     "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
+    #                     "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
+    #                     "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
+    #                     "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
+    #                     "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],
+    #                     "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
+    #                     "kb_price": ["КБ цены"], "percent": ["Проценты за период"], "base_price_tolerance_pct": ["base_price_tolerance_pct"],
+    #                     "max_rows": ["Максимум строк"], "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
+    #                     "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],
+    #                     "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "send_days": ["Дни отправки"],
+    #                     "time1": ["Время 1"], "time2": ["Время 2"], "time3": ["Время 3"], "time4": ["Время 4"],
+    #                     "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
+    #                     "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],
+    #                     "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
+    #                     }
+    #             sheet_name = "Анкета покупателя"
+    #             update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+    #
+    #             # sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
+    #             # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
+    #             # sess.execute(update(TotalPrice_2).values(mult_less=None))
+    #             # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
+    #             sess.commit()
+    #
+    #             sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
+    #             sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
+    #
+    #             sess.commit()
+    #             self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
+    #                          f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
+    #                          f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+    #             return 1
+    #
+    #     except (OperationalError, UnboundExecutionError) as db_ex:
+    #         raise db_ex
+    #     except Exception as ex:
+    #         ex_text = traceback.format_exc()
+    #         self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
+    #     return None
 
     def update_price_settings_catalog_4_0_cond(self):
         try:
@@ -601,6 +601,77 @@ class CatalogUpdate(QThread):
                 sess.execute(update(CrossBrandTypeMarkupPct).values(short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
                                                                     normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
 
+                table_name = 'data07_14'
+                table_class = Data07_14
+                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+                        "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
+                        "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
+                sheet_name = "07&14Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
+
+                table_name = 'data07'
+                table_class = Data07
+                cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
+                        "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
+                        "max_decline": ["Макс снижение от базовой цены"],
+                        "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
+                        "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
+                        "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
+                        "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
+                sheet_name = "07Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'data09'
+                table_class = Data09
+                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+                sheet_name = "09Данные"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'buy_for_os'
+                table_class = Buy_for_OS
+                cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
+                sheet_name = "Закупки для ОС"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'reserve'
+                table_class = Reserve
+                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+                sheet_name = "Резерв_да"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'suppliers_form'
+                table_class = SuppliersForm
+                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "days": ["Дни трансляции"], }
+                sheet_name = "Анкета поставщика"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'buyers_form'
+                table_class = BuyersForm
+                # "us_set": ["Установить УС"],
+                cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
+                        "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
+                        "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
+                        "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
+                        "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
+                        "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
+                        "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
+                        "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
+                        "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
+                        "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],
+                        "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
+                        "kb_price": ["КБ цены"], "percent": ["Проценты за период"], "base_price_tolerance_pct": ["base_price_tolerance_pct"],
+                        "max_rows": ["Максимум строк"], "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
+                        "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],
+                        "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "send_days": ["Дни отправки"],
+                        "time1": ["Время 1"], "time2": ["Время 2"], "time3": ["Время 3"], "time4": ["Время 4"],
+                        "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
+                        "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],
+                        "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
+                        }
+                sheet_name = "Анкета покупателя"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
@@ -616,20 +687,20 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_price_settings_catalog_4_0_cond Error", ex_text)
 
-    def update_DB_3(self):
+    def update_DB_4(self):
         with session() as sess:
             cur_time = datetime.datetime.now()
             if cur_time.hour > 8:
                 return
 
-            last_3_condition_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == '3.0 Условия.xlsx')).scalar()
-            last_DB_3_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0')).scalar()
+            last_4_condition_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == '4.0 Условия.xlsx')).scalar()
+            last_DB_4_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 4.0')).scalar()
 
 
-            last_DB_3_update_HM = sess.execute(select(AppSettings.var).where(AppSettings.param == "last_DB_3_update")).scalar()
-            h, m = last_DB_3_update_HM.split()
+            last_DB_4_update_HM = sess.execute(select(AppSettings.var).where(AppSettings.param == "last_DB_4_update")).scalar()
+            h, m = last_DB_4_update_HM.split()
 
-            compare_time = datetime.datetime.strptime(f"{str(last_DB_3_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
+            compare_time = datetime.datetime.strptime(f"{str(last_DB_4_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
             if (cur_time - compare_time).days < 1:
                 return
 
@@ -699,14 +770,14 @@ class CatalogUpdate(QThread):
 
 
 
-            if last_3_condition_update and last_3_condition_update <= last_DB_3_update:
-                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
-                sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+            if last_4_condition_update and last_4_condition_update <= last_DB_4_update:
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 4.0').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 4.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
                 sess.commit()
                 return
 
-            # Обновление данных в total по новым 3.0 Условия
+            # Обновление данных в total по новым 4.0 Условия
             self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
             cur_time = datetime.datetime.now()
@@ -739,8 +810,8 @@ class CatalogUpdate(QThread):
                       f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
                       f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
 
-            sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
-            sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+            sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 4.0').delete()
+            sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 4.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
             sess.commit()
             return True
@@ -1172,8 +1243,8 @@ class SaveCond3Time(QThread):
     def run(self):
         try:
             with session() as sess:
-                sess.query(AppSettings).filter(AppSettings.param == 'last_DB_3_update').delete()
-                sess.add(AppSettings(param='last_DB_3_update',
+                sess.query(AppSettings).filter(AppSettings.param == 'last_DB_4_update').delete()
+                sess.add(AppSettings(param='last_DB_4_update',
                                      var=f"{self.tg_time.hour()} {self.tg_time.minute()}"))
                 sess.commit()
             self.log.add(LOG_ID, f"Время сохранено",

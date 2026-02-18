@@ -3,8 +3,8 @@ from PySide6.QtCore import QThread, Signal
 from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, SaleDK, BuyersForm, Data07, PriceException,
-                    SuppliersForm, Brands_3, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
+from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, BuyersForm, Data07, PriceException,
+                    SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
                     FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct)
 import smtplib
 from email.mime.text import MIMEText
@@ -191,7 +191,7 @@ class Sender(QThread):
             # allow_brands = sess.execute(
             #     select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting)).all()
             brands_check = sess.execute(select(CrossBrandTypeMarkupPct.customer_price_code).where(CrossBrandTypeMarkupPct.customer_price_code==
-                                                                                                  self.price_settings.buyer_price_code))
+                                                                                                  self.price_settings.buyer_price_code)).all()
             if not brands_check:
                 self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды")
                 sess.query(PriceSendTime).where(
@@ -262,14 +262,8 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
 
             cur_time = datetime.datetime.now()
-            sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
-                                                       FinalPrice.price_b / self.price_settings.kb_price < FinalPrice.price)).
-                         values(over_base_price=True))
 
-            del_price_b = self.add_dels_in_history(sess, (FinalPrice.over_base_price == True), 'ЦенаБ')
-            if del_price_b:
-                sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_price_b} (ЦенаБ)")
+            self.del_over_price_b(sess)
 
             self.del_over_price(sess)
 
@@ -357,7 +351,7 @@ class Sender(QThread):
                                    update_time=now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
                                    info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
-                                   del_price_b=del_price_b, exception_words_del=self.exception_words_del,
+                                   del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
                                    prices_count=prices_count_msg, unused_prices=self.unused_prices))
@@ -365,7 +359,7 @@ class Sender(QThread):
                                    update_time=now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
                                    info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
-                                   del_price_b=del_price_b, exception_words_del=self.exception_words_del,
+                                   del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
                                    count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
                                    prices_count=prices_count_msg, unused_prices=self.unused_prices))
@@ -530,55 +524,55 @@ class Sender(QThread):
 
 
 
-    def update_price(self, sess):
-        sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
-                                                   SaleDK.price_code == FinalPrice._07supplier_code,
-                                                   SaleDK.val is not None)).
-                     values(price=FinalPrice._05price_plus * cast(SaleDK.val, REAL)))
-        if str(self.price_settings.sell_for_kos).upper() == 'ДА':
-            sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-                                                       FinalPrice.sell_for_OS == 'ДА',
-                                                       FinalPrice.buy_count == None,
-                                                       FinalPrice.delay > self.price_settings.delay,
-                                                       FinalPrice.offers_wh != None)).
-                         values(price=FinalPrice._05price_plus * (FinalPrice.min_markup - (FinalPrice.markup_os *
-                                        (FinalPrice.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
-
-        # БазоваяНаценка, МножительПокупателя
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-                                                   FinalPrice.offers_wh == None)).
-                     values(base_markup=FinalPrice.min_markup + (FinalPrice.grad_step * FinalPrice._13grad),
-                            buyer_mult=self.price_settings.final_markup + 1))
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-                                                   FinalPrice.base_markup == None)).
-                     values(base_markup=FinalPrice.min_wholesale_markup + (FinalPrice.wh_step * FinalPrice._13grad),
-                            buyer_mult=self.price_settings.markup_buyer_wh + 1))
-
-        # ЦенаСНаценкой
-        sess.execute(update(FinalPrice).where(FinalPrice.price == None).
-                     values(
-            price_with_markup=FinalPrice._05price_plus * FinalPrice.base_markup * FinalPrice.buyer_mult))
-
-        # ЦенаР
-        sess.execute(update(FinalPrice).where(FinalPrice.price == None).
-                     values(price_r=FinalPrice._05price_plus + FinalPrice.markup_R))
-
-        # ОбычнаяЦена
-        sess.execute(update(FinalPrice).where(FinalPrice.price == None).
-                     values(
-            default_price=func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup) * (FinalPrice.markup_pb + 1)))
-
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None, FinalPrice.min_price != None)).
-                     values(price=func.least(FinalPrice.default_price,
-                                             func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup,
-                                                           FinalPrice.min_price))))
-
-        sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
-
-        self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)), 'Цена меньше/равна 0')
-        if self.price_del:
-            sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
+    # def update_price(self, sess):
+    #     sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
+    #                                                SaleDK.price_code == FinalPrice._07supplier_code,
+    #                                                SaleDK.val is not None)).
+    #                  values(price=FinalPrice._05price_plus * cast(SaleDK.val, REAL)))
+    #     if str(self.price_settings.sell_for_kos).upper() == 'ДА':
+    #         sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
+    #                                                    FinalPrice.sell_for_OS == 'ДА',
+    #                                                    FinalPrice.buy_count == None,
+    #                                                    FinalPrice.delay > self.price_settings.delay,
+    #                                                    FinalPrice.offers_wh != None)).
+    #                      values(price=FinalPrice._05price_plus * (FinalPrice.min_markup - (FinalPrice.markup_os *
+    #                                     (FinalPrice.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
+    #
+    #     # БазоваяНаценка, МножительПокупателя
+    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
+    #                                                FinalPrice.offers_wh == None)).
+    #                  values(base_markup=FinalPrice.min_markup + (FinalPrice.grad_step * FinalPrice._13grad),
+    #                         buyer_mult=self.price_settings.final_markup + 1))
+    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
+    #                                                FinalPrice.base_markup == None)).
+    #                  values(base_markup=FinalPrice.min_wholesale_markup + (FinalPrice.wh_step * FinalPrice._13grad),
+    #                         buyer_mult=self.price_settings.markup_buyer_wh + 1))
+    #
+    #     # ЦенаСНаценкой
+    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
+    #                  values(
+    #         price_with_markup=FinalPrice._05price_plus * FinalPrice.base_markup * FinalPrice.buyer_mult))
+    #
+    #     # ЦенаР
+    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
+    #                  values(price_r=FinalPrice._05price_plus + FinalPrice.markup_R))
+    #
+    #     # ОбычнаяЦена
+    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
+    #                  values(
+    #         default_price=func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup) * (FinalPrice.markup_pb + 1)))
+    #
+    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None, FinalPrice.min_price != None)).
+    #                  values(price=func.least(FinalPrice.default_price,
+    #                                          func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup,
+    #                                                        FinalPrice.min_price))))
+    #
+    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
+    #
+    #     self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)), 'Цена меньше/равна 0')
+    #     if self.price_del:
+    #         sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
+    #         self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
     def update_price_2(self, sess):
         # БЕЗ ОТБОРА ПО БРЕНДАМ?? САМО ОТБЕРЁТСЯ ПО ЦЕНЕ = 0
@@ -663,6 +657,19 @@ class Sender(QThread):
         if self.dup_del:
             sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
+
+    def del_over_price_b(self, sess):
+        # sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
+        #                                            FinalPrice.price_b / self.price_settings.kb_price < FinalPrice.price)).
+        #              values(over_base_price=True))
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
+                                   FinalPrice.price > FinalPrice.price_b * (1 + self.price_settings.base_price_tolerance_pct + FinalPrice._13grad/100))).
+                     values(over_base_price=True))
+
+        self.del_price_b = self.add_dels_in_history(sess, (FinalPrice.over_base_price == True), 'ЦенаБ')
+        if self.del_price_b:
+            sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_price_b} (ЦенаБ)")
 
     def del_over_price(self, sess):
         self.price_compare_del = 0
@@ -923,7 +930,7 @@ class FinalPriceReportUpdate(QThread):
                         PriceSendTime.price_del.label("Уд. Нулевая/отрицательная цена"), PriceSendTime.dup_del.label("Уд. Дубли"),
                         PriceSendTime.price_compare_del.label("Уд. Сравнение цены с осн. прайсами"),
                         PriceSendTime.prices_count.label("Кол-во в разрезе прайсов поставщиков"),
-                        PriceSendTime.unused_prices.label("Нет в Разрешения ПП/Не работаем/Не стандартизируем/Ошибка стандартизации/'В срок' не равен 'Срок'"),
+                        PriceSendTime.unused_prices.label("Нет в Разрешения ПП/Не работаем/Не стандартизируем/Ошибка стандартизации/'В прайс' не равен 'Срок'"),
                         )
                 req = select(*cols).order_by(PriceSendTime.price_code)
 
