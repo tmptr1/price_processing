@@ -921,7 +921,9 @@ class PriceException(Base):
 class FinalPrice(Base3):
     __tablename__ = "final_price"
     __table_args__ = (Index("final_price_15code_optt_index", "_15code_optt"),
-                      Index("final_price_01_14_index", "_01article", "_14brand_filled_in"),)
+                      Index("final_price_01_14_index", "_01article", "_14brand_filled_in"),
+                      # Index("final_price_07_14_index", "_07supplier_code", "_14brand_filled_in"),
+                      )
 
 
     id: Mapped[intpk]
@@ -1029,6 +1031,11 @@ class FinalPrice(Base3):
     over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
     # рейтинг
     rating: Mapped[real]
+    floor_markup_pct: Mapped[real]
+    opt_starting_markup_pct: Mapped[real]
+    opt_grad_step_pct: Mapped[real]
+    unique_starting_markup_pct: Mapped[real]
+    unique_grad_step_pct: Mapped[real]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 
@@ -1189,6 +1196,7 @@ class PriceSendTime(Base):
     update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     prices_count: Mapped[str_x(5000)]
+    unused_prices: Mapped[str_x(5000)]
 
 class PriceSendTimeHistory(Base):
     __tablename__ = "price_send_time_history"
@@ -1217,6 +1225,7 @@ class PriceSendTimeHistory(Base):
     update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     prices_count: Mapped[str_x(5000)]
+    unused_prices: Mapped[str_x(5000)]
 
 class FileSettings(Base):
     __tablename__ = "file_settings"
@@ -1498,3 +1507,20 @@ class Orders(Base):
     # Тип товара
     product_type: Mapped[str_x(30)]
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
+class CrossBrandTypeMarkupPct(Base):
+    __tablename__ = "cross_brand_type_markup_pct"
+    id: Mapped[intpk]
+    supplier_price_code: Mapped[str_x(20)]
+    normalized_brand: Mapped[str_x(256)]
+    customer_price_code: Mapped[str_x(20)]
+    short_name: Mapped[str_x(20)]
+    customer_brand: Mapped[str_x(256)]
+    floor_markup_pct: Mapped[real]
+    starting_markup_pct: Mapped[real]
+    grad_step_pct: Mapped[real]
+    unique_starting_markup_pct: Mapped[real]
+    opt_starting_markup_pct: Mapped[real]
+    unique_grad_step_pct: Mapped[real]
+    opt_grad_step_pct: Mapped[real]
+

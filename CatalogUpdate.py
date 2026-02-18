@@ -15,7 +15,7 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     SaleDK, Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
                     Brands_3, SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
-                    MailReportUnloaded)
+                    MailReportUnloaded, CrossBrandTypeMarkupPct)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -58,6 +58,7 @@ class CatalogUpdate(QThread):
             try:
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_3_0()
+                # self.update_price_settings_catalog_4_0_cond()
                 # return
                 # with session() as sess:
                 #     working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(
@@ -69,6 +70,7 @@ class CatalogUpdate(QThread):
                 self.send_tg_notification()
                 self.update_currency()
                 self.update_price_settings_catalog_4_0()
+                self.update_price_settings_catalog_4_0_cond()
                 if self.update_price_settings_catalog_3_0():
                     # self.CreateTotalCsvSignal.emit(True)
                     # self.CTC.start()
@@ -203,11 +205,11 @@ class CatalogUpdate(QThread):
                 if diff.days >= 1:
                     msg = ''
 
-                    miss_brands_prices = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Не указаны бренды в Справочник_Бренд3').
+                    miss_brands_prices = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Не указаны бренды').
                                                           order_by(PriceSendTime.price_code)).scalars().all()
                     if miss_brands_prices:
                         miss_brands_prices = ', '.join(miss_brands_prices)
-                        msg += f"📧 Не указаны бренды в Справочник_Бренд3: {miss_brands_prices}\n\n"
+                        msg += f"📧 Не указаны бренды: {miss_brands_prices}\n\n"
 
                     zero_count = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Итоговое кол-во 0, не отправлен').
                                                           order_by(PriceSendTime.price_code)).scalars().all()
@@ -561,6 +563,50 @@ class CatalogUpdate(QThread):
             self.log.error(LOG_ID, f"update_price_settings_catalog_3_0 Error", ex_text)
         return None
 
+    def update_price_settings_catalog_4_0_cond(self):
+        try:
+            path_to_file = fr"{settings_data['3_cond_dir']}\4.0 Условия.xlsx"
+            base_name = os.path.basename(path_to_file)
+            new_update_time = datetime.datetime.fromtimestamp(os.path.getmtime(path_to_file)).strftime("%Y-%m-%d %H:%M:%S")
+            with session() as sess:
+                req = select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == base_name)
+                last_time_update = sess.execute(req).scalar()
+
+                if last_time_update and str(last_time_update) >= new_update_time:
+                    return
+                cur_time = datetime.datetime.now()
+                self.log.add(LOG_ID, f"Обновление {base_name} ...",
+                             f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
+
+                table_name = 'cross_brand_type_markup_pct'
+                table_class = CrossBrandTypeMarkupPct
+                cols = {"supplier_price_code": ["supplier_price_code"], "normalized_brand": ["normalized_brand"],
+                        "customer_price_code": ["customer_price_code"], "short_name": ["short_name"],
+                        "customer_brand": ["customer_brand"], "floor_markup_pct": ["floor_markup_pct"],
+                        "starting_markup_pct": ["starting_markup_pct"], "grad_step_pct": ["grad_step_pct"],
+                        "unique_starting_markup_pct": ["unique_starting_markup_pct"],
+                        "opt_starting_markup_pct": ["opt_starting_markup_pct"], "unique_grad_step_pct": ["unique_grad_step_pct"],
+                        "opt_grad_step_pct": ["opt_grad_step_pct"], }
+                sheet_name = "Разрешения и наценки"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                sess.execute(update(CrossBrandTypeMarkupPct).values(short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
+                                                                    normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
+
+
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
+                sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
+
+                sess.commit()
+                self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
+                             f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"update_price_settings_catalog_4_0_cond Error", ex_text)
+
     def update_DB_3(self):
         with session() as sess:
             cur_time = datetime.datetime.now()
@@ -582,7 +628,7 @@ class CatalogUpdate(QThread):
             if self.del_history_day != cur_time.day:
                 self.del_history_day = cur_time.day
                 cur_time = datetime.datetime.now()
-                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=14),
+                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=5),
                                                     FinalPriceHistory.send_time == None)).delete()
                 if dels:
                     total_fph_rows = sess.execute(func.count(FinalPriceHistory.id)).scalar()
@@ -591,7 +637,7 @@ class CatalogUpdate(QThread):
                                      f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
 
                 cur_time = datetime.datetime.now()
-                delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=14),
+                delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=3),
                                                     FinalPriceHistoryDel.send_time == None)).delete()
                 if delsD:
                     total_fphd_rows = sess.execute(func.count(FinalPriceHistoryDel.id)).scalar()
@@ -683,6 +729,14 @@ class CatalogUpdate(QThread):
             sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 3.0').delete()
             sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 3.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
+            sess.commit()
+
+            cur_time = datetime.datetime.now()
+            self.log.add(LOG_ID, f"vacuum ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> ... ")
+            sess.execute(text('VACUUM FULL'))
+            self.log.add(LOG_ID, f"vacuum завершен [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>vacuum</span> завершен "
+                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
             sess.commit()
             return True
 
