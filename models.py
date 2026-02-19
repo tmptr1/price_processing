@@ -411,7 +411,7 @@ class Price_2(Base2):
     # УбратьЗП varchar(3000),
     put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
-    offers_wh: Mapped[intgr]
+    offers_wh: Mapped[intgr] = mapped_column(Integer, default=0)
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Низкая_цена NUMERIC(12,2),
@@ -529,7 +529,7 @@ class Price_2_2(Base2_1):
     # УбратьЗП varchar(3000),
     put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
-    offers_wh: Mapped[intgr]
+    offers_wh: Mapped[intgr] = mapped_column(Integer, default=0)
     # ЦенаБ NUMERIC(12,2),
     price_b: Mapped[numeric]
     # Низкая_цена NUMERIC(12,2),
@@ -1524,4 +1524,11 @@ class CrossBrandTypeMarkupPct(Base):
     opt_starting_markup_pct: Mapped[real]
     unique_grad_step_pct: Mapped[real]
     opt_grad_step_pct: Mapped[real]
+
+class PrevDynamicParts(Base):
+    __tablename__ = "prev_dynamic_parts"
+    __table_args__ = (Index("prev_dynamic_parts_code_optt_index", "code_optt"),)
+    id: Mapped[intpk]
+    code_optt: Mapped[str_x(256)]
+    parts_markup_pct: Mapped[real]
 

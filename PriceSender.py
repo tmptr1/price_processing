@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, BuyersForm, Data07, PriceException,
                     SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
-                    FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct)
+                    FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts)
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [3, ]
+                # price_name_list = [7, ]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -600,16 +600,23 @@ class Sender(QThread):
             unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct))
         # print('ok', datetime.datetime.now() - nt)
 
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.offers_wh > 1, FinalPrice._15code_optt == PrevDynamicParts.code_optt)).values(
+            price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
+                                                                     (PrevDynamicParts.parts_markup_pct + FinalPrice.opt_starting_markup_pct +
+                                                                          (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
+        ))
+
         conditions = [(FinalPrice.offers_wh > 1,
                        FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct, (FinalPrice.opt_starting_markup_pct +
-                                                                           (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))),
+                                                                           (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
+                      ),
                        (FinalPrice.offers_wh < 2,
                        FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
                                 (FinalPrice.unique_starting_markup_pct +
                                  (FinalPrice.unique_grad_step_pct * FinalPrice.grad_step))))),]
 
         # nt = datetime.datetime.now()
-        sess.execute(update(FinalPrice).values(price=case(*conditions)))
+        sess.execute(update(FinalPrice).where(FinalPrice.price is not None).values(price=case(*conditions)))
         # print('ok 2', rc, datetime.datetime.now() - nt)
 
 

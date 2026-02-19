@@ -15,7 +15,7 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     Data07_14, Data15, Data09, Buy_for_OS, Reserve, TotalPrice_1, TotalPrice_2, PriceReport,
                     SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
-                    MailReportUnloaded, CrossBrandTypeMarkupPct)
+                    MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts)
 from telebot import TeleBot
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -670,6 +670,12 @@ class CatalogUpdate(QThread):
                         "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
                         }
                 sheet_name = "Анкета покупателя"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'prev_dynamic_parts'
+                table_class = PrevDynamicParts
+                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], }
+                sheet_name = "prev dynamic parts"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
 
