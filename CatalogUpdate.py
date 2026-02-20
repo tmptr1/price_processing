@@ -828,7 +828,7 @@ class CatalogUpdate(QThread):
             with session() as sess:
                 last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Заказы')).scalar()
                 now = datetime.datetime.now()
-                if now.date() == last_update.date() or now.hour < 12:
+                if now.date() == last_update.date() or now.hour < 11:
                     return
 
                 self.log.add(LOG_ID, f"Загзузка заказов в БД ...",
