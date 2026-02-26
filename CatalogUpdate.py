@@ -66,8 +66,8 @@ class CatalogUpdate(QThread):
                 # self.update_price_settings_catalog_4_0_cond()
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
-                # self.update_currency()
-                # return
+                self.update_currency()
+                return
                 # with session() as sess:
                 #     # engine.autocommit = True
                 #     cur_time = datetime.datetime.now()
@@ -241,6 +241,12 @@ class CatalogUpdate(QThread):
                 if miss_brands_prices:
                     miss_brands_prices = ', '.join(miss_brands_prices)
                     msg += f"📧 Не указаны бренды: {miss_brands_prices}\n\n"
+
+                spam = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Спам').
+                                                      order_by(PriceSendTime.price_code)).scalars().all()
+                if spam:
+                    spam = ', '.join(spam)
+                    msg += f"📧 Попало в спам: {spam}\n\n"
 
                 zero_count = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Итоговое кол-во 0, не отправлен').
                                                       order_by(PriceSendTime.price_code)).scalars().all()

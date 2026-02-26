@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [7, ]
+                price_name_list = [23, ]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -102,6 +102,15 @@ class Sender(QThread):
                     for id in price_name_list:
                         try:
                             self.create_price(id)
+                        except smtplib.SMTPDataError as smtp_ex:
+                            # print(smtp_ex.smtp_code)
+                            self.log.error(LOG_ID, f"Подозрение на спам ({smtp_ex.smtp_code}) ERROR:", smtp_ex)
+                            with session() as sess:
+                                buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
+                                                                                                 func.upper(BuyersForm.included) == 'ДА'))).scalar()
+                                sess.execute(update(PriceSendTime).where(PriceSendTime.price_code==buyer_price_code).
+                                             values(info_msg='Спам', send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                                sess.commit()
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
                             self.log.error(LOG_ID, "create_ex ERROR:", ex_text)
