@@ -56,7 +56,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 # h, m = map(int, str(tg_time.var).split())
                 # self.Tg_timeEdit_2.setTime(QTime(h, m))
 
-                req = select(AppSettings).where(AppSettings.param == 'last_DB_3_update')
+                req = select(AppSettings).where(AppSettings.param == 'last_DB_4_update')
                 upd_3_time = sess.execute(req).scalar()
                 h, m = map(int, str(upd_3_time.var).split())
                 self.Update3_0_Condition_timeEdit_2.setTime(QTime(h, m))
