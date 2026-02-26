@@ -66,8 +66,8 @@ class CatalogUpdate(QThread):
                 # self.update_price_settings_catalog_4_0_cond()
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
-                self.update_currency()
-                return
+                # self.update_currency()
+                # return
                 # with session() as sess:
                 #     # engine.autocommit = True
                 #     cur_time = datetime.datetime.now()
