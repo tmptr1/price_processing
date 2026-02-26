@@ -187,7 +187,7 @@ class CatalogUpdate(QThread):
                                                              TotalPrice_1.currency_s != None,
                                                              TotalPrice_1._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
-                    _05price=TotalPrice_1._05price * cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))
+                    _05price=TotalPrice_1._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))))
                 # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
                 self.log.add(LOG_ID, "T1")
                 sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
@@ -195,7 +195,7 @@ class CatalogUpdate(QThread):
                                                              TotalPrice_2.currency_s != None,
                                                              TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
-                    _05price=TotalPrice_2._05price * cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))
+                    _05price=TotalPrice_2._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))))
                         # {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols2[dscnt.col_change]
                 self.log.add(LOG_ID, "T2")
 
