@@ -12,7 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
 from email import encoders
-from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case, cast, REAL
+from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case, cast, REAL, Numeric
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
@@ -164,24 +164,40 @@ class CatalogUpdate(QThread):
                                                              ExchangeRate.code == func.upper(TotalPrice_2.currency_s)))
                              .values(_05price=TotalPrice_2.price_s * ExchangeRate.rate))
 
-                discounts = sess.execute(select(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика']))).scalars().all()
+                # discounts = sess.execute(select(ColsFix).where(ColsFix.col_change.in_(['05Цена', 'Цена поставщика']))).scalars().all()
 
-                for dscnt in discounts:
-                    # if not isinstance(dscnt.set, (float, int)):
-                    #     continue
-                    add = (1 + float(str(dscnt.set).replace(',', '.')))
-                    print(dscnt.set, add, dscnt.col_change, dscnt.find, dscnt.price_code)
-                    sess.execute(update(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == dscnt.price_code,
-                                                                 TotalPrice_1.currency_s != None,
-                                                                 TotalPrice_1._14brand_filled_in == dscnt.find)).values(
-                        _05price=TotalPrice_1._05price * add))
-                        # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
-
-                    sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == dscnt.price_code,
-                                                                 TotalPrice_2.currency_s != None,
-                                                                 TotalPrice_2._14brand_filled_in == dscnt.find)).values(
-                        _05price=TotalPrice_2._05price * add))
+                # for dscnt in discounts:
+                #     # if not isinstance(dscnt.set, (float, int)):
+                #     #     continue
+                #     add = (1 + float(str(dscnt.set).replace(',', '.')))
+                #     print(dscnt.set, add, dscnt.col_change, dscnt.find, dscnt.price_code)
+                #     sess.execute(update(TotalPrice_1).where(and_(TotalPrice_1._07supplier_code == dscnt.price_code,
+                #                                                  TotalPrice_1.currency_s != None,
+                #                                                  TotalPrice_1._14brand_filled_in == dscnt.find)).values(
+                #         _05price=TotalPrice_1._05price * add))
+                #         # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
+                #
+                #     sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == dscnt.price_code,
+                #                                                  TotalPrice_2.currency_s != None,
+                #                                                  TotalPrice_2._14brand_filled_in == dscnt.find)).values(
+                #         _05price=TotalPrice_2._05price * add))
+                self.log.add(LOG_ID, "start")
+                sess.execute(update(TotalPrice_1).where(and_(ColsFix.col_change == '05Цена',
+                                                             TotalPrice_1._07supplier_code == ColsFix.price_code,
+                                                             TotalPrice_1.currency_s != None,
+                                                             TotalPrice_1._14brand_filled_in == ColsFix.find,
+                                                             ColsFix.find != None)).values(
+                    _05price=TotalPrice_1._05price * cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))
+                # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
+                self.log.add(LOG_ID, "T1")
+                sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
+                                                             TotalPrice_2._07supplier_code == ColsFix.price_code,
+                                                             TotalPrice_2.currency_s != None,
+                                                             TotalPrice_2._14brand_filled_in == ColsFix.find,
+                                                             ColsFix.find != None)).values(
+                    _05price=TotalPrice_2._05price * cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))
                         # {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols2[dscnt.col_change]
+                self.log.add(LOG_ID, "T2")
 
                 sess.execute(update(TotalPrice_2).where(TotalPrice_2.currency_s != None).values(_05price_plus=None))
                 sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._05price_plus == None, TotalPrice_2._04count > 0,
