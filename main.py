@@ -51,10 +51,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         with session() as sess:
             try:
-                req = select(AppSettings).where(AppSettings.param == 'tg_notification_time')
-                tg_time = sess.execute(req).scalar()
-                h, m = map(int, str(tg_time.var).split())
-                self.Tg_timeEdit_2.setTime(QTime(h, m))
+                # req = select(AppSettings).where(AppSettings.param == 'tg_notification_time')
+                # tg_time = sess.execute(req).scalar()
+                # h, m = map(int, str(tg_time.var).split())
+                # self.Tg_timeEdit_2.setTime(QTime(h, m))
 
                 req = select(AppSettings).where(AppSettings.param == 'last_DB_3_update')
                 upd_3_time = sess.execute(req).scalar()
@@ -312,7 +312,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
         self.TimeSaveButton_2.clicked.connect(self.save_catalogs_time_update)
-        self.TgNTimeSaveButton_2.clicked.connect(self.save_tg_time)
+        # self.TgNTimeSaveButton_2.clicked.connect(self.save_tg_time)
         self.Update3_0_ConditionSaveButton_2.clicked.connect(self.save_upd_cond_3_time)
 
 
@@ -351,7 +351,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     Base.metadata.drop_all(engine)
                     Base.metadata.create_all(engine)
                     sess.add_all([AppSettings(param="base_price_update", var="3 0"), AppSettings(param="mass_offers_update", var="3 0"),
-                                  AppSettings(param="tg_notification_time", var="19 0"),
+                                  AppSettings(param="tg_notification_time_1", var="10 0"),
+                                  AppSettings(param="tg_notification_time_2", var="19 0"),
                                   AppSettings(param="last_tg_notification_time", var="2025-01-01 01:01:01"),
                                   AppSettings(param="last_DB_4_update", var="2 0"),
                                   AppSettings(param="last_tg_price_send", var="2025-01-01 01:01:01"),
@@ -361,6 +362,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                   CatalogUpdateTime(catalog_name='Базовая цена', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Предложений в опте', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Заказы', updated_at='2025-01-01 01:01:01'),
+                                  CatalogUpdateTime(catalog_name='Рассылка уведомлений', updated_at='2025-01-01 01:01:01'),
                                   ])
                     sess.commit()
                 print('БД обновлена')
@@ -388,13 +390,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.ST = CatalogUpdate.SaveTime(self.BasePriceTimeEdit_2.time(), self.MassOffersTimeEdit_2.time(), log=Log)
             self.ST.start()
 
-    def save_tg_time(self):
-        if not self.STT:
-            self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
-            self.STT.start()
-        elif not self.STT.isRunning():
-            self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
-            self.STT.start()
+    # def save_tg_time(self):
+        # if not self.STT:
+        #     self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
+        #     self.STT.start()
+        # elif not self.STT.isRunning():
+        #     self.STT = CatalogUpdate.SaveTgTime(self.Tg_timeEdit_2.time(), log=Log)
+        #     self.STT.start()
 
     def save_upd_cond_3_time(self):
         if not self.STU:

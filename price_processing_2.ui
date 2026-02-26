@@ -1901,29 +1901,17 @@
                  <string/>
                 </property>
                 <layout class="QGridLayout" name="gridLayout_9">
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="TgNotificationLabel_2">
-                   <property name="font">
-                    <font>
-                     <pointsize>10</pointsize>
-                    </font>
-                   </property>
-                   <property name="text">
-                    <string>Время отправки уведомления в Telegram</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="1">
-                  <widget class="QTimeEdit" name="Tg_timeEdit_2"/>
+                  <widget class="QTimeEdit" name="Update3_0_Condition_timeEdit_2"/>
                  </item>
                  <item row="0" column="2">
-                  <widget class="QPushButton" name="TgNTimeSaveButton_2">
+                  <widget class="QPushButton" name="Update3_0_ConditionSaveButton_2">
                    <property name="text">
                     <string>Сохранить</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="0">
+                 <item row="0" column="0">
                   <widget class="QLabel" name="Update3_0_ConditionLabel_2">
                    <property name="font">
                     <font>
@@ -1931,17 +1919,7 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>Время полного обновления по 3.0 Условиям</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="1">
-                  <widget class="QTimeEdit" name="Update3_0_Condition_timeEdit_2"/>
-                 </item>
-                 <item row="1" column="2">
-                  <widget class="QPushButton" name="Update3_0_ConditionSaveButton_2">
-                   <property name="text">
-                    <string>Сохранить</string>
+                    <string>Время полного обновления по 4.0 Условиям</string>
                    </property>
                   </widget>
                  </item>

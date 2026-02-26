@@ -226,10 +226,20 @@ class CalculateClass(QThread):
                     markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
                     access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
 
-                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=func.upper(
-                    self.TmpPrice_2._07supplier_code+self.TmpPrice_2._01article_comp+self.TmpPrice_2._02brand)))
+                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
+                                                                                    f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
+                                                                                    f"{self.TmpPrice_2._02brand.__dict__['name']}))")))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
                              values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
+
+                sess.execute(update(self.TmpPrice_2).values(alternative_article=text(f"concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
+                                                                                     f"{self.TmpPrice_2.key1_s.__dict__['name']}, "
+                                                                                     f"{self.TmpPrice_2.article_s.__dict__['name']}, "
+                                                                                     f"{self.TmpPrice_2.brand_s.__dict__['name']})")))
+                # func.upper(
+                #     self.TmpPrice_2._07supplier_code.concat(self.TmpPrice_2.key1_s).concat(self.TmpPrice_2.article_s)
+                #         .concat(self.TmpPrice_2.brand_s))))
+                    #+ self.TmpPrice_2.key1_s + self.TmpPrice_2.article_s + self.TmpPrice_2.brand_s).regexp_replace(' ', '', 'g')))
                 self.add_log(self.file_size_type, price_code, 'data 07, 09', cur_time)
 
 
@@ -287,7 +297,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand, self.TmpPrice_2._03name, self.TmpPrice_2._04count,
                                   self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
-                                  self.TmpPrice_2._09code_supl_goods,
+                                  self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
                                   self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
@@ -379,7 +389,7 @@ class CalculateClass(QThread):
                                            "Количество поставщика", "Цена поставщика", "Кратность поставщика",
                                            "Примечание поставщика", "01Артикул", "02Производитель",
                                            "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
-                                           "09Код + Поставщик + Товар",
+                                           "09Код + Поставщик + Товар", "Альтернативный артикул"
                                            "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
                                            "17КодУникальности", "18КороткоеНаименование",
                                            "20ИслючитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
@@ -398,7 +408,8 @@ class CalculateClass(QThread):
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
-                                  self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code, self.TmpPrice_2._09code_supl_goods,
+                                  self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
+                                  self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
                                   self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.markup_R,

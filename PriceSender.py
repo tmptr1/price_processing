@@ -209,10 +209,10 @@ class Sender(QThread):
                               TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
                               TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2._05price_plus,
-                              TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2._13grad,
-                              TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt, TotalPrice_2._17code_unique,
-                              TotalPrice_2._18short_name, TotalPrice_2.delay, TotalPrice_2.sell_for_OS,
-                              TotalPrice_2.markup_os, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
+                              TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2.alternative_article,
+                              TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
+                              TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2.delay,
+                              TotalPrice_2.sell_for_OS, TotalPrice_2.markup_os, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
                               TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
                               TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                               TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
@@ -310,8 +310,8 @@ class Sender(QThread):
                               FinalPrice.notice_s,
                               FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
                               FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
-                              FinalPrice._05price_plus,
-                              FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
+                              FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
+                              FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
                               FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
                               FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
@@ -387,8 +387,8 @@ class Sender(QThread):
                           FinalPrice.notice_s,
                           FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
                           FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
-                          FinalPrice._05price_plus,
-                          FinalPrice._06mult_new, FinalPrice._07supplier_code, FinalPrice._14brand_filled_in,
+                          FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
+                          FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
                           FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
                           FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
 

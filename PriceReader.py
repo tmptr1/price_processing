@@ -1111,7 +1111,8 @@ class MainWorker(QThread):
             cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_1)).scalar()
             cnt_wo_article = sess.execute(select(func.count()).select_from(self.TmpPrice_1).where(self.TmpPrice_1._01article == None)).scalar()
             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
-                         .values(info_message="Ок", updated_at=new_update_time, row_count=cnt, row_wo_article=cnt_wo_article))
+                         .values(info_message="Ок", updated_at=new_update_time, row_count=cnt, row_wo_article=cnt_wo_article,
+                                 last_notification=None))  # last_notification - прайс обновился после уведомления на почту
             return True
         except PermissionError:
             self.log.add(LOG_ID,

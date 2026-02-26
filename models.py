@@ -361,6 +361,7 @@ class Price_2(Base2):
     _07supplier_code: Mapped[str_x(20)]
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
+    alternative_article: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
     # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
@@ -479,6 +480,7 @@ class Price_2_2(Base2_1):
     _07supplier_code: Mapped[str_x(20)]
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
+    alternative_article: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
     # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
@@ -602,6 +604,7 @@ class TotalPrice_2(Base):
     _07supplier_code: Mapped[str_x(20)]
     # _09Код_Поставщик_Товар varchar(500),
     _09code_supl_goods: Mapped[str_x(256)]
+    alternative_article: Mapped[str_x(256)]
     # _10Оригинал varchar(30),
     # _10original: Mapped[str_x(30)]
     # _13Градация REAL,
@@ -965,6 +968,7 @@ class FinalPrice(Base3):
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
+    alternative_article: Mapped[str_x(256)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
     # _14Производитель_заполнен varchar(1000),
@@ -1083,6 +1087,7 @@ class FinalPriceHistory(Base):
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
+    alternative_article: Mapped[str_x(256)]
     # _14Производитель_заполнен varchar(1000),
     _14brand_filled_in: Mapped[str_x(256)]
     # _15КодТутОптТорг varchar(256),
@@ -1140,6 +1145,7 @@ class FinalPriceHistoryDel(Base):
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
+    alternative_article: Mapped[str_x(256)]
     # _14Производитель_заполнен varchar(1000),
     _14brand_filled_in: Mapped[str_x(256)]
     # _15КодТутОптТорг varchar(256),
@@ -1338,6 +1344,8 @@ class SuppliersForm(Base):
     __tablename__ = "suppliers_form"
     id: Mapped[intpk]
     rating: Mapped[real]
+    price_age_for_notification_hours: Mapped[real]
+    price_update_notification_emails: Mapped[str_x(150)]
     setting: Mapped[str_x(20)]
     days: Mapped[str_x(150)]
 
@@ -1436,6 +1444,7 @@ class PriceReport(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
     updated_at_2_step: Mapped[datetime.datetime] = mapped_column(nullable=True)
     db_added: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    last_notification: Mapped[datetime.datetime] = mapped_column(nullable=True)
     row_count_2: Mapped[intgr]
     del_art: Mapped[intgr]
     del_brand: Mapped[intgr]
