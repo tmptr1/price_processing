@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'price_processing_2.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.1
+## Created by: Qt User Interface Compiler version 6.10.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -1081,37 +1081,21 @@ class Ui_MainWindow(object):
         self.groupBox_3.setObjectName(u"groupBox_3")
         self.gridLayout_9 = QGridLayout(self.groupBox_3)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
-        self.TgNotificationLabel_2 = QLabel(self.groupBox_3)
-        self.TgNotificationLabel_2.setObjectName(u"TgNotificationLabel_2")
-        self.TgNotificationLabel_2.setFont(font2)
+        self.Update3_0_Condition_timeEdit_2 = QTimeEdit(self.groupBox_3)
+        self.Update3_0_Condition_timeEdit_2.setObjectName(u"Update3_0_Condition_timeEdit_2")
 
-        self.gridLayout_9.addWidget(self.TgNotificationLabel_2, 0, 0, 1, 1)
+        self.gridLayout_9.addWidget(self.Update3_0_Condition_timeEdit_2, 0, 1, 1, 1)
 
-        self.Tg_timeEdit_2 = QTimeEdit(self.groupBox_3)
-        self.Tg_timeEdit_2.setObjectName(u"Tg_timeEdit_2")
+        self.Update3_0_ConditionSaveButton_2 = QPushButton(self.groupBox_3)
+        self.Update3_0_ConditionSaveButton_2.setObjectName(u"Update3_0_ConditionSaveButton_2")
 
-        self.gridLayout_9.addWidget(self.Tg_timeEdit_2, 0, 1, 1, 1)
-
-        self.TgNTimeSaveButton_2 = QPushButton(self.groupBox_3)
-        self.TgNTimeSaveButton_2.setObjectName(u"TgNTimeSaveButton_2")
-
-        self.gridLayout_9.addWidget(self.TgNTimeSaveButton_2, 0, 2, 1, 1)
+        self.gridLayout_9.addWidget(self.Update3_0_ConditionSaveButton_2, 0, 2, 1, 1)
 
         self.Update3_0_ConditionLabel_2 = QLabel(self.groupBox_3)
         self.Update3_0_ConditionLabel_2.setObjectName(u"Update3_0_ConditionLabel_2")
         self.Update3_0_ConditionLabel_2.setFont(font2)
 
-        self.gridLayout_9.addWidget(self.Update3_0_ConditionLabel_2, 1, 0, 1, 1)
-
-        self.Update3_0_Condition_timeEdit_2 = QTimeEdit(self.groupBox_3)
-        self.Update3_0_Condition_timeEdit_2.setObjectName(u"Update3_0_Condition_timeEdit_2")
-
-        self.gridLayout_9.addWidget(self.Update3_0_Condition_timeEdit_2, 1, 1, 1, 1)
-
-        self.Update3_0_ConditionSaveButton_2 = QPushButton(self.groupBox_3)
-        self.Update3_0_ConditionSaveButton_2.setObjectName(u"Update3_0_ConditionSaveButton_2")
-
-        self.gridLayout_9.addWidget(self.Update3_0_ConditionSaveButton_2, 1, 2, 1, 1)
+        self.gridLayout_9.addWidget(self.Update3_0_ConditionLabel_2, 0, 0, 1, 1)
 
 
         self.verticalLayout_3.addWidget(self.groupBox_3)
@@ -1368,10 +1352,8 @@ class Ui_MainWindow(object):
         self.OpenMassOffersButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
         self.TimeSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432\u0440\u0435\u043c\u044f", None))
         self.groupBox_3.setTitle("")
-        self.TgNotificationLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0432 Telegram", None))
-        self.TgNTimeSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
-        self.Update3_0_ConditionLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u043b\u043d\u043e\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u043e 3.0 \u0423\u0441\u043b\u043e\u0432\u0438\u044f\u043c", None))
         self.Update3_0_ConditionSaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
+        self.Update3_0_ConditionLabel_2.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u043b\u043d\u043e\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u043e 4.0 \u0423\u0441\u043b\u043e\u0432\u0438\u044f\u043c", None))
         self.groupBox_2.setTitle("")
         self.ResetMailReporButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.OpenPriceStatusButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c", None))
