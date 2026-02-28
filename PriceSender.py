@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [23, ]
+                # price_name_list = [5, ]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -104,7 +104,8 @@ class Sender(QThread):
                             self.create_price(id)
                         except smtplib.SMTPDataError as smtp_ex:
                             # print(smtp_ex.smtp_code)
-                            self.log.error(LOG_ID, f"Подозрение на спам ({smtp_ex.smtp_code}) ERROR:", smtp_ex)
+                            ex_text = traceback.format_exc()
+                            self.log.error(LOG_ID, f"Подозрение на спам ({smtp_ex.smtp_code}) ERROR:", ex_text)
                             with session() as sess:
                                 buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
                                                                                                  func.upper(BuyersForm.included) == 'ДА'))).scalar()
@@ -211,7 +212,7 @@ class Sender(QThread):
                 sess.commit()
                 return
 
-            self.time_for_history_del = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
+            self.now_dt = datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')
             allow_prices = self.get_allow_prises(sess)
             # TotalPrice_2.code_pb_p
             cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
@@ -332,9 +333,9 @@ class Sender(QThread):
             else:
                 send_time_val = "NULL"
 
-            now_dt = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
+            # now_dt = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                           literal_column(now_dt), *cols_for_price.keys()) # send_time_val
+                           literal_column(f"'{self.now_dt}'"), *cols_for_price.keys()) # send_time_val
             sess.execute(
                 insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
@@ -355,9 +356,9 @@ class Sender(QThread):
             count_for_report = self.price_settings.max_rows if self.price_settings.max_rows > total_rows else total_rows
 
             sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
-            now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
-                                   update_time=now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
+                                   update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
                                    info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
@@ -365,7 +366,7 @@ class Sender(QThread):
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
                                    prices_count=prices_count_msg, unused_prices=self.unused_prices))
             sess.add(PriceSendTimeHistory(price_code=self.price_settings.buyer_price_code,
-                                   update_time=now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
+                                   update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
                                    info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
                                    count=count_for_report, count_after_filter=count_after_first_filter,
                                    del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
@@ -403,7 +404,7 @@ class Sender(QThread):
 
         price = select(literal_column(f"'{reason}'"),
                        literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                       literal_column(self.time_for_history_del), *cols_for_del_history).where(condition)
+                       literal_column(f"'{self.now_dt}'"), *cols_for_del_history).where(condition)
         cnt = sess.execute(insert(FinalPriceHistoryDel).from_select(['reason', 'price_code', 'send_time', *cols_for_del_history], price)).rowcount
         return cnt
 
@@ -648,23 +649,25 @@ class Sender(QThread):
 
 
     def del_duples(self, sess):
+        # было _15code_optt
+        sess.execute(update(FinalPrice).values(art_brand=text(f"upper(concat({FinalPrice._01article.__dict__['name']}, {FinalPrice.brand.__dict__['name']}))")))
         # D для всех дублей
-        duples = select(FinalPrice._15code_optt).group_by(FinalPrice._15code_optt).having(func.count(FinalPrice.id) > 1)
-        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt.in_(duples)).values(mult_less='D'))
+        duples = select(FinalPrice.art_brand).group_by(FinalPrice.art_brand).having(func.count(FinalPrice.id) > 1)
+        sess.execute(update(FinalPrice).where(FinalPrice.art_brand.in_(duples)).values(mult_less='D'))
 
         # D1 не с мин. ценой среди D
-        min_p_table = (select(FinalPrice._15code_optt, func.min(FinalPrice.price).label('min_p')).
-                       where(FinalPrice.mult_less=='D').group_by(FinalPrice._15code_optt))
-        sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt==min_p_table.c._15code_optt,
+        min_p_table = (select(FinalPrice.art_brand, func.min(FinalPrice.price).label('min_p')).
+                       where(FinalPrice.mult_less=='D').group_by(FinalPrice.art_brand))
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.art_brand==min_p_table.c.art_brand,
                                                    FinalPrice.price==min_p_table.c.min_p)).values(mult_less='D1'))
 
         # D2 не с макс. кол-вом среди D1
-        max_c_table = select(FinalPrice._15code_optt, func.max(FinalPrice.count).label('max_c')).where(FinalPrice.mult_less == 'D1').group_by(FinalPrice._15code_optt)
-        sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt==max_c_table.c._15code_optt,
+        max_c_table = select(FinalPrice.art_brand, func.max(FinalPrice.count).label('max_c')).where(FinalPrice.mult_less == 'D1').group_by(FinalPrice.art_brand)
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.art_brand==max_c_table.c.art_brand,
                                                    FinalPrice.count==max_c_table.c.max_c)).values(mult_less='D2'))
 
         # D3 не с макс. id среди D2
-        max_id_table = select(FinalPrice._15code_optt, func.max(FinalPrice.id).label('max_id')).where(FinalPrice.mult_less == 'D2').group_by(FinalPrice._15code_optt)
+        max_id_table = select(FinalPrice.art_brand, func.max(FinalPrice.id).label('max_id')).where(FinalPrice.mult_less == 'D2').group_by(FinalPrice.art_brand)
         sess.execute(update(FinalPrice).where(FinalPrice.id==max_id_table.c.max_id).values(mult_less='D3'))
 
         sess.execute(update(FinalPrice).where(FinalPrice.mult_less=='D3').values(mult_less=None))
