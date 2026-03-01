@@ -386,7 +386,7 @@ class MainWorker(QThread):
 
                 # 03Наименование
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
-                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('\n', ' ', 'g').
+                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
                                                             regexp_replace(' +', ' ', 'g').
                                                             regexp_replace('^ | $', '', 'g')))
                 # print(f"03Наименование {datetime.datetime.now() - n_dt}")
