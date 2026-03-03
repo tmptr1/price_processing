@@ -980,7 +980,7 @@ class CatalogUpdate(QThread):
                         msg_text = msg_text.format(price_msg=price_msg, updated_at=updated_at)
                         # print(msg_text)
 
-                    for email in emails:
+                    for email in [*emails, "ytopttorg@mail.ru"]:
                         msg = MIMEText(msg_text, "plain", "utf-8")
                         msg["Subject"] = Header("Запрос на обновление прайс-листа для ИП Шевелько СН")
                         msg["From"] = settings_data['mail_login']
