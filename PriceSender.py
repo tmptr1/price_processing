@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [5, ]
+                # price_name_list = [20, ]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -441,19 +441,25 @@ class Sender(QThread):
                       "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
                       "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
                       "Заканчивается на": lambda col, x: col.ilike(f"%{x}"),  # '{}$'], endswith
+                      "Не начинается с": lambda col, x: col.not_ilike(f"%{x}"),
                       "Равно": lambda col, x: func.upper(col) == x,
                       # "Не равно": lambda col, x: func.upper(col) != x,
                       }
         exceptions = sess.execute(
-            select(PriceException).where(and_(PriceException.deny.like(f"%{self.price_settings.buyer_code}"),
-                                              PriceException.extra == "Действует в экселе"))).scalars().all()
+            select(PriceException).where(or_(PriceException.deny.like(f"%{self.price_settings.buyer_code}"),
+                                              func.lower(PriceException.deny) == "всем"))).scalars().all()
 
         for e in exceptions:
             # print(e.text, e.condition)
             condition = conditions.get(e.condition, None)
             col = cols.get(e.find, None)
             if condition and col:
-                sess.execute(update(FinalPrice).where(condition(col, e.text)).values(mult_less='0'))
+                if e.price_code:
+                    sess.execute(update(FinalPrice).where(and_(FinalPrice._07supplier_code==e.price_code, condition(col, e.text))).
+                                 values(mult_less='0'))
+                else:
+                    sess.execute(update(FinalPrice).where(condition(col, e.text)).values(mult_less='0'))
+
 
         self.exception_words_del = self.add_dels_in_history(sess, (FinalPrice.mult_less != None), 'Слова исключения')
         if self.exception_words_del:
