@@ -447,13 +447,6 @@ class CatalogUpdate(QThread):
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W', '', 'g'))))
 
-                table_name = 'price_exception'
-                table_class = PriceException
-                cols = {"price_code": ["Код прайса"], "condition": ["Условие"], "find": ["Столбец поиска"],
-                        "text": ["Текст"], "deny": ["Куда запрещено"], "extra": ["Примечание"], }
-                sheet_name = "Исключения из прайсов"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-
                 table_name = 'supplier_goods_fix'
                 table_class = SupplierGoodsFix
                 cols = {"supplier": ["Поставщик"], "import_setting": ["Настройка импорта прайса"], "key1": ["Ключ1"],
@@ -720,6 +713,13 @@ class CatalogUpdate(QThread):
                 table_class = PrevDynamicParts
                 cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], }
                 sheet_name = "prev dynamic parts"
+                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+
+                table_name = 'price_exception'
+                table_class = PriceException
+                cols = {"price_code": ["Код прайса"], "condition": ["Условие"], "find": ["Столбец поиска"],
+                        "text": ["Текст"], "deny": ["Куда запрещено"], "extra": ["Примечание"], }
+                sheet_name = "ИсключитьизПрайса"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
 
