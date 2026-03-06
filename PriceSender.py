@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [20, ]
+                price_name_list = [23, 24]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -834,10 +834,20 @@ class Sender(QThread):
                                 zf.write(file_path_csv, arcname=os.path.basename(file_path_csv))
 
                             with open(file_path_zip, 'rb') as f:
-                                file = MIMEApplication(f.read())
+                                # file = MIMEApplication(f.read())
+                                file = MIMEBase('application', 'zip')
+                                file.set_payload(f.read())
+                                encoders.encode_base64(file)
 
-                            file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path_zip))
-                            msg.attach(file)
+                                file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path_zip))
+                                msg.attach(file)
+
+                            # OLD SEND
+                            # with open(file_path_zip, 'rb') as f:
+                            #     file = MIMEApplication(f.read())
+                            #
+                            # file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path_zip))
+                            # msg.attach(file)
 
                             s.sendmail(msg["From"], send_to, msg.as_string())
 
