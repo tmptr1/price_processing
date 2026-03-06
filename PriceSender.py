@@ -88,7 +88,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                price_name_list = [23, 24]
+                # price_name_list = [23, 24]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
