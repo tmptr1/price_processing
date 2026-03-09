@@ -261,6 +261,12 @@ class CatalogUpdate(QThread):
                     spam = ', '.join(spam)
                     msg += f"📧 Попало в спам: {spam}\n\n"
 
+                not_loaded = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Не удалось загрузить на сайт').
+                                                      order_by(PriceSendTime.price_code)).scalars().all()
+                if not_loaded:
+                    not_loaded = ', '.join(not_loaded)
+                    msg += f"📧 Не удалось загрузить на сайт: {not_loaded}\n\n"
+
                 zero_count = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Итоговое кол-во 0, не отправлен').
                                                       order_by(PriceSendTime.price_code)).scalars().all()
                 if zero_count:
@@ -689,18 +695,20 @@ class CatalogUpdate(QThread):
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
                         "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
                         "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
-                        "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"],
-                        "period": ["Срок"], "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
+                        "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"], "period": ["Срок"],
+                        "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
-                        "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"],
-                        "d_val_was": ["Д Вал была"], "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"],
-                        "costs": ["Издержки"], "final_markup": ["Итоговая наценка"],
-                        "markup_buyer_wh": ["Наценка покупателя опт"], "name_check": ["Прохождение наименования"],
-                        "short_name": ["Короткое наименование"], "delay": ["Отсрочка дней"],
-                        "kb_price": ["КБ цены"], "percent": ["Проценты за период"], "base_price_tolerance_pct": ["base_price_tolerance_pct"],
-                        "max_rows": ["Максимум строк"], "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
+                        "vp_dynamic": ["Динамика ВП"], "val_dynamic": ["Динамика Вал"], "d_val_was": ["Д Вал была"],
+                        "d_change": ["Д изменения"], "rise_markup": ["Доп наценка рост"], "costs": ["Издержки"],
+                        "final_markup": ["Итоговая наценка"], "markup_buyer_wh": ["Наценка покупателя опт"],
+                        "name_check": ["Прохождение наименования"], "short_name": ["Короткое наименование"],
+                        "delay": ["Отсрочка дней"], "kb_price": ["КБ цены"], "percent": ["Проценты за период"],
+                        "base_price_tolerance_pct": ["base_price_tolerance_pct"], "max_rows": ["Максимум строк"],
+                        "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
                         "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],
-                        "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "send_days": ["Дни отправки"],
+                        "kos_markup": ["Наценка для К.ОС"], "emails": ["Адрес для прайсов"], "price_site": ['Страница для прайсов'],
+                        "login": ['Логин'], "password": ['Пароль'], "choose_on_site": ['Выбор на сайте'],
+                        "send_days": ["Дни отправки"],
                         "time1": ["Время 1"], "time2": ["Время 2"], "time3": ["Время 3"], "time4": ["Время 4"],
                         "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
                         "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],

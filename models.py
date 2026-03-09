@@ -886,6 +886,14 @@ class BuyersForm(Base):
     kos_markup: Mapped[real]
     # Адрес для прайсов
     emails: Mapped[str_x(300)]
+    # Страница для прайсов
+    price_site: Mapped[str_x(300)]
+    # Логин
+    login: Mapped[str_x(256)]
+    # Пароль
+    password: Mapped[str_x(256)]
+    # Выбор на сайте
+    choose_on_site: Mapped[str_x(500)]
     # Дни отправки
     send_days: Mapped[str_x(150)]
     # Время 1

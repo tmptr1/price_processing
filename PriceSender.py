@@ -13,6 +13,10 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from email import encoders
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 from telebot import TeleBot
 import pandas as pd
 import traceback
@@ -88,7 +92,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [23, 24]
+                # price_name_list = [1]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -304,11 +308,21 @@ class Sender(QThread):
             if total_rows == 0:
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
                 self.new_info_msg = 'Итоговое кол-во 0, не отправлен'
-            elif self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_sent:
-                if self.send_mail():
-                    last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                    sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                 values(supplier_update_time=last_supplier_price_updates.c.db_added))
+            else:
+                if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_sent:
+                    if self.send_mail():
+                        last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                        sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                     values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                if self.need_to_send and self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists' and not recent_sent:
+                    if self.load_price_autopiter():
+                        last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                        sess.execute(update(FinalPrice).where(
+                            FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                     values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                    else:
+                        self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                        self.new_info_msg = 'Не удалось загрузить на сайт'
 
                     # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
                     #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
@@ -879,6 +893,70 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"НЕ отправлено, почта для отправки не указана")
             self.new_info_msg = 'Не отправлено, почта для отправки не указана'
             return False
+
+    def load_price_autopiter(self):
+        useragrnt = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        option = webdriver.ChromeOptions()
+        option.add_argument(f'user-agent={useragrnt}')
+        option.add_argument('--headless')
+
+        driver = webdriver.Chrome(options=option)
+        try:
+            url = r'https://autopiter.ru/account/supplier/price-lists'
+            driver.set_page_load_timeout(200)
+            driver.maximize_window()
+            driver.get(url=url)
+            time.sleep(3)
+            login_element = driver.find_element(By.XPATH, "//*[text()='Вход']")
+            time.sleep(3)
+            login_element.click()
+            time.sleep(3)
+            login_input = driver.find_element(By.XPATH, "//input[@placeholder='Клиентский номер']")
+            login_input.send_keys(self.price_settings.login)
+            time.sleep(2)
+            password_input = driver.find_element(By.XPATH, "//input[@placeholder='Пароль']")
+            password_input.send_keys(self.price_settings.password)
+            time.sleep(2)
+            password_input.send_keys(Keys.ENTER)
+            time.sleep(5)
+
+            storage_id = 'warehouse-select'
+            price_id = 'price-list-select'
+
+            storage_val = re.search(r'Склад.+=.+\d+', self.price_settings.choose_on_site)
+            storage_val = re.search(r'\d+', storage_val.group()).group()
+
+            price_val = re.search(r'Прайс.+=.+\d+', self.price_settings.choose_on_site)
+            price_val = re.search(r'\d+', price_val.group()).group()
+
+            storage_select = Select(driver.find_element(By.ID, storage_id))
+
+            storage_select.select_by_value(storage_val)
+            time.sleep(20)
+
+            price_select = Select(driver.find_element(By.ID, price_id))
+            price_select.select_by_value(price_val)
+
+            time.sleep(5)
+            file_path = fr"{settings_data['send_dir']}/{self.file_name}"
+            file_input = driver.find_element(By.CSS_SELECTOR, 'input[type="file"]')
+            file_input.send_keys(file_path)
+            time.sleep(30)
+
+            send_button = driver.find_element(By.XPATH, "//*[text()='Загрузить прайс']")
+            time.sleep(3)
+            send_button.click()
+
+            time.sleep(60)
+            self.add_log(self.price_settings.buyer_price_code, f"Загружен на сайт")
+            return True
+        except Exception as load_a_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "load_price_autopiter Error", ex_text)
+        finally:
+            driver.close()
+            driver.quit()
+        return False
 
     def add_log(self, price_code, msg, cur_time=None):
         # лог с выводом этапа в таблицу
