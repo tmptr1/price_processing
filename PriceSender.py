@@ -920,7 +920,7 @@ class Sender(QThread):
             password_input.send_keys(self.price_settings.password)
             time.sleep(2)
             password_input.send_keys(Keys.ENTER)
-            time.sleep(5)
+            time.sleep(30)
 
             storage_id = 'warehouse-select'
             price_id = 'price-list-select'
@@ -931,7 +931,13 @@ class Sender(QThread):
             price_val = re.search(r'Прайс.+=.+\d+', self.price_settings.choose_on_site)
             price_val = re.search(r'\d+', price_val.group()).group()
 
-            storage_select = Select(driver.find_element(By.ID, storage_id))
+            for i in range(4):
+                try:
+                    storage_select = Select(driver.find_element(By.ID, storage_id))
+                    break
+                except Exception as ex_:
+                    time.sleep(30)
+                    pass
 
             storage_select.select_by_value(storage_val)
             time.sleep(20)
