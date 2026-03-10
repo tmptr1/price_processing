@@ -908,7 +908,7 @@ class Sender(QThread):
             driver.set_page_load_timeout(200)
             driver.maximize_window()
             driver.get(url=url)
-            time.sleep(3)
+            time.sleep(15)
             login_element = driver.find_element(By.XPATH, "//*[text()='Вход']")
             time.sleep(3)
             login_element.click()
