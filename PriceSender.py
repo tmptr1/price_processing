@@ -94,7 +94,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                price_name_list = [5, 6]
+                price_name_list = [6]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -900,7 +900,7 @@ class Sender(QThread):
         useragrnt = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
         option = webdriver.ChromeOptions()
         option.add_argument(f'user-agent={useragrnt}')
-        option.add_argument('--headless')
+        # option.add_argument('--headless')
 
         driver = webdriver.Chrome(options=option, service=ChromeService(ChromeDriverManager().install()))
         try:
