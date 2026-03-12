@@ -672,7 +672,7 @@ class Sender(QThread):
 
     def del_duples(self, sess):
         # было _15code_optt
-        sess.execute(update(FinalPrice).values(art_brand=text(f"upper(concat({FinalPrice._01article.__dict__['name']}, {FinalPrice.brand.__dict__['name']}))")))
+        sess.execute(update(FinalPrice).values(art_brand=text(f"upper(concat({FinalPrice._01article_comp.__dict__['name']}, {FinalPrice.brand.__dict__['name']}))")))
         # D для всех дублей
         duples = select(FinalPrice.art_brand).group_by(FinalPrice.art_brand).having(func.count(FinalPrice.id) > 1)
         sess.execute(update(FinalPrice).where(FinalPrice.art_brand.in_(duples)).values(mult_less='D'))
