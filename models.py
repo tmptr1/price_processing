@@ -388,7 +388,7 @@ class Price_2(Base2):
     # Продаём_для_ОС varchar(20),
     sell_for_OS: Mapped[str_x(20)]
     # Наценка_для_ОС REAL,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
     max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
@@ -507,7 +507,7 @@ class Price_2_2(Base2_1):
     # Продаём_для_ОС varchar(20),
     sell_for_OS: Mapped[str_x(20)]
     # Наценка_для_ОС REAL,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
     max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
@@ -631,7 +631,7 @@ class TotalPrice_2(Base):
     # Продаём_для_ОС varchar(20),
     sell_for_OS: Mapped[str_x(20)]
     # Наценка_для_ОС REAL,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
     max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
@@ -698,7 +698,7 @@ class Data07(Base):
     # Продаём_для_ОС varchar(20) DEFAULT null,
     sell_os: Mapped[str_x(20)]
     # Наценка_для_ОС REAL,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
     max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
@@ -994,7 +994,7 @@ class FinalPrice(Base3):
     # Продаём_для_ОС varchar(20),
     sell_for_OS: Mapped[str_x(20)]
     # Наценка_для_ОС REAL,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Наценка_Р REAL,
     markup_R: Mapped[real]
     # Наценка_ПБ REAL,

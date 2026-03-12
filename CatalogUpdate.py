@@ -427,11 +427,11 @@ class CatalogUpdate(QThread):
                         "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],
                         "markup_wholesale": ["Наценка опт"],
                         "max_markup": ["Наценка макс"], "unload_percent": ["% Отгрузки"], "delay": ["Отсрочка"],
-                        "markup_os": ["Наценка для ОС"],
                         "row_change_percent": ["Допустимый процент изменения количества строк"],
                         "price_change_percent": ["Допустимый процент изменения цены"],
                         "supplier_rating": ["Рейтинг поставщика"],
                         }
+                # "markup_os": ["Наценка для ОС"],
                 sheet_name = "Настройка прайсов"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
@@ -653,12 +653,13 @@ class CatalogUpdate(QThread):
                 table_name = 'data07'
                 table_class = Data07
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-                        "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"], "markup_os": ["Наценка для ОС"],
+                        "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"],
                         "max_decline": ["Макс снижение от базовой цены"],
                         "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
                         "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
                         "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
                         "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
+                # "markup_os": ["Наценка для ОС"],
                 sheet_name = "07Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
 
@@ -842,7 +843,7 @@ class CatalogUpdate(QThread):
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
             cur_time = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
-                                                markup_os=Data07.markup_os, max_decline=Data07.max_decline,
+                                                max_decline=Data07.max_decline,
                                                 markup_holidays=Data07.markup_holidays,
                                                 markup_R=Data07.markup_R, min_markup=Data07.min_markup,
                                                 min_wholesale_markup=Data07.min_wholesale_markup,
@@ -850,7 +851,7 @@ class CatalogUpdate(QThread):
                                                 grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
                                                 access_pp=Data07.access_pp,
                                                 unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
-
+            # markup_os=Data07.markup_os
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
                          values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
             # вычет ШтР

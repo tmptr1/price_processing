@@ -221,11 +221,11 @@ class CalculateClass(QThread):
 
                 data7_set = sess.execute(select(Data07).where(Data07.setting == price_code)).scalar()
                 sess.execute(update(self.TmpPrice_2).values(delay=data7_set.delay, to_price=data7_set.to_price, sell_for_OS=data7_set.sell_os,
-                    markup_os=data7_set.markup_os, max_decline=data7_set.max_decline, markup_holidays=data7_set.markup_holidays,
+                    max_decline=data7_set.max_decline, markup_holidays=data7_set.markup_holidays,
                     markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, min_wholesale_markup=data7_set.min_wholesale_markup,
                     markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
                     access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
-
+                # markup_os=data7_set.markup_os
                 sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._02brand.__dict__['name']}))")))
@@ -291,7 +291,7 @@ class CalculateClass(QThread):
                 self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
 
                 cur_time = datetime.datetime.now()
-                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p,
+                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
                 cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
                                   self.TmpPrice_2.notice_s,
@@ -302,7 +302,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
                                   self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
-                                  self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.max_decline,
+                                  self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.max_decline,
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp, self.TmpPrice_2.unload_percent,
@@ -405,6 +405,7 @@ class CalculateClass(QThread):
             limit = CHUNKSIZE
             loaded = 0
             while True:
+                # self.TmpPrice_2.markup_os
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
@@ -412,7 +413,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
-                                  self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_os, self.TmpPrice_2.markup_R,
+                                  self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_R,
                                   self.TmpPrice_2.markup_pb, self.TmpPrice_2.min_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step,  self.TmpPrice_2.access_pp, self.TmpPrice_2.put_away_zp,
                                   self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b, self.TmpPrice_2.count,
