@@ -823,10 +823,11 @@ class CatalogUpdate(QThread):
 
             working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
             sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
-            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок',
+            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок',
                                                        PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(
-                updated_at=None))
-            sess.execute(update(PriceReport).where(PriceReport.info_message2 != 'Ок').values(updated_at_2_step=None))
+                updated_at=None, updated_at_2_step=None))
+            # sess.execute(update(PriceReport).where(or_(PriceReport.info_message2 != 'Ок',
+            #                                            PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at_2_step=None))
             sess.commit()
 
 
@@ -976,7 +977,10 @@ class CatalogUpdate(QThread):
 
                 self.log.add(LOG_ID, f"Рассылка уведомлений ...",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>Рассылка уведомлений</span> ...")
+                self.log.add(LOG_ID, f"{prices}")
+                price_codes = []
                 for price_code, emails, updated_at in prices:
+                    price_codes.append(price_code)
                     self.log.add(LOG_ID, f"{price_code} - {emails} ...")
                     emails = list(map(str.strip, str(emails).split(',')))
 
@@ -1003,6 +1007,13 @@ class CatalogUpdate(QThread):
 
                     sess.execute(update(PriceReport).where(PriceReport.price_code==price_code).values(
                         last_notification=cur_time))
+
+                if price_codes:
+                    price_codes = ['VALA', '1LAM', 'XAA3']
+                    price_codes = ', '.join(price_codes)
+                    msg = f'Напоминания об обновлении прайсов отправлены ({price_codes})'
+                    for u in USERS:
+                        tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML')
 
                 sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Рассылка уведомлений').values(
                     updated_at=cur_time))
