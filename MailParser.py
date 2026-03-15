@@ -54,7 +54,8 @@ class MailParserClass(QThread):
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("112898", mail)
-                # self.get_mail("119943", mail)
+                # self.get_mail("125007", mail)
+                # self.get_mail("125563", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -240,9 +241,15 @@ class MailParserClass(QThread):
 
                 if part.get_content_maintype() != 'multipart' and part.get('Content-Disposition') is not None:
                     try:
-                        enc = chardet.detect(decode_header(part.get_filename())[0][0])['encoding']
-                        name = decode_header(part.get_filename())[0][0].decode(enc)
-                        # print(name)
+                        # print(decode_header(part.get_filename()))
+                        name = ''
+                        for n in decode_header(part.get_filename()):
+                            enc = chardet.detect(n[0])['encoding']
+                            name += n[0].decode(enc)
+
+                        # enc = chardet.detect(decode_header(part.get_filename())[0][0])['encoding']
+                        # name = decode_header(part.get_filename())[0][0].decode(enc)
+
                     except:
                         name = part.get_filename()
 
