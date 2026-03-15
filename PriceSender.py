@@ -6,6 +6,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, BuyersForm, Data07, PriceException,
                     SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
                     FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts)
+from ftplib import FTP
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -94,7 +95,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [5]
+                price_name_list = [3]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -316,15 +317,26 @@ class Sender(QThread):
                         last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
                         sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
                                      values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                if self.need_to_send and self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists' and not recent_sent:
-                    if self.load_price_autopiter():
-                        last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                        sess.execute(update(FinalPrice).where(
-                            FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                     values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                    else:
-                        self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
-                        self.new_info_msg = 'Не удалось загрузить на сайт'
+                if self.need_to_send and not recent_sent:
+                    if self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists':
+                        if self.load_price_autopiter():
+                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                            sess.execute(update(FinalPrice).where(
+                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                        else:
+                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                            self.new_info_msg = 'Не удалось загрузить на сайт'
+
+                    elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
+                        if self.load_price_avtoto():
+                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                            sess.execute(update(FinalPrice).where(
+                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                        else:
+                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                            self.new_info_msg = 'Не удалось загрузить на сайт'
 
                     # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
                     #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
@@ -964,6 +976,25 @@ class Sender(QThread):
         finally:
             driver.close()
             driver.quit()
+        return False
+
+
+    def load_price_avtoto(self):
+        try:
+            # ftp = FTP(self.price_settings.price_site)
+            ftp = FTP(r'suppliers-ftp.avtoto.ru', timeout=100)
+            ftp.login(user=self.price_settings.login, passwd=self.price_settings.password)
+            print('Авторизован')
+            with open(fr"{settings_data['send_dir']}/{self.file_name}", 'rb') as f:
+                # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
+                ftp.storbinary(fr"/suppliers_ftp/10001694/K23/{self.file_name}", f)
+                print('Загружено по FTP')
+
+            self.add_log(self.price_settings.buyer_price_code, f"Загружен на сайт")
+            return True
+        except Exception as load_av_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "load_price_avtoto Error", ex_text)
         return False
 
     def add_log(self, price_code, msg, cur_time=None):

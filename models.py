@@ -1358,6 +1358,7 @@ class SuppliersForm(Base):
     price_update_notification_emails: Mapped[str_x(150)]
     setting: Mapped[str_x(20)]
     days: Mapped[str_x(150)]
+    max_price_drop_pct: Mapped[real]
 
 
 class Brands(Base):
