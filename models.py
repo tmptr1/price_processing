@@ -844,23 +844,23 @@ class BuyersForm(Base):
     # Установить УС
     # us_set: Mapped[real]
     # Динамика ВП
-    vp_dynamic: Mapped[real]
+    # vp_dynamic: Mapped[real]
     # Динамика Вал
-    val_dynamic: Mapped[real]
+    # val_dynamic: Mapped[real]
     # Д Вал была
-    d_val_was: Mapped[real]
+    # d_val_was: Mapped[real]
     # Д изменения
-    d_change: Mapped[real]
+    # d_change: Mapped[real]
     # Доп наценка рост
-    rise_markup: Mapped[real]
+    # rise_markup: Mapped[real]
     # Доп наценка
     markup: Mapped[real]
     # Издержки
     costs: Mapped[real]
     # Итоговая наценка
-    final_markup: Mapped[real]
+    # final_markup: Mapped[real]
     # Наценка покупателя опт
-    markup_buyer_wh: Mapped[real]
+    # markup_buyer_wh: Mapped[real]
     # Прохождение наименования
     name_check: Mapped[str_x(20)]
     # Короткое наименование
@@ -883,7 +883,7 @@ class BuyersForm(Base):
     # Продаём для К.ОС
     sell_for_kos: Mapped[str_x(20)]
     # Наценка для К.ОС
-    kos_markup: Mapped[real]
+    # kos_markup: Mapped[real]
     # Адрес для прайсов
     emails: Mapped[str_x(300)]
     # Страница для прайсов
