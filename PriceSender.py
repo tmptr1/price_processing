@@ -69,17 +69,18 @@ class Sender(QThread):
                 #                                                                                     func.upper(BuyersForm.for_send) == 'ДА')).
                 #                               order_by(PriceSendTime.price_code)).scalars().all()
                 #     print(miss_email)
-                self.log.add(LOG_ID, f"Начало загрузки")
-                ftp = FTP()
-                ftp.connect(host=r'suppliers-ftp.avtoto.ru', port=21, timeout=100)
-                ftp.login(user='10001694', passwd='n0tutumn')
-                self.log.add(LOG_ID, f"Авторизован")
-                with open(r"\\Fileserver\рабочая папка\Работа с прайсами\4.0\обработка 2\Отправка\Прайс AvtoTO ТутОптТорг.csv", 'rb') as f:
-                    # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
-                    ftp.storbinary(fr"STOR /suppliers_ftp/10001694/K23/price.csv", f) # .replace('/', '\\')
 
-                self.log.add(LOG_ID, f"Загружен на сайт")
-                return
+                # self.log.add(LOG_ID, f"Начало загрузки")
+                # ftp = FTP()
+                # ftp.connect(host=r'suppliers-ftp.avtoto.ru', port=21, timeout=100)
+                # ftp.login(user='10001694', passwd='n0tutumn')
+                # self.log.add(LOG_ID, f"Авторизован")
+                # with open(r"\\Fileserver\рабочая папка\Работа с прайсами\4.0\обработка 2\Отправка\Прайс AvtoTO ТутОптТорг.csv", 'rb') as f:
+                #     # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
+                #     ftp.storbinary(fr"STOR /suppliers_ftp/10001694/K23/price.csv", f) # .replace('/', '\\')
+                #
+                # self.log.add(LOG_ID, f"Загружен на сайт")
+                # return
 
                 # СНАЧАЛА С МИН СРОКОМ
                 weekday = WEEKDAYS[datetime.datetime.now().weekday()]
@@ -106,7 +107,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                price_name_list = [3]
+                # price_name_list = [3]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -339,20 +340,16 @@ class Sender(QThread):
                             self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
                             self.new_info_msg = 'Не удалось загрузить на сайт'
 
-                    elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
-                        if self.load_price_avtoto():
-                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                            sess.execute(update(FinalPrice).where(
-                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                        else:
-                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
-                            self.new_info_msg = 'Не удалось загрузить на сайт'
+                    # elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
+                    #     if self.load_price_avtoto():
+                    #         last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                    #         sess.execute(update(FinalPrice).where(
+                    #             FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                    #                      values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                    #     else:
+                    #         self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                    #         self.new_info_msg = 'Не удалось загрузить на сайт'
 
-                    # sess.query(FinalPriceHistory).where(and_(FinalPriceHistory.price_code==self.price_settings.buyer_price_code,
-                    #                                          FinalPriceHistory._15code_optt==FinalPrice._15code_optt)).delete()
-
-                    # is_sended = True
 
             cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
                               FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
@@ -992,14 +989,11 @@ class Sender(QThread):
 
     def load_price_avtoto(self):
         try:
-            # ftp = FTP(self.price_settings.price_site)
-            ftp = FTP(r'suppliers-ftp.avtoto.ru', timeout=100)
+            ftp = FTP()
+            ftp.connect(host=self.price_settings.price_site, port=21, timeout=100)
             ftp.login(user=self.price_settings.login, passwd=self.price_settings.password)
-            print('Авторизован')
             with open(fr"{settings_data['send_dir']}/{self.file_name}", 'rb') as f:
-                # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
-                ftp.storbinary(fr"/suppliers_ftp/10001694/K23/{self.file_name}", f)
-                print('Загружено по FTP')
+                ftp.storbinary(fr"STOR {self.price_settings.choose_on_site}{self.file_name}", f)
 
             self.add_log(self.price_settings.buyer_price_code, f"Загружен на сайт")
             return True
