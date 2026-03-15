@@ -69,6 +69,18 @@ class Sender(QThread):
                 #                                                                                     func.upper(BuyersForm.for_send) == 'ДА')).
                 #                               order_by(PriceSendTime.price_code)).scalars().all()
                 #     print(miss_email)
+                self.add_log('AVT-0', f"Загружен на сайт")
+                ftp = FTP()
+                ftp.connect(host=r'suppliers-ftp.avtoto.ru', port=21, timeout=100)
+                ftp.login(user='10001694', passwd='n0tutumn')
+                self.add_log('AVT-0', f"Авторизован")
+                with open(r"\\Fileserver\рабочая папка\Работа с прайсами\4.0\обработка 2\Отправка\Прайс AvtoTO ТутОптТорг.csv", 'rb') as f:
+                    # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
+                    ftp.storbinary(fr"/suppliers_ftp/10001694/K23/Прайс AvtoTO ТутОптТорг.csv", f)
+                    print('Загружено по FTP')
+
+                self.add_log('AVT-0', f"Загружен на сайт")
+                return
 
                 # СНАЧАЛА С МИН СРОКОМ
                 weekday = WEEKDAYS[datetime.datetime.now().weekday()]
