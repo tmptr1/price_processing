@@ -74,9 +74,9 @@ class Sender(QThread):
                 ftp.connect(host=r'suppliers-ftp.avtoto.ru', port=21, timeout=100)
                 ftp.login(user='10001694', passwd='n0tutumn')
                 self.log.add(LOG_ID, f"Авторизован")
-                with open(r"\\Fileserver\рабочая папка\Работа с прайсами\4.0\обработка 2\Отправка\Прайс AvtoTO ТутОптТорг.csv".replace('/', '\\'), 'rb') as f:
+                with open(r"\\Fileserver\рабочая папка\Работа с прайсами\4.0\обработка 2\Отправка\Прайс AvtoTO ТутОптТорг.csv", 'rb') as f:
                     # ftp.storbinary(fr"{self.price_settings.choose_on_site}{self.file_name}", f)
-                    ftp.storbinary(fr"/suppliers_ftp/10001694/K23/Прайс AvtoTO ТутОптТорг.csv".replace('/', '\\'), f)
+                    ftp.storbinary(fr"STOR /suppliers_ftp/10001694/K23/Прайс AvtoTO ТутОптТорг.csv", f) # .replace('/', '\\')
 
                 self.log.add(LOG_ID, f"Загружен на сайт")
                 return
