@@ -340,15 +340,15 @@ class Sender(QThread):
                             self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
                             self.new_info_msg = 'Не удалось загрузить на сайт'
 
-                    # elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
-                    #     if self.load_price_avtoto():
-                    #         last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                    #         sess.execute(update(FinalPrice).where(
-                    #             FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                    #                      values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                    #     else:
-                    #         self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
-                    #         self.new_info_msg = 'Не удалось загрузить на сайт'
+                    elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
+                        if self.load_price_avtoto():
+                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                            sess.execute(update(FinalPrice).where(
+                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                        else:
+                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                            self.new_info_msg = 'Не удалось загрузить на сайт'
 
 
             cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
@@ -992,8 +992,9 @@ class Sender(QThread):
             ftp = FTP()
             ftp.connect(host=self.price_settings.price_site, port=21, timeout=100)
             ftp.login(user=self.price_settings.login, passwd=self.price_settings.password)
+            file_format = self.file_name.split('.')[-1]
             with open(fr"{settings_data['send_dir']}/{self.file_name}", 'rb') as f:
-                ftp.storbinary(fr"STOR {self.price_settings.choose_on_site}{self.file_name}", f)
+                ftp.storbinary(fr"STOR {self.price_settings.choose_on_site}price.{file_format}", f)
 
             self.add_log(self.price_settings.buyer_price_code, f"Загружен на сайт")
             return True
