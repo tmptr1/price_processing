@@ -652,9 +652,9 @@ class CatalogUpdate(QThread):
 
                 table_name = 'data07'
                 table_class = Data07
+                # "max_decline": ["Макс снижение от базовой цены"],
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
                         "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"],
-                        "max_decline": ["Макс снижение от базовой цены"],
                         "markup_holidays": ["Наценка на праздники (1,02)"], "markup_R": ["Наценка Р"],
                         "min_markup": ["Мин наценка"], "min_wholesale_markup": ["Мин опт наценка"],
                         "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
@@ -844,8 +844,8 @@ class CatalogUpdate(QThread):
             self.log.add(LOG_ID, f"Обновление данных в Итоговом прайсе...",
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
             cur_time = datetime.datetime.now()
+            # max_decline=Data07.max_decline,
             sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
-                                                max_decline=Data07.max_decline,
                                                 markup_holidays=Data07.markup_holidays,
                                                 markup_R=Data07.markup_R, min_markup=Data07.min_markup,
                                                 min_wholesale_markup=Data07.min_wholesale_markup,

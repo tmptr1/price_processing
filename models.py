@@ -390,7 +390,7 @@ class Price_2(Base2):
     # Наценка_для_ОС REAL,
     # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[real]
+    # max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
     markup_holidays: Mapped[real]
     # Наценка_Р REAL,
@@ -509,7 +509,7 @@ class Price_2_2(Base2_1):
     # Наценка_для_ОС REAL,
     # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[real]
+    # max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
     markup_holidays: Mapped[real]
     # Наценка_Р REAL,
@@ -633,7 +633,7 @@ class TotalPrice_2(Base):
     # Наценка_для_ОС REAL,
     # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[real]
+    # max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
     markup_holidays: Mapped[real]
     # Наценка_Р REAL,
@@ -700,7 +700,7 @@ class Data07(Base):
     # Наценка_для_ОС REAL,
     # markup_os: Mapped[real]
     # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[real]
+    # max_decline: Mapped[real]
     # Наценка_на_праздники_1_02 REAL,
     markup_holidays: Mapped[real]
     # Наценка_Р REAL,
