@@ -643,9 +643,9 @@ class CatalogUpdate(QThread):
 
                 table_name = 'data07_14'
                 table_class = Data07_14
+                # "max_decline": ["Макс снижение от базовой цены"]
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
-                        "max_decline": ["Макс снижение от базовой цены"], "correct": ["Правильное"],
-                        "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
+                        "correct": ["Правильное"], "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
                 sheet_name = "07&14Данные"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
                 sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))

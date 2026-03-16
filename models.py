@@ -733,7 +733,7 @@ class Data07_14(Base):
     # Настройка varchar(100),
     setting: Mapped[str_x(50)]
     # Макс_снижение_от_базовой_цены REAL,
-    max_decline: Mapped[real]
+    # max_decline: Mapped[real]
     # Правильное varchar(256),
     correct: Mapped[str_x(256)]
     # correct_low: Mapped[str_x(256)]
