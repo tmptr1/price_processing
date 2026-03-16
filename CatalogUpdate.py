@@ -695,7 +695,7 @@ class CatalogUpdate(QThread):
                 table_class = BuyersForm
                 # "us_set": ["Установить УС"], "kos_markup": ["Наценка для К.ОС"], "markup_buyer_wh": ["Наценка покупателя опт"],
                 # "final_markup": ["Итоговая наценка"], "d_val_was": ["Д Вал была"], "rise_markup": ["Доп наценка рост"],
-                # "val_dynamic": ["Динамика Вал"], "vp_dynamic": ["Динамика ВП"], "d_change": ["Д изменения"],
+                # "val_dynamic": ["Динамика Вал"], "vp_dynamic": ["Динамика ВП"], "d_change": ["Д изменения"], "kb_price": ["КБ цены"]
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
                         "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
                         "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
@@ -704,7 +704,7 @@ class CatalogUpdate(QThread):
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
                         "costs": ["Издержки"],
                         "name_check": ["Прохождение наименования"], "short_name": ["Короткое наименование"],
-                        "delay": ["Отсрочка дней"], "kb_price": ["КБ цены"], "percent": ["Проценты за период"],
+                        "delay": ["Отсрочка дней"], "percent": ["Проценты за период"],
                         "base_price_tolerance_pct": ["base_price_tolerance_pct"], "max_rows": ["Максимум строк"],
                         "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
                         "quality_markup": ["Наценка качество приёма товара"], "sell_for_kos": ["Продаём для К.ОС"],

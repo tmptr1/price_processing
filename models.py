@@ -868,7 +868,7 @@ class BuyersForm(Base):
     # Отсрочка дней
     delay: Mapped[intgr]
     # КБ цены
-    kb_price: Mapped[real]
+    # kb_price: Mapped[real]
     # Проценты за период
     percent: Mapped[real]
     base_price_tolerance_pct: Mapped[real]
