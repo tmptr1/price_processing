@@ -183,7 +183,7 @@ class Sender(QThread):
                     msg = f"Последняя отправка прайсов была {last_time}"
 
                 for u in USERS:
-                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML')
+                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
                 # self.last_tg_send = datetime.datetime.now()
                 sess.execute(update(AppSettings).where(AppSettings.param=='last_tg_price_send').values(var=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
                 self.log.add(LOG_ID, f"Уведомление отправлено", f"<span style='color:{colors.green_log_color};'>Уведомление отправлено</span>  ")
@@ -794,13 +794,16 @@ class Sender(QThread):
                                 "Кол-во": FinalPrice.count, "Цена": FinalPrice.price, "Кратность": FinalPrice._06mult_new,
                                        "17КодУникальности": FinalPrice._17code_unique}
             cols = [self.price_settings.col_1, self.price_settings.col_2, self.price_settings.col_3, self.price_settings.col_4,
-                    self.price_settings.col_5, self.price_settings.col_6, self.price_settings.col_7]
+                    self.price_settings.col_5, self.price_settings.col_6, self.price_settings.col_7, self.price_settings.col_8,
+                    self.price_settings.col_9]
             headers = dict()
 
             for c in cols:
                 col_name = headers_patterns.get(c, None)
                 if col_name:
                     headers[c] = col_name
+                else:
+                    headers[c] = None
 
             # "Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность", "17КодУникальности"
             df = pd.DataFrame(columns=[*headers.keys()])

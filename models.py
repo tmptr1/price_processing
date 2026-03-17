@@ -916,6 +916,8 @@ class BuyersForm(Base):
     col_5: Mapped[str_x(50)]
     col_6: Mapped[str_x(50)]
     col_7: Mapped[str_x(50)]
+    col_8: Mapped[str_x(50)]
+    col_9: Mapped[str_x(50)]
 
 
 class PriceException(Base):

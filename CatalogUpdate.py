@@ -347,7 +347,7 @@ class CatalogUpdate(QThread):
                 msg += f'Всего позиций: {total_cnt}'
 
                 for u in USERS:
-                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=100)
+                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
                 # print(msg)
                 self.log.add(LOG_ID, "Уведомление отправлено", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Уведомление отправлено</span>  ")
 
@@ -715,6 +715,7 @@ class CatalogUpdate(QThread):
                         "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
                         "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],
                         "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
+                        "col_8": ["8 Столбец в прайсе"], "col_9": ["9 Столбец в прайсе"],
                         }
                 sheet_name = "Анкета покупателя"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
@@ -1014,7 +1015,7 @@ class CatalogUpdate(QThread):
                     price_codes = ', '.join(price_codes)
                     msg = f'Напоминания об обновлении прайсов отправлены ({price_codes})'
                     for u in USERS:
-                        tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=100)
+                        tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
 
                 sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Рассылка уведомлений').values(
                     updated_at=cur_time))
