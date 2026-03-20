@@ -182,8 +182,8 @@ class Sender(QThread):
                 else:
                     msg = f"Последняя отправка прайсов была {last_time}"
 
-                for u in USERS:
-                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
+                # for u in USERS:
+                #     tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
                 # self.last_tg_send = datetime.datetime.now()
                 sess.execute(update(AppSettings).where(AppSettings.param=='last_tg_price_send').values(var=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
                 self.log.add(LOG_ID, f"Уведомление отправлено", f"<span style='color:{colors.green_log_color};'>Уведомление отправлено</span>  ")

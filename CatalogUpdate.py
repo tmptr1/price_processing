@@ -21,8 +21,11 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
                     MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts)
 from telebot import TeleBot
+from telebot import apihelper
 from tg_users_id import USERS, TG_TOKEN
 import colors
+
+# apihelper.proxy
 
 import setting
 engine = setting.get_engine()
@@ -346,8 +349,8 @@ class CatalogUpdate(QThread):
                 total_cnt = '{0:,d}'.format(total_cnt)
                 msg += f'Всего позиций: {total_cnt}'
 
-                for u in USERS:
-                    tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
+                # for u in USERS:
+                #     tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300, )
                 # print(msg)
                 self.log.add(LOG_ID, "Уведомление отправлено", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Уведомление отправлено</span>  ")
 
@@ -1014,8 +1017,8 @@ class CatalogUpdate(QThread):
                     price_codes = ['VALA', '1LAM', 'XAA3']
                     price_codes = ', '.join(price_codes)
                     msg = f'Напоминания об обновлении прайсов отправлены ({price_codes})'
-                    for u in USERS:
-                        tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
+                    # for u in USERS:
+                    #     tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
 
                 sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Рассылка уведомлений').values(
                     updated_at=cur_time))
