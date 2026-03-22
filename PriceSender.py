@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, BuyersForm, Data07, PriceException,
                     SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
-                    FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts)
+                    FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
 from ftplib import FTP
 import smtplib
 from email.mime.text import MIMEText
@@ -107,7 +107,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [3]
+                # price_name_list = [2]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -178,13 +178,30 @@ class Sender(QThread):
 
                 last_time = sess.execute(select(func.max(PriceSendTime.send_time))).scalar()
                 if not last_time or last_time.day != cur_time.day:
-                    msg = f"❗❗ СЕГОДНЯ ПРАЙСЫ НЕ ОТПРАВЛЯЛИСЬ ❗❗"
+                    html_text = '<p>❗❗ <b>СЕГОДНЯ ПРАЙСЫ НЕ ОТПРАВЛЯЛИСЬ</b> ❗❗</p>'
+                    header_text = 'Статус отправки: ОШИБКА'
                 else:
-                    msg = f"Последняя отправка прайсов была {last_time}"
+                    html_text = f"<p>Последняя отправка прайсов была {last_time}</p>"
+                    header_text = 'Статус отправки: ОК'
 
                 # for u in USERS:
-                #     tg_bot.send_message(chat_id=u, text=msg, parse_mode='HTML', timeout=300)
+                #     tg_bot.send_message(chat_id=u, text=html_text, parse_mode='HTML', timeout=300)
                 # self.last_tg_send = datetime.datetime.now()
+
+                send_to = "ytopttorg@mail.ru"
+                msg = MIMEMultipart()
+                msg["Subject"] = Header(header_text)
+                msg["From"] = settings_data['mail_login']
+                msg["To"] = send_to
+
+                msg.attach(MIMEText(html_text, 'html'))
+
+                s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+                s.starttls()
+                s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+                s.sendmail(msg["From"], msg["To"], msg.as_string())
+                s.quit()
+
                 sess.execute(update(AppSettings).where(AppSettings.param=='last_tg_price_send').values(var=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
                 self.log.add(LOG_ID, f"Уведомление отправлено", f"<span style='color:{colors.green_log_color};'>Уведомление отправлено</span>  ")
                 sess.commit()
@@ -292,12 +309,15 @@ class Sender(QThread):
 
             cur_time = datetime.datetime.now()
 
+            self.price_check(sess)
+            self.del_price_below_zero(sess)
+
             self.del_over_price_b(sess)
 
             self.del_over_price(sess)
 
             self.set_rating(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, Макс. снижение цены", cur_time)
 
             cur_time = datetime.datetime.now()
             self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
@@ -684,11 +704,6 @@ class Sender(QThread):
         # print('ok 3', rc, datetime.datetime.now() - nt)
 
 
-        self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)), 'Цена меньше/равна 0')
-        if self.price_del:
-            sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
-            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
-
 
     def del_duples(self, sess):
         # было _15code_optt
@@ -718,6 +733,34 @@ class Sender(QThread):
         if self.dup_del:
             sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
+
+
+    def price_check(self, sess):
+        # !! ТОЛЬКО ЕСЛИ art_brand СОЗАДЁТСЯ ДО ЭТОГО МЕТОДА !!
+        sess.execute(update(FinalPrice).values(art_brand_07=text(
+            f"upper(concat({FinalPrice.art_brand.__dict__['name']}, {FinalPrice._07supplier_code.__dict__['name']}))")))
+        cond = and_(SuppliersForm.setting==FinalPrice._07supplier_code, SuppliersForm.max_price_drop_pct > 0,
+                    LastPrice.price_code==self.price_settings.buyer_price_code,
+                    FinalPrice.art_brand_07==LastPrice.art_brand_07,
+                    FinalPrice.price < LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))
+        changed_rows = sess.execute(update(FinalPrice).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))).rowcount
+        if changed_rows:
+            self.add_log(self.price_settings.buyer_price_code, f"Строк с изменённой ценой по макс. снижению: {changed_rows}")
+
+        new_prices = sess.query(LastPrice).where(LastPrice.art_brand_07==FinalPrice.art_brand_07)
+        sess.query(LastPrice).where(new_prices.exists()).delete()
+        sess.execute(insert(LastPrice).from_select(['art_brand_07', 'price_code', 'price', 'updated_at'],
+                                                   select(FinalPrice.art_brand_07, literal_column(f"'{self.price_settings.buyer_price_code}'"),
+                                                          FinalPrice.price, literal_column(f"now()"))
+               .where(and_(SuppliersForm.setting==FinalPrice._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
+
+
+    def del_price_below_zero(self, sess):
+        self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)),
+                                                  'Цена меньше/равна 0')
+        if self.price_del:
+            sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
+            self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
     def del_over_price_b(self, sess):
         # sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,

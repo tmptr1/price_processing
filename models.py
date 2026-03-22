@@ -936,6 +936,7 @@ class FinalPrice(Base3):
     __tablename__ = "final_price"
     __table_args__ = (#Index("final_price_15code_optt_index", "_15code_optt"),
                       Index("final_price_art_brand_index", "art_brand"),
+                      Index("final_price_art_brand_07_index", "art_brand_07"),
                       Index("final_price_01_14_index", "_01article", "_14brand_filled_in"),
                       # Index("final_price_07_14_index", "_07supplier_code", "_14brand_filled_in"),
                       )
@@ -986,7 +987,8 @@ class FinalPrice(Base3):
     _14brand_filled_in: Mapped[str_x(256)]
     # _15КодТутОптТорг varchar(256),
     _15code_optt: Mapped[str_x(256)]
-    art_brand: Mapped[str_x(256)]
+    art_brand: Mapped[str_x(512)]
+    art_brand_07: Mapped[str_x(516)]
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
@@ -1187,6 +1189,16 @@ class FinalComparePrice(Base3):
     price: Mapped[numeric]
     # Срок
     period: Mapped[intgr]
+
+class LastPrice(Base):
+    __tablename__ = "last_price"
+    __table_args__ = (Index("last_price_art_brand_07_index", "art_brand_07"),)
+
+    id: Mapped[uuidpk]
+    art_brand_07: Mapped[str_x(516)]
+    price_code: Mapped[str_x(10)]
+    price: Mapped[numeric]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 class PriceSendTime(Base):
     __tablename__ = "price_send_time"
