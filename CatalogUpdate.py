@@ -1023,7 +1023,7 @@ class CatalogUpdate(QThread):
 
                 self.log.add(LOG_ID, f"Рассылка уведомлений ...",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>Рассылка уведомлений</span> ...")
-                self.log.add(LOG_ID, f"{prices}")
+                self.log.add(LOG_ID, f"{prices.scalars().all()}")
                 price_codes = []
                 for price_code, emails, updated_at in prices:
                     price_codes.append(price_code)
