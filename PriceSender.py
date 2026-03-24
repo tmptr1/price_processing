@@ -672,8 +672,8 @@ class Sender(QThread):
             unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct))
         # print('ok', datetime.datetime.now() - nt)
 
-        # FinalPrice.offers_wh > 1,
-        sess.execute(update(FinalPrice).where(and_(FinalPrice._15code_optt == PrevDynamicParts.code_optt)).values(
+        # and_(FinalPrice.offers_wh > 1,
+        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
             price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
                                                                      (PrevDynamicParts.parts_markup_pct + FinalPrice.opt_starting_markup_pct +
                                                                           (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
