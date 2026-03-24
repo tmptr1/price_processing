@@ -664,6 +664,19 @@ class Sender(QThread):
         # sess.execute(update(FinalPrice).where().values(price=case(*conditions)))
         # print('start')
         # nt = datetime.datetime.now()
+
+        # Определяем базовую наценку в зависимости от количества оптовых предложений:
+        # Если Предложений_опт > 1:
+        # базовая_наценка = max(floor_markup_pct, opt_starting_markup_pct + opt_grad_step_pct × Шаг_градации)
+        # Если Предложений_опт ≤ 1:
+        # базовая_наценка = max(floor_markup_pct, unique_starting_markup_pct + unique_grad_step_pct × Шаг_градации)
+        # Определяем дополнительную наценку:
+        # Если 15КодТутОтпТопр равно PrevDynamicParts.code_optт, то дополнительная наценка = PrevDynamicParts.parts_markup_pct
+        # Иначе дополнительная наценка = 0
+        # Итоговая цена:
+        # text
+        # Цена = Ø5price_plus + базовая_наценка + дополнительная_наценка
+
         sess.execute(update(FinalPrice).where(and_(CrossBrandTypeMarkupPct.customer_price_code == self.price_settings.buyer_price_code,
                             CrossBrandTypeMarkupPct.supplier_price_code == FinalPrice._07supplier_code,
                             CrossBrandTypeMarkupPct.normalized_brand == FinalPrice._14brand_filled_in)).values(
@@ -673,11 +686,11 @@ class Sender(QThread):
         # print('ok', datetime.datetime.now() - nt)
 
         # and_(FinalPrice.offers_wh > 1,
-        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
-            price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
-                                                                     (PrevDynamicParts.parts_markup_pct + FinalPrice.opt_starting_markup_pct +
-                                                                          (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
-        ))
+        # sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
+        #     price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
+        #                                                              (PrevDynamicParts.parts_markup_pct + FinalPrice.opt_starting_markup_pct +
+        #                                                                   (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
+        # ))
 
         conditions = [(FinalPrice.offers_wh > 1,
                        FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct, (FinalPrice.opt_starting_markup_pct +
@@ -688,8 +701,10 @@ class Sender(QThread):
                                 (FinalPrice.unique_starting_markup_pct +
                                  (FinalPrice.unique_grad_step_pct * FinalPrice.grad_step))))),]
 
-        # nt = datetime.datetime.now()
-        sess.execute(update(FinalPrice).where(FinalPrice.price is not None).values(price=case(*conditions)))
+        # nt = datetime.datetime.now()  where(FinalPrice.price is not None)
+        sess.execute(update(FinalPrice).values(price=case(*conditions)))
+        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
+            price=FinalPrice.price * (1 + PrevDynamicParts.parts_markup_pct)))
         # print('ok 2', rc, datetime.datetime.now() - nt)
 
 
