@@ -1055,7 +1055,7 @@ class CatalogUpdate(QThread):
                         last_notification=cur_time))
 
                 if price_codes:
-                    price_codes = ['VALA', '1LAM', 'XAA3']
+                    # price_codes = ['VALA', '1LAM', 'XAA3']
                     price_codes = ', '.join(price_codes)
                     html_text = f'Напоминания о необходимости обновить прайсы отправлены ({price_codes})'
                     # for u in USERS:
@@ -1066,9 +1066,9 @@ class CatalogUpdate(QThread):
                     updated_at=cur_time))
                 sess.commit()
                 self.log.add(LOG_ID,
-                             f"Напоминания о необходимости обновить прайсы отправлены [{str(datetime.datetime.now() - start_time)[:7]}]",
+                             f"Напоминания о необходимости обновить прайсы отправлены ({price_codes}) [{str(datetime.datetime.now() - start_time)[:7]}]",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>Напоминания о необходимости обновить прайсы отправлены</span> "
-                             f"[{str(datetime.datetime.now() - start_time)[:7]}]")
+                             f"({price_codes}) [{str(datetime.datetime.now() - start_time)[:7]}]")
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
         except Exception as ex:
