@@ -34,6 +34,7 @@ from tg_users_id import USERS, TG_TOKEN
 import colors
 import setting
 engine = setting.get_engine()
+# engine.echo = True
 session = sessionmaker(engine)
 settings_data = setting.get_vars()
 CHUNKSIZE = int(settings_data["chunk_size"])
@@ -107,7 +108,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [2]
+                # price_name_list = [17]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -317,6 +318,7 @@ class Sender(QThread):
             self.del_over_price(sess)
 
             self.set_rating(sess)
+            self.create_dupls(sess)
             self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, Макс. снижение цены", cur_time)
 
             cur_time = datetime.datetime.now()
@@ -333,10 +335,10 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
             # is_sended = False
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
-            recent_sent = False
+            recent_send = False
             if self.send_time:
                 if (datetime.datetime.now()-self.send_time) < datetime.timedelta(minutes=15):
-                    recent_sent = True
+                    recent_send = True
 
             self.new_info_msg = None
             self.new_send_time = None
@@ -344,12 +346,12 @@ class Sender(QThread):
                 self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
                 self.new_info_msg = 'Итоговое кол-во 0, не отправлен'
             else:
-                if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_sent:
+                if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_send:
                     if self.send_mail():
                         last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
                         sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
                                      values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                if self.need_to_send and not recent_sent:
+                if self.need_to_send and not recent_send:
                     if self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists':
                         if self.load_price_autopiter():
                             last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
@@ -392,8 +394,7 @@ class Sender(QThread):
             # now_dt = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
             price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
                            literal_column(f"'{self.now_dt}'"), *cols_for_price.keys()) # send_time_val
-            sess.execute(
-                insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
+            sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
             price_count = sess.execute(
                 select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
@@ -682,7 +683,7 @@ class Sender(QThread):
                             CrossBrandTypeMarkupPct.normalized_brand == FinalPrice._14brand_filled_in)).values(
             floor_markup_pct=CrossBrandTypeMarkupPct.floor_markup_pct, opt_starting_markup_pct=CrossBrandTypeMarkupPct.opt_starting_markup_pct,
             opt_grad_step_pct=CrossBrandTypeMarkupPct.opt_grad_step_pct, unique_starting_markup_pct=CrossBrandTypeMarkupPct.unique_starting_markup_pct,
-            unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct))
+            unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias))
         # print('ok', datetime.datetime.now() - nt)
 
         # and_(FinalPrice.offers_wh > 1,
@@ -838,12 +839,40 @@ class Sender(QThread):
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
         if min_rating:
             self.del_min_r = self.add_dels_in_history(sess, (FinalPrice.rating < min_rating), 'Лимит строк')
-            if self.del_min_r: # для оптимизации
+            if self.del_min_r:  # для оптимизации
                 sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
 
             # sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
             # self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
+
+    def create_dupls(self, sess):
+        cols = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s, FinalPrice.count_s,
+                FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s, FinalPrice._01article_comp,
+                FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name,
+                FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus, FinalPrice._06mult_new,
+                FinalPrice._07supplier_code, FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
+                FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
+                FinalPrice.supplier_update_time, FinalPrice.customer_brand_alias]
+        dupl_rows = select(*cols, literal_column("'e'")).where(FinalPrice.customer_brand_alias != None)
+        cols_names = [i.__dict__['name'] for i in cols]
+
+        sess.execute(insert(FinalPrice).from_select([*cols_names, 'mult_less'], dupl_rows))
+        sess.execute(update(FinalPrice).where(FinalPrice.mult_less!=None).values(brand=FinalPrice.customer_brand_alias))
+
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.article_s != None,
+                                                   not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
+                                                        (FinalPrice.article_s.regexp_replace('\W|_', '', 'g')))))
+                     .values(_03name=text(f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice._01article.__dict__['name']})")))
+
+        sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.brand_s != None,
+                                                   not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
+                                                        (FinalPrice.brand_s.regexp_replace('\W|_', '', 'g')))))
+                     .values(_03name=text(
+            f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice.brand.__dict__['name']})")))
+        sess.execute(update(FinalPrice).where(FinalPrice.mult_less != None).values(_01article=FinalPrice.alternative_article))
+        # ПРИ ФОРМАТЕ В СКОБКАХ, МОЖНО ИСПОЛЬЗОВАТЬ ДОП КОЛОНКИ ДЛЯ ВРЕМЕННОГО СОДЕРЖАНИЯ НОВЫХ ДАННЫХ, ДАЛЬШЕ ИХ ОБЪЕДИНИТЬ
+
 
     def create_csv(self, sess):
         try:

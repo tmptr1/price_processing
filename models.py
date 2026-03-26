@@ -967,7 +967,7 @@ class FinalPrice(Base3):
     _02brand: Mapped[str_x(256)]
     brand: Mapped[str_x(256)]
     # _03Наименование varchar(500),
-    _03name: Mapped[str_x(256)]
+    _03name: Mapped[str_x(786)]  # 256 * 3 (_03name + _01article + brand)
     _03name_old: Mapped[str_x(256)]
     # _04Количество REAL,
     _04count: Mapped[intgr]
@@ -1056,6 +1056,7 @@ class FinalPrice(Base3):
     unique_starting_markup_pct: Mapped[real]
     unique_grad_step_pct: Mapped[real]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    customer_brand_alias: Mapped[str_x(256)]
 
 
 class FinalPriceHistory(Base):
@@ -1546,6 +1547,7 @@ class Orders(Base):
 class CrossBrandTypeMarkupPct(Base):
     __tablename__ = "cross_brand_type_markup_pct"
     id: Mapped[intpk]
+    customer_brand_alias: Mapped[str_x(256)]
     supplier_price_code: Mapped[str_x(20)]
     normalized_brand: Mapped[str_x(256)]
     customer_price_code: Mapped[str_x(20)]
