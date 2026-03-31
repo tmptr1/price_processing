@@ -108,7 +108,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [17]
+                price_name_list = [17]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -860,17 +860,20 @@ class Sender(QThread):
         sess.execute(insert(FinalPrice).from_select([*cols_names, 'mult_less'], dupl_rows))
         sess.execute(update(FinalPrice).where(FinalPrice.mult_less!=None).values(brand=FinalPrice.customer_brand_alias))
 
+        # добавление артикула к имени
         sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.article_s != None,
                                                    not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
                                                         (FinalPrice.article_s.regexp_replace('\W|_', '', 'g')))))
                      .values(_03name=text(f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice._01article.__dict__['name']})")))
-
+        # добавление бренда к имени
         sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.brand_s != None,
                                                    not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
                                                         (FinalPrice.brand_s.regexp_replace('\W|_', '', 'g')))))
                      .values(_03name=text(
             f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice.brand.__dict__['name']})")))
-        sess.execute(update(FinalPrice).where(FinalPrice.mult_less != None).values(_01article=FinalPrice.alternative_article))
+
+        sess.execute(update(FinalPrice).where(FinalPrice.mult_less != None).values(_01article=FinalPrice.alternative_article,
+                       _01article_comp=func.upper(FinalPrice.alternative_article.regexp_replace(r'\W', '', 'g'))))
         # ПРИ ФОРМАТЕ В СКОБКАХ, МОЖНО ИСПОЛЬЗОВАТЬ ДОП КОЛОНКИ ДЛЯ ВРЕМЕННОГО СОДЕРЖАНИЯ НОВЫХ ДАННЫХ, ДАЛЬШЕ ИХ ОБЪЕДИНИТЬ
 
 
