@@ -873,7 +873,7 @@ class Sender(QThread):
             f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice.brand.__dict__['name']})")))
 
         sess.execute(update(FinalPrice).where(FinalPrice.mult_less != None).values(_01article=FinalPrice.alternative_article,
-                       _01article_comp=func.upper(FinalPrice.alternative_article.regexp_replace(r'\W', '', 'g'))))
+                       _01article_comp=func.upper(FinalPrice.alternative_article.regexp_replace(r'\W|_', '', 'g'))))
         # ПРИ ФОРМАТЕ В СКОБКАХ, МОЖНО ИСПОЛЬЗОВАТЬ ДОП КОЛОНКИ ДЛЯ ВРЕМЕННОГО СОДЕРЖАНИЯ НОВЫХ ДАННЫХ, ДАЛЬШЕ ИХ ОБЪЕДИНИТЬ
 
 

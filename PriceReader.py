@@ -368,10 +368,10 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
                 sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
                                                      .regexp_replace('^ | $', '', 'g'))))
-                sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W', '', 'g'))))
+                sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W|_', '', 'g'))))
 
                 # 02Производитель
-                sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W', '', 'g'))))
+                sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W|_', '', 'g'))))
                 sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1.brand_s_low == Brands.brand_low,
                                                         self.TmpPrice_1._02brand == None)).values(_02brand=Brands.correct_brand))
 
