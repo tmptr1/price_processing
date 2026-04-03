@@ -108,7 +108,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [17]
+                # price_name_list = [3]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -906,7 +906,7 @@ class Sender(QThread):
             while True:
                 if self.price_settings.max_rows < loaded + limit:
                     limit = self.price_settings.max_rows - loaded
-                req = select(*headers.values()).order_by(FinalPrice.rating.desc()).offset(loaded).limit(limit)
+                req = select(*headers.values()).order_by(FinalPrice.rating.desc(), FinalPrice.art_brand_07).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
                 df = df.sort_values(FinalPrice.price.__dict__['name'])
 

@@ -65,8 +65,8 @@ class CatalogUpdate(QThread):
             start_cycle_time = datetime.datetime.now()
             try:
                 # self.update_DB_4()
-                # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_3_0()
+                # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
