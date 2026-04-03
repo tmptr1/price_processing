@@ -277,10 +277,10 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"{total_prices_result}")
 
             del_put_away_zp = self.add_dels_in_history(sess, (and_(FinalPrice.put_away_zp!=None,
-                FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))), 'УбратьЗП')
+                FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))), 'УбратьЗП')
             if del_put_away_zp:
                 sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
-                FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
+                    FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))).delete()
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_put_away_zp} (УбратьЗП)")
 
             # sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
