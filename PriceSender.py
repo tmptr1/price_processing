@@ -108,7 +108,7 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [3]
+                price_name_list = [3]
                 # price_name_list = ["Прайс AvtoTO", ]
 
                 self.cur_file_count = 0
@@ -245,8 +245,8 @@ class Sender(QThread):
             Base3.metadata.create_all(conn)
 
             with session(bind=conn) as sess:
-                # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
-                # sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
 
                 # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET UNLOGGED;"))
                 # sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET UNLOGGED;"))
