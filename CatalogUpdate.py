@@ -806,7 +806,10 @@ class CatalogUpdate(QThread):
             if self.del_history_day != cur_time.day:
                 self.del_history_day = cur_time.day
                 cur_time = datetime.datetime.now()
-                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=5),
+
+                save_period_hist = 5
+                save_period_hist_d = 3
+                dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=save_period_hist),
                                                     FinalPriceHistory.send_time == None)).delete()
                 if dels:
                     total_fph_rows = sess.execute(func.count(FinalPriceHistory.id)).scalar()
@@ -815,13 +818,23 @@ class CatalogUpdate(QThread):
                                      f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
 
                 cur_time = datetime.datetime.now()
-                delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=3),
+                delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=save_period_hist_d),
                                                     FinalPriceHistoryDel.send_time == None)).delete()
                 if delsD:
                     total_fphd_rows = sess.execute(func.count(FinalPriceHistoryDel.id)).scalar()
                     self.log.add(LOG_ID, f"Удалено строк из истории удалённых строк: {delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}",
                                      f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории удалённых строк</span>: "
                                      f"{delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}")
+
+                # Удаление партиций
+                for p_table_name, period in (['final_price_history', save_period_hist], ['final_price_history_del', save_period_hist_d]):
+                    res = sess.execute(text(f"SELECT inhrelid::regclass FROM pg_inherits WHERE inhparent = '{p_table_name}'::regclass;")).scalars().all()
+                    for t in res:
+                        dt = datetime.datetime.strptime(str(t)[-10:], '%Y_%m_%d')
+                        if dt < datetime.datetime.now() - datetime.timedelta(days=period):
+                            sess.execute(text(f"drop table {t};"))
+
+
 
                 # Удаление из таблицы для сравнения цен (макс. снижение цены)
                 sess.query(LastPrice).where(or_(LastPrice.updated_at < cur_time - datetime.timedelta(days=7), LastPrice.updated_at == None)).delete()

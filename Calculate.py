@@ -110,7 +110,7 @@ class CalculateClass(QThread):
 
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv']
-                # new_files = ['АСТ2.csv']
+                # new_files = ['АСТ2.csv', '1ГУД.csv']
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
@@ -174,174 +174,175 @@ class CalculateClass(QThread):
             price_code = '.'.join(file.split('.')[:-1])
             self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
 
-            inspct = inspect(engine)
-            if inspct.has_table(self.TmpPrice_2.__tablename__):
-                self.TmpPrice_2.__table__.drop(engine)
+            # inspct = inspect(engine)
+            # if inspct.has_table(self.TmpPrice_2.__tablename__):
+            #     self.TmpPrice_2.__table__.drop(engine)
 
-            BASE[self.file_size_type].metadata.create_all(engine)
+            with engine.begin() as conn:
+                BASE[self.file_size_type].metadata.create_all(conn)
 
-            with session() as sess:
-                sess.execute(text(f"ALTER TABLE {self.TmpPrice_2.__tablename__} SET (autovacuum_enabled = false);"))
-                sess.commit()
+                with session(bind=conn) as sess:
+                    sess.execute(text(f"ALTER TABLE {self.TmpPrice_2.__tablename__} SET (autovacuum_enabled = false);"))
+                    sess.commit()
 
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
-                cur_time = datetime.datetime.now()
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
+                    cur_time = datetime.datetime.now()
 
-                cols_for_price = [TotalPrice_1.key1_s, TotalPrice_1.article_s, TotalPrice_1.brand_s, TotalPrice_1.name_s,
-                                  TotalPrice_1.count_s, TotalPrice_1.price_s, TotalPrice_1.currency_s, TotalPrice_1.mult_s,
-                                  TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp, TotalPrice_1._02brand,
-                                  TotalPrice_1._14brand_filled_in, TotalPrice_1._03name, TotalPrice_1._04count,
-                                  TotalPrice_1._05price, TotalPrice_1._06mult,
-                                  TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
-                                  TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name]
-                cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-                price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
-                sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
-                sess.commit()
+                    cols_for_price = [TotalPrice_1.key1_s, TotalPrice_1.article_s, TotalPrice_1.brand_s, TotalPrice_1.name_s,
+                                      TotalPrice_1.count_s, TotalPrice_1.price_s, TotalPrice_1.currency_s, TotalPrice_1.mult_s,
+                                      TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp, TotalPrice_1._02brand,
+                                      TotalPrice_1._14brand_filled_in, TotalPrice_1._03name, TotalPrice_1._04count,
+                                      TotalPrice_1._05price, TotalPrice_1._06mult,
+                                      TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
+                                      TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name]
+                    cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+                    price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
+                    sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
+                    sess.commit()
 
-                # Удаление по первому условию
-                del_art = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._01article == None).delete()
-                del_brand = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._14brand_filled_in == None).delete()
-                del_price = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None)).delete()
-                del_count = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count == None, self.TmpPrice_2._05price <= 0)).delete()
-                del_20 = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
-                del_positions_1 = del_art + del_brand + del_price + del_count + del_20
+                    # Удаление по первому условию
+                    del_art = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._01article == None).delete()
+                    del_brand = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._14brand_filled_in == None).delete()
+                    del_price = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None)).delete()
+                    del_count = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count == None, self.TmpPrice_2._05price <= 0)).delete()
+                    del_20 = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
+                    del_positions_1 = del_art + del_brand + del_price + del_count + del_20
 
-                # Удаление дублей 01Артикул, 14Производитель заполнен
-                del_dupl = self.del_duples(sess)
+                    # Удаление дублей 01Артикул, 14Производитель заполнен
+                    del_dupl = self.del_duples(sess)
 
-                update_step_time = str(datetime.datetime.now() - cur_time)[:7]
-                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_dupl}) [{update_step_time}]",
-                             f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
-                             f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
-                             f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_dupl else 'black'};'>{del_dupl}</span>) [{update_step_time}]")
-
-
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07, 09 ...', False)
-                cur_time = datetime.datetime.now()
-
-                data7_set = sess.execute(select(Data07).where(Data07.setting == price_code)).scalar()
-                # max_decline=data7_set.max_decline
-                sess.execute(update(self.TmpPrice_2).values(delay=data7_set.delay, to_price=data7_set.to_price, sell_for_OS=data7_set.sell_os,
-                    markup_holidays=data7_set.markup_holidays,
-                    markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, min_wholesale_markup=data7_set.min_wholesale_markup,
-                    markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
-                    access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
-                # markup_os=data7_set.markup_os
-                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
-                                                                                    f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
-                                                                                    f"{self.TmpPrice_2._02brand.__dict__['name']}))")))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
-                             values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
-
-                sess.execute(update(self.TmpPrice_2).values(alternative_article=text(f"concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
-                                                                                     f"{self.TmpPrice_2.key1_s.__dict__['name']}, "
-                                                                                     f"{self.TmpPrice_2.article_s.__dict__['name']}, "
-                                                                                     f"{self.TmpPrice_2.brand_s.__dict__['name']})")))
-                # func.upper(
-                #     self.TmpPrice_2._07supplier_code.concat(self.TmpPrice_2.key1_s).concat(self.TmpPrice_2.article_s)
-                #         .concat(self.TmpPrice_2.brand_s))))
-                    #+ self.TmpPrice_2.key1_s + self.TmpPrice_2.article_s + self.TmpPrice_2.brand_s).regexp_replace(' ', '', 'g')))
-                self.add_log(self.file_size_type, price_code, 'data 07, 09', cur_time)
+                    update_step_time = str(datetime.datetime.now() - cur_time)[:7]
+                    self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_dupl}) [{update_step_time}]",
+                                 f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
+                                 f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
+                                 f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_dupl else 'black'};'>{del_dupl}</span>) [{update_step_time}]")
 
 
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Базовая цена, Предложений в опте ...', False)
-                cur_time = datetime.datetime.now()
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07, 09 ...', False)
+                    cur_time = datetime.datetime.now()
 
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == BasePrice.article,
-                                                        self.TmpPrice_2._14brand_filled_in == BasePrice.brand))
-                             .values(price_b=BasePrice.price_b, min_price=BasePrice.min_price, min_supplier=BasePrice.min_supplier))
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == MassOffers.article,
-                                                        self.TmpPrice_2._14brand_filled_in == MassOffers.brand))
-                             .values(offers_wh=MassOffers.offers_count))
+                    data7_set = sess.execute(select(Data07).where(Data07.setting == price_code)).scalar()
+                    # max_decline=data7_set.max_decline
+                    sess.execute(update(self.TmpPrice_2).values(delay=data7_set.delay, to_price=data7_set.to_price, sell_for_OS=data7_set.sell_os,
+                        markup_holidays=data7_set.markup_holidays,
+                        markup_R=data7_set.markup_R, min_markup=data7_set.min_markup, min_wholesale_markup=data7_set.min_wholesale_markup,
+                        markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
+                        access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
+                    # markup_os=data7_set.markup_os
+                    sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
+                                                                                        f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
+                                                                                        f"{self.TmpPrice_2._02brand.__dict__['name']}))")))
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
+                                 values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
 
-                self.add_log(self.file_size_type, price_code, 'Базовая цена, Предложений в опте', cur_time)
-
-
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07&14 ...', False)
-                cur_time = datetime.datetime.now()
-
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._07supplier_code == Data07_14.setting,
-                                                        self.TmpPrice_2._14brand_filled_in == Data07_14.correct))
-                             .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
-
-                self.add_log(self.file_size_type, price_code, 'data 07&14', cur_time)
-
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
-                cur_time = datetime.datetime.now()
-
-                sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
-                             .values(_06mult_new=self.TmpPrice_2._06mult))
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
-                                                        self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count))
-                             .values(_06mult_new=self.TmpPrice_2._04count))
-
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None)
-                             .values(_06mult_new=func.ceil(func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
-
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
-                             values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
-
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
-
-                sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
-
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.count < self.TmpPrice_2._06mult_new).values(mult_less='-'))
-
-                self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
-
-                cur_time = datetime.datetime.now()
-                # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
-                # self.TmpPrice_2.max_decline,
-                cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
-                                  self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
-                                  self.TmpPrice_2.notice_s,
-                                  self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand, self.TmpPrice_2._03name, self.TmpPrice_2._04count,
-                                  self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
-                                  self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
-                                  self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
-                                  self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
-                                  self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
-                                  self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS,
-                                  self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
-                                  self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
-                                  self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp, self.TmpPrice_2.unload_percent,
-                                  self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b,
-                                  self.TmpPrice_2.count, self.TmpPrice_2.markup_pb, self.TmpPrice_2._06mult_new,
-                                  self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus, self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count,
-                                  self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier,
-                                  ]
-
-                # формирование csv
-                if not self.create_csv(sess, price_code, start_time):
-                    return
-
-                # перенос данных в total
-                sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
-
-                cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
-                total = select(*cols_for_total.keys())
-                sess.execute(insert(TotalPrice_2).from_select(cols_for_total.values(), total))
+                    sess.execute(update(self.TmpPrice_2).values(alternative_article=text(f"concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
+                                                                                         f"{self.TmpPrice_2.key1_s.__dict__['name']}, "
+                                                                                         f"{self.TmpPrice_2.article_s.__dict__['name']}, "
+                                                                                         f"{self.TmpPrice_2.brand_s.__dict__['name']})")))
+                    # func.upper(
+                    #     self.TmpPrice_2._07supplier_code.concat(self.TmpPrice_2.key1_s).concat(self.TmpPrice_2.article_s)
+                    #         .concat(self.TmpPrice_2.brand_s))))
+                        #+ self.TmpPrice_2.key1_s + self.TmpPrice_2.article_s + self.TmpPrice_2.brand_s).regexp_replace(' ', '', 'g')))
+                    self.add_log(self.file_size_type, price_code, 'data 07, 09', cur_time)
 
 
-                cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_2)).scalar()
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Базовая цена, Предложений в опте ...', False)
+                    cur_time = datetime.datetime.now()
+
+                    sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == BasePrice.article,
+                                                            self.TmpPrice_2._14brand_filled_in == BasePrice.brand))
+                                 .values(price_b=BasePrice.price_b, min_price=BasePrice.min_price, min_supplier=BasePrice.min_supplier))
+                    sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._01article_comp == MassOffers.article,
+                                                            self.TmpPrice_2._14brand_filled_in == MassOffers.brand))
+                                 .values(offers_wh=MassOffers.offers_count))
+
+                    self.add_log(self.file_size_type, price_code, 'Базовая цена, Предложений в опте', cur_time)
 
 
-                sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
-                             .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"),
-                                     db_added=start_time.strftime("%Y.%m.%d %H:%M:%S"),
-                                     row_count_2=cnt, del_art=del_art, del_brand=del_brand, del_price=del_price,
-                                     del_count=del_count, del_20=del_20, del_dupl=del_dupl))
-                total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
-                sess.commit()
-                self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07&14 ...', False)
+                    cur_time = datetime.datetime.now()
+
+                    sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._07supplier_code == Data07_14.setting,
+                                                            self.TmpPrice_2._14brand_filled_in == Data07_14.correct))
+                                 .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
+
+                    self.add_log(self.file_size_type, price_code, 'data 07&14', cur_time)
+
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
+                    cur_time = datetime.datetime.now()
+
+                    sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
+                                 .values(_06mult_new=self.TmpPrice_2._06mult))
+                    sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
+                                                            self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count))
+                                 .values(_06mult_new=self.TmpPrice_2._04count))
+
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None)
+                                 .values(_06mult_new=func.ceil(func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
+
+                    sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
+                                 values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
+
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
+
+                    sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
+
+                    sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.count < self.TmpPrice_2._06mult_new).values(mult_less='-'))
+
+                    self.add_log(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15', cur_time)
+
+                    cur_time = datetime.datetime.now()
+                    # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
+                    # self.TmpPrice_2.max_decline,
+                    cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
+                                      self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
+                                      self.TmpPrice_2.notice_s,
+                                      self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand, self.TmpPrice_2._03name, self.TmpPrice_2._04count,
+                                      self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
+                                      self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
+                                      self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
+                                      self.TmpPrice_2._15code_optt,
+                                      self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
+                                      self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
+                                      self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS,
+                                      self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
+                                      self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
+                                      self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp, self.TmpPrice_2.unload_percent,
+                                      self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b,
+                                      self.TmpPrice_2.count, self.TmpPrice_2.markup_pb, self.TmpPrice_2._06mult_new,
+                                      self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus, self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count,
+                                      self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier,
+                                      ]
+
+                    # формирование csv
+                    if not self.create_csv(sess, price_code, start_time):
+                        return
+
+                    # перенос данных в total
+                    sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code == price_code).delete()
+
+                    cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
+                    total = select(*cols_for_total.keys())
+                    sess.execute(insert(TotalPrice_2).from_select(cols_for_total.values(), total))
+
+
+                    cnt = sess.execute(select(func.count()).select_from(self.TmpPrice_2)).scalar()
+
+
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
+                                 .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"),
+                                         db_added=start_time.strftime("%Y.%m.%d %H:%M:%S"),
+                                         row_count_2=cnt, del_art=del_art, del_brand=del_brand, del_price=del_price,
+                                         del_count=del_count, del_20=del_20, del_dupl=del_dupl))
+                    total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
+                    sess.commit()
+                    self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)
 
             self.TotalCountSignal.emit(total_cnt)
 
-            self.TmpPrice_2.__table__.drop(engine)
+            # self.TmpPrice_2.__table__.drop(engine)
 
             total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
             self.log.add(LOG_ID, f"+ {price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",

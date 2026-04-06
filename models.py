@@ -120,6 +120,7 @@ class SumTable(Base1):
     # __table_args__ = (#Index("sum_table_id_compare_index", "id_compare"),
     #                     Index("sum_table_id_compare_index", "id_compare"),#, postgresql_using="hash"),
     #                   )
+    __table_args__ = ({"prefixes": ['TEMPORARY'], },)
     # id: Mapped[uuidpk]
     id: Mapped[intpk]
     # id_compare: Mapped[uuid.UUID] = mapped_column(Uuid, server_default=text("gen_random_uuid()"))
@@ -131,6 +132,7 @@ class SumTable(Base1):
 
 class SumTable2(Base1_1):
     __tablename__ = "sum_table_2"
+    __table_args__ = ({"prefixes": ['TEMPORARY'], },)
     id: Mapped[intpk]
     price_code: Mapped[str_x(20)]
     # price: Mapped[real]
@@ -153,6 +155,7 @@ class Price_1(Base1):
                       Index("price_1_07_index", "_07supplier_code"),
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_article_name_index", "article_s", "name_s"),
+                      {"prefixes": ['TEMPORARY'],},
                       )
     #                   )
     id: Mapped[intpk]
@@ -212,6 +215,7 @@ class Price_1_1(Base1_1):
                       Index("price_1_1_07_index", "_07supplier_code"),
                       Index("price_1_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_1_article_name_index", "article_s", "name_s"),
+                      {"prefixes": ['TEMPORARY'], },
                       )
 
     id: Mapped[intpk]
@@ -324,7 +328,9 @@ class Price_2(Base2):
     __table_args__ = (Index("price_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
-                      Index("price_2_15code_optt_index", "_15code_optt"),)
+                      Index("price_2_15code_optt_index", "_15code_optt"),
+                      {"prefixes": ['TEMPORARY'],},
+                      )
 
     id: Mapped[intpk]
     # Ключ1_поставщика varchar(256),
@@ -443,7 +449,9 @@ class Price_2_2(Base2_1):
     __table_args__ = (Index("price_2_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
-                      Index("price_2_2_15code_optt_index", "_15code_optt"),)
+                      Index("price_2_2_15code_optt_index", "_15code_optt"),
+                      {"prefixes": ['TEMPORARY'],},
+                      )
 
     id: Mapped[intpk]
     # Ключ1_поставщика varchar(256),
@@ -939,6 +947,7 @@ class FinalPrice(Base3):
                       Index("final_price_art_brand_07_index", "art_brand_07"),
                       Index("final_price_01_14_index", "_01article", "_14brand_filled_in"),
                       # Index("final_price_07_14_index", "_07supplier_code", "_14brand_filled_in"),
+                      {"prefixes": ['TEMPORARY'], }, # ["UNLOGGED"],
                       )
 
 
@@ -1062,6 +1071,7 @@ class FinalPrice(Base3):
 class FinalPriceHistory(Base):
     __tablename__ = "final_price_history"
     # __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
+    __table_args__ = ({'postgresql_partition_by': 'RANGE (send_time)'},)
 
     id: Mapped[uuidpk]
     # info_id: Mapped[intgr]
@@ -1115,11 +1125,12 @@ class FinalPriceHistory(Base):
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
-    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
 class FinalPriceHistoryDel(Base):
     __tablename__ = "final_price_history_del"
     # __table_args__ = (Index("final_price_history_price_code_15_index", "price_code", "_15code_optt"),)
+    __table_args__ = ({'postgresql_partition_by': 'RANGE (send_time)'},)
 
     id: Mapped[uuidpk]
     # info_id: Mapped[intgr]
@@ -1174,12 +1185,14 @@ class FinalPriceHistoryDel(Base):
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
-    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
 
 class FinalComparePrice(Base3):
     __tablename__ = "final_compare_price"
-    __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),)
+    __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),
+                      {"prefixes": ['TEMPORARY'], }, # ["UNLOGGED"],
+                      )
 
     id: Mapped[intpk]
     # _01Артикул varchar(256),
