@@ -246,288 +246,288 @@ class MainWorker(QThread):
             cur_time = datetime.datetime.now()
 
 
-            # inspct = inspect(engine)
-            # if inspct.has_table(self.TmpPrice_1.__tablename__):
-            #     self.TmpPrice_1.__table__.drop(engine)
-            # if inspct.has_table(self.TmpSum.__tablename__):
-            #     self.TmpSum.__table__.drop(engine)
+            inspct = inspect(engine)
+            if inspct.has_table(self.TmpPrice_1.__tablename__):
+                self.TmpPrice_1.__table__.drop(engine)
+            if inspct.has_table(self.TmpSum.__tablename__):
+                self.TmpSum.__table__.drop(engine)
 
             # BASE[self.file_size_type].metadata.create_all(engine)
             # self.TmpPrice_1.create(engine)
             # self.TmpSum.create(engine)
             # self.TmpPrice_1.metadata.create_all(engine)
             # self.TmpSum.metadata.create_all(engine)
-            with engine.begin() as conn:
-                BASE[self.file_size_type].metadata.create_all(conn)
+            # with engine.begin() as conn:
+            BASE[self.file_size_type].metadata.create_all(engine)
 
-                with session(bind=conn) as sess:
-                    # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-                    # sess.execute(text(f"REINDEX TABLE {Price_1.__tablename__}"))
-                    # sess.execute(text(f"REINDEX TABLE {SumTable.__tablename__}"))
-                    # sess.execute(text(f"ALTER SEQUENCE {Price_1.__tablename__}_id_seq restart 1"))
-                    # sess.execute(text(f"ALTER SEQUENCE {SumTable.__tablename__}_id_seq restart 1"))
-                    # sess.query(Price_1).delete() # FOR 1 THREAD
-                    # sess.query(SumTable).delete() # FOR 1 THREAD
-                    sess.execute(text(f"ALTER TABLE {self.TmpPrice_1.__tablename__} SET (autovacuum_enabled = false);"))
-                    sess.execute(text(f"ALTER TABLE {self.TmpSum.__tablename__} SET (autovacuum_enabled = false);"))
-                    sess.commit()
+            with session() as sess:  # bind=conn
+                # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+                # sess.execute(text(f"REINDEX TABLE {Price_1.__tablename__}"))
+                # sess.execute(text(f"REINDEX TABLE {SumTable.__tablename__}"))
+                # sess.execute(text(f"ALTER SEQUENCE {Price_1.__tablename__}_id_seq restart 1"))
+                # sess.execute(text(f"ALTER SEQUENCE {SumTable.__tablename__}_id_seq restart 1"))
+                # sess.query(Price_1).delete() # FOR 1 THREAD
+                # sess.query(SumTable).delete() # FOR 1 THREAD
+                sess.execute(text(f"ALTER TABLE {self.TmpPrice_1.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.execute(text(f"ALTER TABLE {self.TmpSum.__tablename__} SET (autovacuum_enabled = false);"))
+                sess.commit()
 
-                    req = select(PriceReport).where(PriceReport.price_code == price_code)
-                    is_report_exists = sess.execute(req).scalar()
-                    if not is_report_exists:
-                        sess.add(PriceReport(file_name=file_name, price_code=price_code))
+                req = select(PriceReport).where(PriceReport.price_code == price_code)
+                is_report_exists = sess.execute(req).scalar()
+                if not is_report_exists:
+                    sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-                    if not self.check_price_time(price_code, file_path, sess):
-                        self.cur_file_count += 1
-                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                            info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
-                        sess.commit()
-                        self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
-                        return
-
-                    req = select(FileSettings).where(FileSettings.price_code == price_code)
-                    price_table_settings = sess.execute(req).scalars().all()
-                    if not price_table_settings:
-                        self.cur_file_count += 1
-                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                            info_message=f"Нет настроек", updated_at=new_update_time))
-                        sess.commit()
-                        self.add_log(self.file_size_type, price_code, f"Нет настроек ({self.cur_file_count}/{self.total_file_count})", cur_time)
-                        return
-
-                    # сопоставление столлцов
-                    try:
-                        id_settig, rc_dict, new_frmt, reason = self.get_setting_id(sess, price_table_settings, frmt, path_to_price, price_code)
-                        if not id_settig:
-                            self.cur_file_count += 1
-                            if reason:
-                                reason = f"({reason[:200]})"
-                            sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                                info_message=f"Нет подходящих настроек столбцов {reason}", updated_at=new_update_time))
-                            sess.commit()
-                            self.add_log(self.file_size_type, price_code,
-                                         f"Нет подходящих настроек столбцов {reason} ({self.cur_file_count}/{self.total_file_count})", cur_time)
-                            return
-                    except ValueError as val_ex:
-                        self.cur_file_count += 1
-                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                            info_message="Ошибка формата", updated_at=new_update_time))
-                        sess.commit()
-
-                        self.add_log(self.file_size_type, price_code, f"Ошибка формата", cur_time)
-                        raise val_ex
-                        # return
-
-                    # Удаление старой версии
-                    # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
-
-                    # загрузка сырых данных
-                    sett = sess.get(FileSettings, {'id': id_settig})
-
-                    if new_frmt == 'tmp_csv':  # для html ЭНЯ0
-                        path_to_price = f"tmp_{self.file_size_type}.csv"
-                        frmt = 'csv'
-
-                    if new_frmt == 'xml':
-                        loaded = self.load_data_from_xml_to_db(rc_dict, path_to_price, price_code, sess)
-                    else:
-                        loaded = self.load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
-                    if not loaded:
-                        self.cur_file_count += 1
-                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                            info_message="Настройки столбцов не подошли", updated_at=new_update_time))
-                        sess.commit()
-                        # add_log_cf(LOG_ID, f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
-                        self.add_log(self.file_size_type, price_code,
-                                     f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", cur_time)
-                        return
-
-                    sess.commit() #sess.flush()
-                    # add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
-                    self.add_log(self.file_size_type, price_code,"Загрузка сырых дынных завершена", cur_time)
-
-                    cur_time = datetime.datetime.now()
-                    # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
-                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 ...", False)
-
-                    # замена пустых бренд п на значение по умолчанию
-                    sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
-                    if sett.replace_brand_s:
-                        sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s==None).values(_02brand=sett.replace_brand_s))
-                    # print(f"замена пустых бренд {datetime.datetime.now() - n_dt}")
-
-                    # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
-                    self.suppliers_goods_compare(price_code, sett, sess)
-                    # print(f"исправление товаров поставщиков {datetime.datetime.now() - n_dt}")
-
-                    # замена ; на ,
-                    text_cols = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
-                                 self.TmpPrice_1.currency_s, self.TmpPrice_1.notice_s]
-                    for c in text_cols:
-                        sess.execute(update(self.TmpPrice_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
-
-                    # Исправление Номенклатуры
-                    self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
-
-                    # 01Артикул
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
-                    sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
-                                                         .regexp_replace('^ | $', '', 'g'))))
-                    sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W|_', '', 'g'))))
-
-                    # 02Производитель
-                    sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W|_', '', 'g'))))
-                    sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1.brand_s_low == Brands.brand_low,
-                                                            self.TmpPrice_1._02brand == None)).values(_02brand=Brands.correct_brand))
-
-                    # 14Производитель заполнен
-                    sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
-                    # print(f"14Производитель заполнен {datetime.datetime.now() - n_dt}")
-                    # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
-                    #              .values(_14brand_filled_in=Price_1._02brand))
-
-                    # Изменение цены по условиям (Цена поставщика)
-                    # apply_discount(sess, price_code, 'Цена поставщика')
-
-                    # 03Наименование
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
-                    sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
-                                                                regexp_replace(' +', ' ', 'g').
-                                                                regexp_replace('^ | $', '', 'g')))
-                    # print(f"03Наименование {datetime.datetime.now() - n_dt}")
-
-                    # 04Количество
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s-self.TmpPrice_1._04count))
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
-
-                    sess.commit()  #sess.flush()
-                    self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 завершена", cur_time)
-
-                    cur_time = datetime.datetime.now()
-                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 ...", False)
-
-                    # 05Цена
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s))
-
-                    # для валют
-                    sess.execute(update(self.TmpPrice_1).where(
-                        and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
-                                 .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate))
-
-                    # 12Сумма
-                    # numeric_max = 9999999999 # numeric 12,2
-                    # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s < numeric_max).
-                    #              values(_12sum=self.TmpPrice_1.count_s * self.TmpPrice_1.price_s))
-                    # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
-
-                    # Настройка строк: Вариант изменения цены
-                    if sett.change_price_type in ("- X %", "+ X %"):
-                        percent = None
-                        try:
-                            percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
-                        except:
-                            pass
-                        if percent:
-                            sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1._05price * (1+percent)))
-
-                    # Изменение цены по условиям (05Цена)
-                    self.apply_discount(sess, price_code)
-                    # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
-
-                    # 06Кратность
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._06mult == None).values(_06mult=self.TmpPrice_1.mult_s))
-                    sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
-                    # print(f"06Кратность {datetime.datetime.now() - n_dt}")
-
-                    # 15КодТутОптТорг
-                    sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
-                                                                regexp_replace(r"\W|_", "", 'g'))) # func.upper
-                    self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
-
-                    # 20ИсключитьИзПрайса
-                    self.words_except(sess, price_code)
-
-                    # 17КодУникальности
-                    sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
-
-                    # 18КороткоеНаименование
-                    sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
-
-                    sess.commit()  #sess.flush()
-                    self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
-
-                    cur_time = datetime.datetime.now()
-                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
-
-                    # 13Градация
-                    total_sum = sess.execute(select(func.sum(self.TmpPrice_1._05price))).scalar() or 1
-
-                    subq = select(self.TmpPrice_1.id, self.TmpPrice_1._07supplier_code,
-                                  func.floor((total_sum - func.sum(self.TmpPrice_1._05price).over(order_by=(self.TmpPrice_1._05price,
-                                                                                                            self.TmpPrice_1.id))) / (total_sum / 100))).where(
-                        and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
-
-                    sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
-                    sess.commit()  #sess.flush()
-
-                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
-                    sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
-
-                    self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
-
-                    cur_time = datetime.datetime.now()
-                    csv_cols_dict = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
-                                     "Производитель поставщика": self.TmpPrice_1.brand_s, "Наименование поставщика": self.TmpPrice_1.name_s,
-                                     "Количество поставщика": self.TmpPrice_1.count_s, "Цена поставщика": self.TmpPrice_1.price_s,
-                                     "ВалютаП": self.TmpPrice_1.currency_s, "Кратность поставщика": self.TmpPrice_1.mult_s,
-                                     "Примечание поставщика": self.TmpPrice_1.notice_s, "01Артикул": self.TmpPrice_1._01article,
-                                     "02Производитель": self.TmpPrice_1._02brand,
-                                     "14Производитель заполнен": self.TmpPrice_1._14brand_filled_in,
-                                     "03Наименование": self.TmpPrice_1._03name, "04Количество": self.TmpPrice_1._04count,
-                                     "05Цена": self.TmpPrice_1._05price, "06Кратность": self.TmpPrice_1._06mult,
-                                     "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
-                                     "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
-                                     "17КодУникальности": self.TmpPrice_1._17code_unique,
-                                     "18КороткоеНаименование": self.TmpPrice_1._18short_name,
-                                     }
-                    sess.commit()
+                if not self.check_price_time(price_code, file_path, sess):
                     self.cur_file_count += 1
-                    # to csv
-                    if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                    sess.commit()
+                    self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
+                    return
+
+                req = select(FileSettings).where(FileSettings.price_code == price_code)
+                price_table_settings = sess.execute(req).scalars().all()
+                if not price_table_settings:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message=f"Нет настроек", updated_at=new_update_time))
+                    sess.commit()
+                    self.add_log(self.file_size_type, price_code, f"Нет настроек ({self.cur_file_count}/{self.total_file_count})", cur_time)
+                    return
+
+                # сопоставление столлцов
+                try:
+                    id_settig, rc_dict, new_frmt, reason = self.get_setting_id(sess, price_table_settings, frmt, path_to_price, price_code)
+                    if not id_settig:
+                        self.cur_file_count += 1
+                        if reason:
+                            reason = f"({reason[:200]})"
+                        sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                            info_message=f"Нет подходящих настроек столбцов {reason}", updated_at=new_update_time))
+                        sess.commit()
+                        self.add_log(self.file_size_type, price_code,
+                                     f"Нет подходящих настроек столбцов {reason} ({self.cur_file_count}/{self.total_file_count})", cur_time)
                         return
-
-                    # перенос данных в total
-                    sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
-                    # self.TmpPrice_1._12sum,
-                    cols_for_total = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
-                                      self.TmpPrice_1.count_s, self.TmpPrice_1.price_s, self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
-                                      self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name,
-                                      self.TmpPrice_1._04count, self.TmpPrice_1._05price, self.TmpPrice_1._06mult,
-                                      self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
-                                      self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name]
-                    cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
-                    total = select(*cols_for_total.keys())
-                    sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
-
-                    # дочерние прайсы
-                    children_prices = sess.execute(select(distinct(FileSettings.price_code))
-                                                   .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
-                                                               func.upper(FileSettings.save) == 'ДА'))).scalars().all()
-                    # УДАЛИТЬ ИЗ БД
-                    # sess.query(Price_1).delete()
-
+                except ValueError as val_ex:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Ошибка формата", updated_at=new_update_time))
                     sess.commit()
 
-                    self.add_log(self.file_size_type, price_code, "создание csv, загрузка в БД", cur_time)
-                    total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
-                    self.log.add(LOG_ID,
-                                 f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
-                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                                 f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-                                 f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
+                    self.add_log(self.file_size_type, price_code, f"Ошибка формата", cur_time)
+                    raise val_ex
+                    # return
 
-            # self.TmpPrice_1.__table__.drop(engine)
-            # self.TmpSum.__table__.drop(engine)
+                # Удаление старой версии
+                # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+
+                # загрузка сырых данных
+                sett = sess.get(FileSettings, {'id': id_settig})
+
+                if new_frmt == 'tmp_csv':  # для html ЭНЯ0
+                    path_to_price = f"tmp_{self.file_size_type}.csv"
+                    frmt = 'csv'
+
+                if new_frmt == 'xml':
+                    loaded = self.load_data_from_xml_to_db(rc_dict, path_to_price, price_code, sess)
+                else:
+                    loaded = self.load_data_to_db(sett, rc_dict, frmt, path_to_price, price_code, sess)
+                if not loaded:
+                    self.cur_file_count += 1
+                    sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
+                        info_message="Настройки столбцов не подошли", updated_at=new_update_time))
+                    sess.commit()
+                    # add_log_cf(LOG_ID, f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", sender, price_code, color)
+                    self.add_log(self.file_size_type, price_code,
+                                 f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", cur_time)
+                    return
+
+                sess.commit() #sess.flush()
+                # add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
+                self.add_log(self.file_size_type, price_code,"Загрузка сырых дынных завершена", cur_time)
+
+                cur_time = datetime.datetime.now()
+                # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 ...", False)
+
+                # замена пустых бренд п на значение по умолчанию
+                sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
+                if sett.replace_brand_s:
+                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s==None).values(_02brand=sett.replace_brand_s))
+                # print(f"замена пустых бренд {datetime.datetime.now() - n_dt}")
+
+                # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
+                self.suppliers_goods_compare(price_code, sett, sess)
+                # print(f"исправление товаров поставщиков {datetime.datetime.now() - n_dt}")
+
+                # замена ; на ,
+                text_cols = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
+                             self.TmpPrice_1.currency_s, self.TmpPrice_1.notice_s]
+                for c in text_cols:
+                    sess.execute(update(self.TmpPrice_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
+
+                # Исправление Номенклатуры
+                self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
+
+                # 01Артикул
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
+                sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
+                                                     .regexp_replace('^ | $', '', 'g'))))
+                sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W|_', '', 'g'))))
+
+                # 02Производитель
+                sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W|_', '', 'g'))))
+                sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1.brand_s_low == Brands.brand_low,
+                                                        self.TmpPrice_1._02brand == None)).values(_02brand=Brands.correct_brand))
+
+                # 14Производитель заполнен
+                sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
+                # print(f"14Производитель заполнен {datetime.datetime.now() - n_dt}")
+                # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
+                #              .values(_14brand_filled_in=Price_1._02brand))
+
+                # Изменение цены по условиям (Цена поставщика)
+                # apply_discount(sess, price_code, 'Цена поставщика')
+
+                # 03Наименование
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
+                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
+                                                            regexp_replace(' +', ' ', 'g').
+                                                            regexp_replace('^ | $', '', 'g')))
+                # print(f"03Наименование {datetime.datetime.now() - n_dt}")
+
+                # 04Количество
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s-self.TmpPrice_1._04count))
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
+
+                sess.commit()  #sess.flush()
+                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 завершена", cur_time)
+
+                cur_time = datetime.datetime.now()
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 ...", False)
+
+                # 05Цена
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s))
+
+                # для валют
+                sess.execute(update(self.TmpPrice_1).where(
+                    and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
+                             .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate))
+
+                # 12Сумма
+                # numeric_max = 9999999999 # numeric 12,2
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s < numeric_max).
+                #              values(_12sum=self.TmpPrice_1.count_s * self.TmpPrice_1.price_s))
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
+
+                # Настройка строк: Вариант изменения цены
+                if sett.change_price_type in ("- X %", "+ X %"):
+                    percent = None
+                    try:
+                        percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
+                    except:
+                        pass
+                    if percent:
+                        sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1._05price * (1+percent)))
+
+                # Изменение цены по условиям (05Цена)
+                self.apply_discount(sess, price_code)
+                # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
+
+                # 06Кратность
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._06mult == None).values(_06mult=self.TmpPrice_1.mult_s))
+                sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
+                # print(f"06Кратность {datetime.datetime.now() - n_dt}")
+
+                # 15КодТутОптТорг
+                sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
+                                                            regexp_replace(r"\W|_", "", 'g'))) # func.upper
+                self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
+
+                # 20ИсключитьИзПрайса
+                self.words_except(sess, price_code)
+
+                # 17КодУникальности
+                sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
+
+                # 18КороткоеНаименование
+                sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
+
+                sess.commit()  #sess.flush()
+                self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
+
+                cur_time = datetime.datetime.now()
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
+
+                # 13Градация
+                total_sum = sess.execute(select(func.sum(self.TmpPrice_1._05price))).scalar() or 1
+
+                subq = select(self.TmpPrice_1.id, self.TmpPrice_1._07supplier_code,
+                              func.floor((total_sum - func.sum(self.TmpPrice_1._05price).over(order_by=(self.TmpPrice_1._05price,
+                                                                                                        self.TmpPrice_1.id))) / (total_sum / 100))).where(
+                    and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
+
+                sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
+                sess.commit()  #sess.flush()
+
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
+                # sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
+
+                self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
+
+                cur_time = datetime.datetime.now()
+                csv_cols_dict = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
+                                 "Производитель поставщика": self.TmpPrice_1.brand_s, "Наименование поставщика": self.TmpPrice_1.name_s,
+                                 "Количество поставщика": self.TmpPrice_1.count_s, "Цена поставщика": self.TmpPrice_1.price_s,
+                                 "ВалютаП": self.TmpPrice_1.currency_s, "Кратность поставщика": self.TmpPrice_1.mult_s,
+                                 "Примечание поставщика": self.TmpPrice_1.notice_s, "01Артикул": self.TmpPrice_1._01article,
+                                 "02Производитель": self.TmpPrice_1._02brand,
+                                 "14Производитель заполнен": self.TmpPrice_1._14brand_filled_in,
+                                 "03Наименование": self.TmpPrice_1._03name, "04Количество": self.TmpPrice_1._04count,
+                                 "05Цена": self.TmpPrice_1._05price, "06Кратность": self.TmpPrice_1._06mult,
+                                 "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
+                                 "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
+                                 "17КодУникальности": self.TmpPrice_1._17code_unique,
+                                 "18КороткоеНаименование": self.TmpPrice_1._18short_name,
+                                 }
+                sess.commit()
+                self.cur_file_count += 1
+                # to csv
+                if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
+                    return
+
+                # перенос данных в total
+                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
+                # self.TmpPrice_1._12sum,
+                cols_for_total = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
+                                  self.TmpPrice_1.count_s, self.TmpPrice_1.price_s, self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
+                                  self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name,
+                                  self.TmpPrice_1._04count, self.TmpPrice_1._05price, self.TmpPrice_1._06mult,
+                                  self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
+                                  self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name]
+                cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
+                total = select(*cols_for_total.keys())
+                sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+
+                # дочерние прайсы
+                children_prices = sess.execute(select(distinct(FileSettings.price_code))
+                                               .where(and_(FileSettings.parent_code == price_code, FileSettings.parent_code != FileSettings.price_code,
+                                                           func.upper(FileSettings.save) == 'ДА'))).scalars().all()
+                # УДАЛИТЬ ИЗ БД
+                # sess.query(Price_1).delete()
+
+                sess.commit()
+
+                self.add_log(self.file_size_type, price_code, "создание csv, загрузка в БД", cur_time)
+                total_price_calc_time = str(datetime.datetime.now() - start_calc_price_time)[:7]
+                self.log.add(LOG_ID,
+                             f"+ {price_code} готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                             f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
+                             f"{price_code}</span> готов! ({self.cur_file_count}/{self.total_file_count}) [{total_price_calc_time}]")
+
+            self.TmpPrice_1.__table__.drop(engine)
+            self.TmpSum.__table__.drop(engine)
 
         except Exception as ex:
             ex_text = traceback.format_exc()

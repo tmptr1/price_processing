@@ -217,10 +217,10 @@ class Sender(QThread):
         self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
 
         inspct = inspect(engine)
-        # if inspct.has_table(FinalPrice.__tablename__):
-        #     FinalPrice.__table__.drop(engine)
-        # if inspct.has_table(FinalComparePrice.__tablename__):
-        #     FinalComparePrice.__table__.drop(engine)
+        if inspct.has_table(FinalPrice.__tablename__):
+            FinalPrice.__table__.drop(engine)
+        if inspct.has_table(FinalComparePrice.__tablename__):
+            FinalComparePrice.__table__.drop(engine)
 
         # Base3.metadata.create_all(engine)
         today_dt = datetime.datetime.now()
@@ -241,236 +241,236 @@ class Sender(QThread):
         #
         #     sess.commit()
         # return
-        with engine.begin() as conn:
-            Base3.metadata.create_all(conn)
+        # with engine.begin() as conn:
+        Base3.metadata.create_all(engine)
 
-            with session(bind=conn) as sess:
-                sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
-                sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
+        with session() as sess:
+            sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
 
-                # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET UNLOGGED;"))
-                # sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET UNLOGGED;"))
-                if not table_is_exists:
-                    sess.execute(text(f"create table IF NOT EXISTS fph_{time_part_name} partition of final_price_history "
-                             f"for values from ('{today_dt.date()}') to ('{today_dt.date() + datetime.timedelta(days=1)}')"))
-                    sess.execute(text(f"create table IF NOT EXISTS fphd_{time_part_name} partition of final_price_history_del "
-                                      f"for values from ('{today_dt.date()}') to ('{today_dt.date() + datetime.timedelta(days=1)}')"))
-                    sess.commit()
+            # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET UNLOGGED;"))
+            # sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET UNLOGGED;"))
+            if not table_is_exists:
+                sess.execute(text(f"create table IF NOT EXISTS fph_{time_part_name} partition of final_price_history "
+                         f"for values from ('{today_dt.date()}') to ('{today_dt.date() + datetime.timedelta(days=1)}')"))
+                sess.execute(text(f"create table IF NOT EXISTS fphd_{time_part_name} partition of final_price_history_del "
+                                  f"for values from ('{today_dt.date()}') to ('{today_dt.date() + datetime.timedelta(days=1)}')"))
+            sess.commit()
 
-                self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.id == id,
-                                                                                 func.upper(BuyersForm.included)=='ДА'))).scalar()
-                self.add_log(self.price_settings.buyer_price_code,f" ...")
+            self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.id == id,
+                                                                             func.upper(BuyersForm.included)=='ДА'))).scalar()
+            self.add_log(self.price_settings.buyer_price_code,f" ...")
 
-                # allow_brands = sess.execute(
-                #     select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting)).all()
-                brands_check = sess.execute(select(CrossBrandTypeMarkupPct.customer_price_code).where(CrossBrandTypeMarkupPct.customer_price_code==
-                                                                                                      self.price_settings.buyer_price_code)).all()
-                if not brands_check:
-                    self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды")
-                    sess.query(PriceSendTime).where(
-                        PriceSendTime.price_code == self.price_settings.buyer_price_code).delete()
-                    sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
-                                      send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                      info_msg='Не указаны бренды'))
-                    sess.commit()
-                    return
-
-                self.now_dt = datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')
-                allow_prices = self.get_allow_prises(sess)
-                # TotalPrice_2.code_pb_p, TotalPrice_2.markup_os
-                cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
-                                  TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
-                                  TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
-                                  TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2._05price_plus,
-                                  TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2.alternative_article,
-                                  TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-                                  TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2.delay,
-                                  TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
-                                  TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
-                                  TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
-                                  TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
-                                  TotalPrice_2.mult_less, TotalPrice_2.buy_count,
-                                  TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
-                cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-                price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(TotalPrice_2._07supplier_code.in_(allow_prices))
-                sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
-
-                total_prices_result = dict()
-                price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).
-                                           group_by(FinalPrice._07supplier_code).order_by(FinalPrice._07supplier_code))
-                for p, c in price_count:
-                    total_prices_result[p] = c
-                self.add_log(self.price_settings.buyer_price_code, f"{total_prices_result}")
-
-                del_put_away_zp = self.add_dels_in_history(sess, (and_(FinalPrice.put_away_zp!=None,
-                    FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))), 'УбратьЗП')
-                if del_put_away_zp:
-                    sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
-                        FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))).delete()
-                    self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_put_away_zp} (УбратьЗП)")
-
-                # sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
-                #     FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
-
-
-                self.delete_exceptions(sess)
-                count_after_first_filter = sess.execute(func.count(FinalPrice.id)).scalar()
-
-                self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
-                             cur_time)
-
-
-                cur_time = datetime.datetime.now()
-
-                self.update_count(sess)
-
-                self.brand_filter_and_short_name(sess)
-
-                self.update_price_2(sess)
-
-                self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены и количества", cur_time)
-
-                cur_time = datetime.datetime.now()
-                self.del_duples(sess)
-                self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
-
-                cur_time = datetime.datetime.now()
-
-                self.price_check(sess)
-                self.del_price_below_zero(sess)
-
-                self.del_over_price_b(sess)
-
-                self.del_over_price(sess)
-
-                self.set_rating(sess)
-                self.create_dupls(sess)
-                self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, Макс. снижение цены", cur_time)
-
-                cur_time = datetime.datetime.now()
-                self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
-                self.create_csv(sess)
-                self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
-
-                total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
-                log_msg = f"Итоговое кол-во строк: {total_rows}"
-                if self.price_settings.max_rows:
-                    log_msg += f". Лимит: {self.price_settings.max_rows}"
-                self.add_log(self.price_settings.buyer_price_code, log_msg)
-
-                cur_time = datetime.datetime.now()
-                # is_sended = False
-                self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
-                recent_send = False
-                if self.send_time:
-                    if (datetime.datetime.now()-self.send_time) < datetime.timedelta(minutes=15):
-                        recent_send = True
-
-                self.new_info_msg = None
-                self.new_send_time = None
-                if total_rows == 0:
-                    self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
-                    self.new_info_msg = 'Итоговое кол-во 0, не отправлен'
-                else:
-                    if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_send:
-                        if self.send_mail():
-                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                            sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                    if self.need_to_send and not recent_send:
-                        if self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists':
-                            if self.load_price_autopiter():
-                                last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                                sess.execute(update(FinalPrice).where(
-                                    FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                             values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                            else:
-                                self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
-                                self.new_info_msg = 'Не удалось загрузить на сайт'
-
-                        elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
-                            if self.load_price_avtoto():
-                                last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                                sess.execute(update(FinalPrice).where(
-                                    FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
-                                             values(supplier_update_time=last_supplier_price_updates.c.db_added))
-                            else:
-                                self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
-                                self.new_info_msg = 'Не удалось загрузить на сайт'
-
-
-                cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-                                  FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-                                  FinalPrice.notice_s,
-                                  FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                                  FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
-                                  FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
-                                  FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
-                                  FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                                  FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
-                cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
-
-                if self.new_send_time is not None:
-                    send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
-                elif self.send_time is not None:
-                    send_time_val = f"'{self.send_time}'"
-                else:
-                    send_time_val = "NULL"
-
-                # now_dt = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
-                price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                               literal_column(f"'{self.now_dt}'"), *cols_for_price.keys()) # send_time_val
-                sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
-
-                price_count = sess.execute(
-                    select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
-                        FinalPrice._07supplier_code))
-
-                prices_count_msg = ''
-                new_total_prices_result = dict()
-                for p, c in price_count:
-                    new_total_prices_result[p] = c
-
-                for k in total_prices_result:
-                    prices_count_msg += f"{k} {total_prices_result[k]}/{new_total_prices_result.get(k, 0)}; "
-
-                if prices_count_msg: prices_count_msg = prices_count_msg[:-1]
-
-                count_for_report = self.price_settings.max_rows if self.price_settings.max_rows > total_rows else total_rows
-
-                sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
-                # now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # allow_brands = sess.execute(
+            #     select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting)).all()
+            brands_check = sess.execute(select(CrossBrandTypeMarkupPct.customer_price_code).where(CrossBrandTypeMarkupPct.customer_price_code==
+                                                                                                  self.price_settings.buyer_price_code)).all()
+            if not brands_check:
+                self.add_log(self.price_settings.buyer_price_code,f"Не указаны бренды")
+                sess.query(PriceSendTime).where(
+                    PriceSendTime.price_code == self.price_settings.buyer_price_code).delete()
                 sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
-                                       update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
-                                       info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
-                                       count=count_for_report, count_after_filter=count_after_first_filter,
-                                       del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
-                                       count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
-                                       price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
-                                       prices_count=prices_count_msg, unused_prices=self.unused_prices))
-                sess.add(PriceSendTimeHistory(price_code=self.price_settings.buyer_price_code,
-                                       update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
-                                       info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
-                                       count=count_for_report, count_after_filter=count_after_first_filter,
-                                       del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
-                                       count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
-                                       price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
-                                       prices_count=prices_count_msg, unused_prices=self.unused_prices))
-
-                sess.query(FinalPrice).delete()
+                                  send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                  info_msg='Не указаны бренды'))
                 sess.commit()
-                # if is_sended:
-                self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
+                return
 
-                total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
-                self.log.add(LOG_ID,
-                             f"+ {self.price_settings.buyer_price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",
-                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
-                             f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
-                             f"{self.price_settings.buyer_price_code}</span> готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]")
+            self.now_dt = datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')
+            allow_prices = self.get_allow_prises(sess)
+            # TotalPrice_2.code_pb_p, TotalPrice_2.markup_os
+            cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
+                              TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
+                              TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
+                              TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2._05price_plus,
+                              TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2.alternative_article,
+                              TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
+                              TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2.delay,
+                              TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
+                              TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
+                              TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
+                              TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
+                              TotalPrice_2.mult_less, TotalPrice_2.buy_count,
+                              TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
+            cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+            price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(TotalPrice_2._07supplier_code.in_(allow_prices))
+            sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
 
-        # FinalPrice.__table__.drop(engine)
-        # FinalComparePrice.__table__.drop(engine)
+            total_prices_result = dict()
+            price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).
+                                       group_by(FinalPrice._07supplier_code).order_by(FinalPrice._07supplier_code))
+            for p, c in price_count:
+                total_prices_result[p] = c
+            self.add_log(self.price_settings.buyer_price_code, f"{total_prices_result}")
+
+            del_put_away_zp = self.add_dels_in_history(sess, (and_(FinalPrice.put_away_zp!=None,
+                FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))), 'УбратьЗП')
+            if del_put_away_zp:
+                sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
+                    FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%"))).delete()
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_put_away_zp} (УбратьЗП)")
+
+            # sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
+            #     FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
+
+
+            self.delete_exceptions(sess)
+            count_after_first_filter = sess.execute(func.count(FinalPrice.id)).scalar()
+
+            self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
+                         cur_time)
+
+
+            cur_time = datetime.datetime.now()
+
+            self.update_count(sess)
+
+            self.brand_filter_and_short_name(sess)
+
+            self.update_price_2(sess)
+
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены и количества", cur_time)
+
+            cur_time = datetime.datetime.now()
+            self.del_duples(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
+
+            cur_time = datetime.datetime.now()
+
+            self.price_check(sess)
+            self.del_price_below_zero(sess)
+
+            self.del_over_price_b(sess)
+
+            self.del_over_price(sess)
+
+            self.set_rating(sess)
+            self.create_dupls(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, Макс. снижение цены", cur_time)
+
+            cur_time = datetime.datetime.now()
+            self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
+            self.create_csv(sess)
+            self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
+
+            total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
+            log_msg = f"Итоговое кол-во строк: {total_rows}"
+            if self.price_settings.max_rows:
+                log_msg += f". Лимит: {self.price_settings.max_rows}"
+            self.add_log(self.price_settings.buyer_price_code, log_msg)
+
+            cur_time = datetime.datetime.now()
+            # is_sended = False
+            self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
+            recent_send = False
+            if self.send_time:
+                if (datetime.datetime.now()-self.send_time) < datetime.timedelta(minutes=15):
+                    recent_send = True
+
+            self.new_info_msg = None
+            self.new_send_time = None
+            if total_rows == 0:
+                self.add_log(self.price_settings.buyer_price_code, "Итоговое кол-во 0, не отправлен")
+                self.new_info_msg = 'Итоговое кол-во 0, не отправлен'
+            else:
+                if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_send:
+                    if self.send_mail():
+                        last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                        sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                     values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                if self.need_to_send and not recent_send:
+                    if self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists':
+                        if self.load_price_autopiter():
+                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                            sess.execute(update(FinalPrice).where(
+                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                        else:
+                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                            self.new_info_msg = 'Не удалось загрузить на сайт'
+
+                    elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
+                        if self.load_price_avtoto():
+                            last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
+                            sess.execute(update(FinalPrice).where(
+                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                                         values(supplier_update_time=last_supplier_price_updates.c.db_added))
+                        else:
+                            self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
+                            self.new_info_msg = 'Не удалось загрузить на сайт'
+
+
+            cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
+                              FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
+                              FinalPrice.notice_s,
+                              FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
+                              FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
+                              FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
+                              FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
+                              FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
+                              FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
+            cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
+
+            if self.new_send_time is not None:
+                send_time_val = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
+            elif self.send_time is not None:
+                send_time_val = f"'{self.send_time}'"
+            else:
+                send_time_val = "NULL"
+
+            # now_dt = f"'{datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')}'"
+            price = select(literal_column(f"'{self.price_settings.buyer_price_code}'"),
+                           literal_column(f"'{self.now_dt}'"), *cols_for_price.keys()) # send_time_val
+            sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
+
+            price_count = sess.execute(
+                select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
+                    FinalPrice._07supplier_code))
+
+            prices_count_msg = ''
+            new_total_prices_result = dict()
+            for p, c in price_count:
+                new_total_prices_result[p] = c
+
+            for k in total_prices_result:
+                prices_count_msg += f"{k} {total_prices_result[k]}/{new_total_prices_result.get(k, 0)}; "
+
+            if prices_count_msg: prices_count_msg = prices_count_msg[:-1]
+
+            count_for_report = self.price_settings.max_rows if self.price_settings.max_rows > total_rows else total_rows
+
+            sess.query(PriceSendTime).where(PriceSendTime.price_code==self.price_settings.buyer_price_code).delete()
+            # now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sess.add(PriceSendTime(price_code=self.price_settings.buyer_price_code,
+                                   update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
+                                   info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
+                                   count=count_for_report, count_after_filter=count_after_first_filter,
+                                   del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
+                                   count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
+                                   price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
+                                   prices_count=prices_count_msg, unused_prices=self.unused_prices))
+            sess.add(PriceSendTimeHistory(price_code=self.price_settings.buyer_price_code,
+                                   update_time=self.now_dt, send_time=None if send_time_val == "NULL" else send_time_val,
+                                   info_msg=self.new_info_msg if self.new_info_msg else 'Ок',
+                                   count=count_for_report, count_after_filter=count_after_first_filter,
+                                   del_price_b=self.del_price_b, exception_words_del=self.exception_words_del,
+                                   count_mult_del=self.count_mult_del, correct_brands_del=self.correct_brands_del,
+                                   price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
+                                   prices_count=prices_count_msg, unused_prices=self.unused_prices))
+
+            # sess.query(FinalPrice).delete()
+            sess.commit()
+            # if is_sended:
+            self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
+
+            total_price_calc_time = str(datetime.datetime.now() - start_time)[:7]
+            self.log.add(LOG_ID,
+                         f"+ {self.price_settings.buyer_price_code} готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>✔</span> "
+                         f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
+                         f"{self.price_settings.buyer_price_code}</span> готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]")
+
+        FinalPrice.__table__.drop(engine)
+        FinalComparePrice.__table__.drop(engine)
 
 
     def add_dels_in_history(self, sess, condition, reason):
