@@ -142,11 +142,11 @@ class Sender(QThread):
                     self.StartCreationSignal.emit(False)
                     self.UpdateReportSignal.emit(True)
 
-                self.log.add(LOG_ID, f"vacuum start")
-                with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
-                    conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistory.__tablename__};"))
-                    conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistoryDel.__tablename__};"))
-                self.log.add(LOG_ID, f"vacuum finish")
+                    self.log.add(LOG_ID, f"vacuum start")
+                    with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                        conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistory.__tablename__};"))
+                        conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistoryDel.__tablename__};"))
+                    self.log.add(LOG_ID, f"vacuum finish")
 
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
