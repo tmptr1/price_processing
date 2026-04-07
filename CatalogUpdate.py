@@ -101,7 +101,8 @@ class CatalogUpdate(QThread):
 
                 # + удаление из final_price_history и удаление неактуальных прайсов
                 if self.update_DB_4():
-                    pass
+                    self.vacuum_analyze()
+                    # pass
                     # self.CTC.start()
                     # self.CTC.wait()
 
@@ -937,6 +938,21 @@ class CatalogUpdate(QThread):
             sess.commit()
             return True
 
+    def vacuum_analyze(self):
+        try:
+            cur_time = datetime.datetime.now()
+            self.log.add(LOG_ID, f"vacuum start")
+            with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                conn.execute(text(f"VACUUM ANALYZE {BasePrice.__tablename__};"))
+                conn.execute(text(f"VACUUM ANALYZE {MassOffers.__tablename__};"))
+                conn.execute(text(f"VACUUM ANALYZE {TotalPrice_1.__tablename__};"))
+                conn.execute(text(f"VACUUM ANALYZE {TotalPrice_2.__tablename__};"))
+            self.log.add(LOG_ID, f"vacuum finish [{str(datetime.datetime.now() - cur_time)[:7]}]")
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as va_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"vacuum_analyze Error", ex_text)
 
     def update_orders_table(self):
         try:

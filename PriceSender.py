@@ -128,7 +128,7 @@ class Sender(QThread):
                             self.log.error(LOG_ID, f"Подозрение на спам ({smtp_ex.smtp_code}) ERROR:", ex_text)
                             with session() as sess:
                                 buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
-                                                                                                 func.upper(BuyersForm.included) == 'ДА'))).scalar()
+                                                                                                               func.upper(BuyersForm.included) == 'ДА'))).scalar()
                                 sess.execute(update(PriceSendTime).where(PriceSendTime.price_code==buyer_price_code).
                                              values(info_msg='Спам', send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                                 sess.commit()
@@ -141,6 +141,12 @@ class Sender(QThread):
                     self.log.add(LOG_ID, f"Формирование закончено [{str(datetime.datetime.now() - start_creating)[:7]}]")
                     self.StartCreationSignal.emit(False)
                     self.UpdateReportSignal.emit(True)
+
+                self.log.add(LOG_ID, f"vacuum start")
+                with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                    conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistory.__tablename__};"))
+                    conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistoryDel.__tablename__};"))
+                self.log.add(LOG_ID, f"vacuum finish")
 
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
