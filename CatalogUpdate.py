@@ -417,20 +417,18 @@ class CatalogUpdate(QThread):
 
                 table_name = 'file_settings'
                 table_class = FileSettings
-                cols = {"price_code": ["Прайс"], "parent_code": ["Прайс родитель"], "save": ["Сохраняем"], "email": ["Почта"], "file_name_cond": ["Условие имени файла"],
-                        "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"],
-                        "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"],
-                        "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
+                cols = {"price_code": ["Прайс"], "parent_code": ["Прайс родитель"], "save": ["Сохраняем"], "email": ["Почта"],
+                        "file_name_cond": ["Условие имени файла"], "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"],
+                        "pass_down": ["Пропуск снизу"], "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"],
+                        "name_key_s": ["Название КлючП"], "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
                         "rc_brand_s": ["R/C БрендП"], "name_brand_s": ["Название БрендП"], "replace_brand_s": ["Подставить Бренд"],
-                        "rc_name_s": ["R/C НаименованиеП"],
-                        "name_name_s": ["Название НаименованиеП"], "rc_count_s": ["R/C КоличествоП"],
-                        "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"],
-                        "name_price_s": ["Название ЦенаП"],
-                        "rc_mult_s": ["R/C КратностьП"], "name_mult_s": ["Название КратностьП"],
-                        "rc_notice_s": ["R/C ПримечаниеП"],
-                        "name_notice_s": ["Название ПримечаниеП"], "rc_currency_s": ["R/C Валюта"],
-                        "name_currency_s": ["Название Валюта"], "change_price_type": ["Вариант изменения цены"],
-                        "change_price_val": ["Значение исправления цены"],
+                        "rc_name_s": ["R/C НаименованиеП"], "name_name_s": ["Название НаименованиеП"],
+                        "rc_count_s": ["R/C КоличествоП"], "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"],
+                        "name_price_s": ["Название ЦенаП"], "rc_mult_s": ["R/C КратностьП"], "name_mult_s": ["Название КратностьП"],
+                        "rc_notice_s": ["R/C ПримечаниеП"], "name_notice_s": ["Название ПримечаниеП"],
+                        "rc_currency_s": ["R/C Валюта"], "name_currency_s": ["Название Валюта"],
+                        "change_price_type": ["Вариант изменения цены"], "change_price_val": ["Значение исправления цены"],
+                        "rc_tnved": ["R/C ТНВЭД"], "tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "okpd2": ["ОКПД2"],
                         }
                 sheet_name = "Настройка строк"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
@@ -445,6 +443,8 @@ class CatalogUpdate(QThread):
                            ['r_mult_s', 'c_mult_s', 'rc_mult_s'],
                            ['r_notice_s', 'c_notice_s', 'rc_notice_s'],
                            ['r_currency_s', 'c_currency_s', 'rc_currency_s'],
+                           ['r_tnved', 'c_tnved', 'rc_tnved'],
+                           ['r_okpd2', 'c_okpd2', 'rc_okpd2'],
                            ]
                 req = ''
                 for r, c, rc in rc_cols:

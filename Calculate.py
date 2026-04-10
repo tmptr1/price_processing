@@ -201,7 +201,7 @@ class CalculateClass(QThread):
                 sess.commit()
 
                 # Удаление по первому условию
-                del_art = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._01article == None).delete()
+                del_art = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._01article == None, self.TmpPrice_2._01article == '')).delete()
                 del_brand = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._14brand_filled_in == None).delete()
                 del_price = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._05price <= 0, self.TmpPrice_2._05price == None)).delete()
                 del_count = sess.query(self.TmpPrice_2).where(or_(self.TmpPrice_2._04count == None, self.TmpPrice_2._05price <= 0)).delete()

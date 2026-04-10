@@ -1367,6 +1367,14 @@ class FileSettings(Base):
     name_currency_s: Mapped[str_x(256)]
     change_price_type: Mapped[str_x(50)]
     change_price_val: Mapped[str_x(50)]
+    rc_tnved: Mapped[str_x(50)]
+    r_tnved: Mapped[intgr]
+    c_tnved: Mapped[intgr]
+    tnved: Mapped[str_x(150)]
+    rc_okpd2: Mapped[str_x(50)]
+    r_okpd2: Mapped[intgr]
+    c_okpd2: Mapped[intgr]
+    okpd2: Mapped[str_x(150)]
 
 class ColsFix(Base):
     __tablename__ = "cols_fix"
