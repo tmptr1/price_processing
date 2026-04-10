@@ -428,7 +428,7 @@ class CatalogUpdate(QThread):
                         "rc_notice_s": ["R/C ПримечаниеП"], "name_notice_s": ["Название ПримечаниеП"],
                         "rc_currency_s": ["R/C Валюта"], "name_currency_s": ["Название Валюта"],
                         "change_price_type": ["Вариант изменения цены"], "change_price_val": ["Значение исправления цены"],
-                        "rc_tnved": ["R/C ТНВЭД"], "tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "okpd2": ["ОКПД2"],
+                        "rc_tnved": ["R/C ТНВЭД"], "name_tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "name_okpd2": ["ОКПД2"],
                         }
                 sheet_name = "Настройка строк"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)

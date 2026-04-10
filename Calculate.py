@@ -110,7 +110,7 @@ class CalculateClass(QThread):
 
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv']
-                # new_files = ['АСТ2.csv', '1ГУД.csv']
+                # new_files = ['1SHI.csv',]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
                 for f in new_files:
@@ -190,11 +190,12 @@ class CalculateClass(QThread):
 
                 cols_for_price = [TotalPrice_1.key1_s, TotalPrice_1.article_s, TotalPrice_1.brand_s, TotalPrice_1.name_s,
                                   TotalPrice_1.count_s, TotalPrice_1.price_s, TotalPrice_1.currency_s, TotalPrice_1.mult_s,
-                                  TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp, TotalPrice_1._02brand,
-                                  TotalPrice_1._14brand_filled_in, TotalPrice_1._03name, TotalPrice_1._04count,
-                                  TotalPrice_1._05price, TotalPrice_1._06mult,
+                                  TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp,
+                                  TotalPrice_1._02brand, TotalPrice_1._14brand_filled_in, TotalPrice_1._03name,
+                                  TotalPrice_1._04count, TotalPrice_1._05price, TotalPrice_1._06mult,
                                   TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
-                                  TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name]
+                                  TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name,
+                                  TotalPrice_1.tnved, TotalPrice_1.okpd2]
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
                 sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
@@ -296,24 +297,24 @@ class CalculateClass(QThread):
                 cur_time = datetime.datetime.now()
                 # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
                 # self.TmpPrice_2.max_decline,
-                cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
-                                  self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s,
-                                  self.TmpPrice_2.notice_s,
-                                  self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand, self.TmpPrice_2._03name, self.TmpPrice_2._04count,
-                                  self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
+                cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s,
+                                  self.TmpPrice_2.name_s, self.TmpPrice_2.count_s, self.TmpPrice_2.price_s,
+                                  self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
+                                  self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand,
+                                  self.TmpPrice_2._03name, self.TmpPrice_2._04count, self.TmpPrice_2._05price,
+                                  self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
-                                  self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in,
-                                  self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name,
-                                  self.TmpPrice_2._20exclude, self.TmpPrice_2.to_price,
-                                  self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS,
+                                  self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
+                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
+                                  self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS,
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
-                                  self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp, self.TmpPrice_2.unload_percent,
-                                  self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b,
-                                  self.TmpPrice_2.count, self.TmpPrice_2.markup_pb, self.TmpPrice_2._06mult_new,
-                                  self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus, self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count,
-                                  self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier,
+                                  self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp,
+                                  self.TmpPrice_2.unload_percent, self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh,
+                                  self.TmpPrice_2.price_b, self.TmpPrice_2.count, self.TmpPrice_2.markup_pb,
+                                  self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
+                                  self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count, self.TmpPrice_2.min_price,
+                                  self.TmpPrice_2.min_supplier, self.TmpPrice_2.tnved, self.TmpPrice_2.okpd2,
                                   ]
 
                 # формирование csv

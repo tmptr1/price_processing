@@ -295,8 +295,8 @@ class Sender(QThread):
                               TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
                               TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                               TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
-                              TotalPrice_2.mult_less, TotalPrice_2.buy_count,
-                              TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price]
+                              TotalPrice_2.mult_less, TotalPrice_2.buy_count, TotalPrice_2.unload_percent,
+                              TotalPrice_2.min_price, TotalPrice_2.to_price, TotalPrice_2.tnved, TotalPrice_2.okpd2]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
             price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(TotalPrice_2._07supplier_code.in_(allow_prices))
             sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
@@ -407,13 +407,13 @@ class Sender(QThread):
 
             cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
                               FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-                              FinalPrice.notice_s,
-                              FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                              FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
-                              FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
+                              FinalPrice.notice_s, FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand,
+                              FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count,
+                              FinalPrice._05price, FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
                               FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
                               FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                              FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
+                              FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time, FinalPrice.tnved,
+                              FinalPrice.tnved]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
             if self.new_send_time is not None:
@@ -482,13 +482,12 @@ class Sender(QThread):
     def add_dels_in_history(self, sess, condition, reason):
         cols_for_del_history = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
                           FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-                          FinalPrice.notice_s,
-                          FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand,
-                          FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
+                          FinalPrice.notice_s, FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand,
+                          FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
                           FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
-                          FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
-                          FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                          FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time]
+                          FinalPrice.alternative_article, FinalPrice._14brand_filled_in, FinalPrice._15code_optt,
+                          FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
+                          FinalPrice.supplier_update_time, FinalPrice.tnved, FinalPrice.okpd2]
 
         price = select(literal_column(f"'{reason}'"),
                        literal_column(f"'{self.price_settings.buyer_price_code}'"),
@@ -884,7 +883,7 @@ class Sender(QThread):
                 FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus, FinalPrice._06mult_new,
                 FinalPrice._07supplier_code, FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
                 FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
-                FinalPrice.supplier_update_time, FinalPrice.customer_brand_alias]
+                FinalPrice.supplier_update_time, FinalPrice.customer_brand_alias, FinalPrice.tnved, FinalPrice.okpd2]
         dupl_rows = select(*cols, literal_column("'e'")).where(FinalPrice.customer_brand_alias != None)
         cols_names = [i.__dict__['name'] for i in cols]
 
@@ -914,7 +913,8 @@ class Sender(QThread):
 
             headers_patterns = {"Артикул": FinalPrice._01article, "Бренд": FinalPrice.brand, "Наименование": FinalPrice._03name,
                                 "Кол-во": FinalPrice.count, "Цена": FinalPrice.price, "Кратность": FinalPrice._06mult_new,
-                                       "17КодУникальности": FinalPrice._17code_unique}
+                                "17КодУникальности": FinalPrice._17code_unique, "ОКПД2": FinalPrice.okpd2,
+                                "ТН ВЭД": FinalPrice.tnved}
             cols = [self.price_settings.col_1, self.price_settings.col_2, self.price_settings.col_3, self.price_settings.col_4,
                     self.price_settings.col_5, self.price_settings.col_6, self.price_settings.col_7, self.price_settings.col_8,
                     self.price_settings.col_9]

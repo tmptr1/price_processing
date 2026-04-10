@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['АСТФ ПРАЙС ФГ.xlsx']
+                # new_files = ['1SHI Прайс_Эникс.xlsx']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]
@@ -499,12 +499,15 @@ class MainWorker(QThread):
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()
                 # self.TmpPrice_1._12sum,
-                cols_for_total = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
-                                  self.TmpPrice_1.count_s, self.TmpPrice_1.price_s, self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
-                                  self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name,
-                                  self.TmpPrice_1._04count, self.TmpPrice_1._05price, self.TmpPrice_1._06mult,
-                                  self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
-                                  self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name]
+                cols_for_total = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s,
+                                  self.TmpPrice_1.name_s, self.TmpPrice_1.count_s, self.TmpPrice_1.price_s,
+                                  self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
+                                  self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand,
+                                  self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name, self.TmpPrice_1._04count,
+                                  self.TmpPrice_1._05price, self.TmpPrice_1._06mult, self.TmpPrice_1._15code_optt,
+                                  self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
+                                  self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name, self.TmpPrice_1.tnved,
+                                  self.TmpPrice_1.okpd2]
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
@@ -598,6 +601,8 @@ class MainWorker(QThread):
                        "mult_s": [sett.r_mult_s, sett.c_mult_s, sett.name_mult_s],
                        "notice_s": [sett.r_notice_s, sett.c_notice_s, sett.name_notice_s],
                        "currency_s": [sett.r_currency_s, sett.c_currency_s, sett.name_currency_s],
+                       "tnved": [sett.r_tnved, sett.c_tnved, sett.name_tnved],
+                       "okpd2": [sett.r_okpd2, sett.c_okpd2, sett.name_okpd2],
                        }
 
             cols = []

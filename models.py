@@ -206,6 +206,8 @@ class Price_1(Base1):
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class Price_1_1(Base1_1):
     __tablename__ = "price_1_1"
@@ -263,6 +265,8 @@ class Price_1_1(Base1_1):
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class TotalPrice_1(Base):
     __tablename__ = "total_price_1"
@@ -322,6 +326,8 @@ class TotalPrice_1(Base):
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
     _18short_name: Mapped[str_x(256)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class Price_2(Base2):
     __tablename__ = "price_2"
@@ -443,6 +449,8 @@ class Price_2(Base2):
     min_price: Mapped[numeric]
     #   ЦенаМинПоставщик varchar(20)
     min_supplier: Mapped[str_x(20)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class Price_2_2(Base2_1):
     __tablename__ = "price_2_2"
@@ -564,6 +572,8 @@ class Price_2_2(Base2_1):
     min_price: Mapped[numeric]
     #   ЦенаМинПоставщик varchar(20)
     min_supplier: Mapped[str_x(20)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class TotalPrice_2(Base):
     __tablename__ = "total_price_2"
@@ -688,6 +698,8 @@ class TotalPrice_2(Base):
     min_price: Mapped[numeric]
     #   ЦенаМинПоставщик varchar(20)
     min_supplier: Mapped[str_x(20)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 class Data07(Base):
     __tablename__ = "data07"
@@ -1066,6 +1078,8 @@ class FinalPrice(Base3):
     unique_grad_step_pct: Mapped[real]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     customer_brand_alias: Mapped[str_x(256)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
 
 
 class FinalPriceHistory(Base):
@@ -1124,6 +1138,8 @@ class FinalPriceHistory(Base):
     count_old: Mapped[intgr]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
@@ -1184,6 +1200,8 @@ class FinalPriceHistoryDel(Base):
     count_old: Mapped[intgr]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
@@ -1370,11 +1388,11 @@ class FileSettings(Base):
     rc_tnved: Mapped[str_x(50)]
     r_tnved: Mapped[intgr]
     c_tnved: Mapped[intgr]
-    tnved: Mapped[str_x(150)]
+    name_tnved: Mapped[str_x(150)]
     rc_okpd2: Mapped[str_x(50)]
     r_okpd2: Mapped[intgr]
     c_okpd2: Mapped[intgr]
-    okpd2: Mapped[str_x(150)]
+    name_okpd2: Mapped[str_x(150)]
 
 class ColsFix(Base):
     __tablename__ = "cols_fix"
