@@ -947,6 +947,7 @@ class CatalogUpdate(QThread):
                 conn.execute(text(f"VACUUM ANALYZE {MassOffers.__tablename__};"))
                 conn.execute(text(f"VACUUM ANALYZE {TotalPrice_1.__tablename__};"))
                 conn.execute(text(f"VACUUM ANALYZE {TotalPrice_2.__tablename__};"))
+                conn.execute(text(f"VACUUM ANALYZE {LastPrice.__tablename__};"))
             self.log.add(LOG_ID, f"vacuum finish [{str(datetime.datetime.now() - cur_time)[:7]}]")
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
