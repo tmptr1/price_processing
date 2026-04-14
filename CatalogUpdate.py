@@ -71,6 +71,7 @@ class CatalogUpdate(QThread):
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
                 # self.update_currency()
+                # self.update_orders_table()
                 # return
                 # with session() as sess:
                 #     # engine.autocommit = True
@@ -960,7 +961,15 @@ class CatalogUpdate(QThread):
             with session() as sess:
                 last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Заказы')).scalar()
                 now = datetime.datetime.now()
-                if now.date() == last_update.date() or now.hour < 11:
+                # print(last_update)
+                # if now.date() == last_update.date() or now.hour < 11:
+                #     return
+                if now.date() != last_update.date() and now.hour == 11:
+                    pass
+                elif now.date() == last_update.date() and last_update.time().hour < 12 and now.hour > 11:  # 12
+                    sess.query(Orders).where(func.date(Orders.updated_at) == datetime.datetime.now().date()).delete()
+                    # pass
+                else:
                     return
 
                 self.log.add(LOG_ID, f"Загзузка заказов в БД ...",

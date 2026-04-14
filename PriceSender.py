@@ -3,7 +3,7 @@ from PySide6.QtCore import QThread, Signal
 from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import (TotalPrice_2, FinalPrice, FinalComparePrice, Base3, BuyersForm, Data07, PriceException,
+from models import (TotalPrice_2, FinalPrice, FinalPrice_1, FinalComparePrice, FinalComparePrice_1, Base3, Base3_1, BuyersForm, Data07, PriceException,
                     SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
                     FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
 from ftplib import FTP
@@ -43,25 +43,36 @@ tg_bot = TeleBot(TG_TOKEN)
 LOG_ID = 4
 WEEKDAYS = {0: "пон", 1: "втор", 2: "сре", 3: "чет", 4: "пят", 5: "суб", 6: "вос"}
 REPORT_FILE = r"final_price_report.csv"
-
+TABLES = [FinalPrice, FinalPrice_1]
+COMPARE_TABLES = [FinalComparePrice, FinalComparePrice_1]
+BASE = [Base3, Base3_1]
 
 class Sender(QThread):
+    UpdatePriceStatusTableSignal = Signal(int, str, str, bool)
+    ResetPriceStatusTableSignal = Signal(int)
     UpdateReportSignal = Signal(bool)
     SetButtonEnabledSignal = Signal(bool)
-    StartCreationSignal = Signal(bool)
+    StartCreationSignal = Signal(int, bool)
     SetProgressBarValue = Signal(int, int)
     isPause = None
     need_to_send = True
-    def __init__(self, log=None, parent=None):
+    def __init__(self, therad_id, log=None, parent=None):
         self.log = log
+        self.therad_id = therad_id
         QThread.__init__(self, parent)
+        self.FinalPriceTmp = TABLES[therad_id]
+        self.FinalComparePriceTmp = COMPARE_TABLES[therad_id]
+        self.BaseTmp = BASE[therad_id]
     def run(self):
         global session, engine
+        # self.UpdatePriceStatusTableSignal.emit(self.therad_id, 'ABS-0', 'Загрузка ...', True)
+        # return
         self.SetButtonEnabledSignal.emit(False)
         wait_sec = 15
 
         while not self.isPause:
-            self.send_tg_msg()
+            if self.therad_id == 0:
+                self.send_tg_msg()
             start_cycle_time = datetime.datetime.now()
             try:
                 # with session() as sess:
@@ -88,7 +99,13 @@ class Sender(QThread):
 
                 price_name_list = []
                 with session() as sess:
-                    prices = sess.execute(select(BuyersForm).where(func.upper(BuyersForm.included)=='ДА').order_by(BuyersForm.period)).scalars().all()
+                    therad_conditions = [func.upper(BuyersForm.included)=='ДА']
+                    if self.therad_id == 0:
+                        therad_conditions.append(or_(BuyersForm.main_price.isnot(None), BuyersForm.price_site.isnot(None)))
+                    elif self.therad_id == 1:
+                        therad_conditions.append(and_(BuyersForm.main_price.is_(None), BuyersForm.price_site.is_(None)))
+
+                    prices = sess.execute(select(BuyersForm).where(and_(*therad_conditions)).order_by(BuyersForm.period)).scalars().all()
                     for p in prices:
                         if not datetime_check(weekday, p.send_days):
                             continue
@@ -114,14 +131,19 @@ class Sender(QThread):
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
 
+                # print(self.therad_id, price_name_list, len(price_name_list)) # [4, 2, 9, 10, 13, 14, 15, 17, 24, 7, 20, 21, 19, 18]
+                # price_name_list = [price_name_list[0], price_name_list[1]]
+                # print(self.therad_id, price_name_list)
+
                 # return
                 if price_name_list:
-                    self.StartCreationSignal.emit(True)
+                    self.StartCreationSignal.emit(self.therad_id, True)
                     start_creating = datetime.datetime.now()
-                    self.log.add(LOG_ID, f"Начало формирования ...")
+                    self.log.add(LOG_ID, f"Начало формирования [{self.therad_id}] ...")
                     for id in price_name_list:
                         try:
                             self.create_price(id)
+
                         except smtplib.SMTPDataError as smtp_ex:
                             # print(smtp_ex.smtp_code)
                             ex_text = traceback.format_exc()
@@ -139,14 +161,15 @@ class Sender(QThread):
                             self.cur_file_count += 1
                             self.SetProgressBarValue.emit(self.cur_file_count, self.total_file_count)
                     self.log.add(LOG_ID, f"Формирование закончено [{str(datetime.datetime.now() - start_creating)[:7]}]")
-                    self.StartCreationSignal.emit(False)
+                    self.StartCreationSignal.emit(self.therad_id, False)
                     self.UpdateReportSignal.emit(True)
 
-                    self.log.add(LOG_ID, f"vacuum start")
-                    with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
-                        conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistory.__tablename__};"))
-                        conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistoryDel.__tablename__};"))
-                    self.log.add(LOG_ID, f"vacuum finish")
+                    if self.therad_id == 0:
+                        self.log.add(LOG_ID, f"vacuum start")
+                        with engine.connect().execution_options(isolation_level='AUTOCOMMIT') as conn:
+                            conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistory.__tablename__};"))
+                            conn.execute(text(f"VACUUM ANALYZE {FinalPriceHistoryDel.__tablename__};"))
+                        self.log.add(LOG_ID, f"vacuum finish")
 
             except (OperationalError, UnboundExecutionError) as db_ex:
                 self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
@@ -160,6 +183,7 @@ class Sender(QThread):
                 ex_text = traceback.format_exc()
                 self.log.error(LOG_ID, "ERROR:", ex_text)
 
+            self.ResetPriceStatusTableSignal.emit(self.therad_id)
             finish_cycle_time = datetime.datetime.now()
             if wait_sec > (finish_cycle_time - start_cycle_time).seconds:
                 for _ in range(wait_sec - (finish_cycle_time - start_cycle_time).seconds):
@@ -167,7 +191,7 @@ class Sender(QThread):
                         break
                     time.sleep(1)
         else:
-            self.log.add(LOG_ID, f"Пауза", f"<span style='color:{colors.orange_log_color};'>Пауза</span>  ")
+            self.log.add(LOG_ID, f"Пауза [{self.therad_id}]", f"<span style='color:{colors.orange_log_color};'>Пауза [{self.therad_id}]</span>  ")
             self.SetButtonEnabledSignal.emit(True)
 
 
@@ -223,12 +247,12 @@ class Sender(QThread):
         self.color = [random.randrange(0, 360), random.randrange(55, 100), 90]
 
         inspct = inspect(engine)
-        if inspct.has_table(FinalPrice.__tablename__):
-            FinalPrice.__table__.drop(engine)
-        if inspct.has_table(FinalComparePrice.__tablename__):
-            FinalComparePrice.__table__.drop(engine)
+        if inspct.has_table(self.FinalPriceTmp.__tablename__):
+            self.FinalPriceTmp.__table__.drop(engine)
+        if inspct.has_table(self.FinalComparePriceTmp.__tablename__):
+            self.FinalComparePriceTmp.__table__.drop(engine)
 
-        # Base3.metadata.create_all(engine)
+        # self.BaseTmp.metadata.create_all(engine)
         today_dt = datetime.datetime.now()
         time_part_name = f"{today_dt.strftime('%Y_%m_%d')}"
         table_is_exists = inspct.has_table(f"fph_{time_part_name}")
@@ -248,14 +272,12 @@ class Sender(QThread):
         #     sess.commit()
         # return
         # with engine.begin() as conn:
-        Base3.metadata.create_all(engine)
+        self.BaseTmp.metadata.create_all(engine)
 
         with session() as sess:
-            sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET (autovacuum_enabled = false);"))
-            sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.execute(text(f"ALTER TABLE {self.FinalPriceTmp.__tablename__} SET (autovacuum_enabled = false);"))
+            sess.execute(text(f"ALTER TABLE {self.FinalComparePriceTmp.__tablename__} SET (autovacuum_enabled = false);"))
 
-            # sess.execute(text(f"ALTER TABLE {FinalPrice.__tablename__} SET UNLOGGED;"))
-            # sess.execute(text(f"ALTER TABLE {FinalComparePrice.__tablename__} SET UNLOGGED;"))
             if not table_is_exists:
                 sess.execute(text(f"create table IF NOT EXISTS fph_{time_part_name} partition of final_price_history "
                          f"for values from ('{today_dt.date()}') to ('{today_dt.date() + datetime.timedelta(days=1)}')"))
@@ -266,6 +288,8 @@ class Sender(QThread):
             self.price_settings = sess.execute(select(BuyersForm).where(and_(BuyersForm.id == id,
                                                                              func.upper(BuyersForm.included)=='ДА'))).scalar()
             self.add_log(self.price_settings.buyer_price_code,f" ...")
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Загрузка, фильтрация по поставщикам/брендам ...', True)
 
             # allow_brands = sess.execute(
             #     select(Brands_3.correct, Brands_3.short_name).where(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting)).all()
@@ -299,31 +323,32 @@ class Sender(QThread):
                               TotalPrice_2.min_price, TotalPrice_2.to_price, TotalPrice_2.tnved, TotalPrice_2.okpd2]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
             price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(TotalPrice_2._07supplier_code.in_(allow_prices))
-            sess.execute(insert(FinalPrice).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
+            sess.execute(insert(self.FinalPriceTmp).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
 
             total_prices_result = dict()
-            price_count = sess.execute(select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).
-                                       group_by(FinalPrice._07supplier_code).order_by(FinalPrice._07supplier_code))
+            price_count = sess.execute(select(self.FinalPriceTmp._07supplier_code, func.count(self.FinalPriceTmp.id).label('cnt')).
+                                       group_by(self.FinalPriceTmp._07supplier_code).order_by(self.FinalPriceTmp._07supplier_code))
             for p, c in price_count:
                 total_prices_result[p] = c
             self.add_log(self.price_settings.buyer_price_code, f"{total_prices_result}")
-            # del_put_away_zp = sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None, FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")))
+            # del_put_away_zp = sess.query(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.put_away_zp!=None, self.FinalPriceTmp.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")))
             # del_put_away_zp
 
-            cnt = self.add_dels_in_history(sess, and_(FinalPrice.put_away_zp!=None,
-                    FinalPrice.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")), 'УбратьЗП')
+            cnt = self.add_dels_in_history(sess, and_(self.FinalPriceTmp.put_away_zp!=None,
+                    self.FinalPriceTmp.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")), 'УбратьЗП')
             if cnt:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {cnt} (УбратьЗП)")
-            # sess.query(FinalPrice).where(and_(FinalPrice.put_away_zp!=None,
-            #     FinalPrice.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
+            # sess.query(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.put_away_zp!=None,
+            #     self.FinalPriceTmp.put_away_zp.notlike(f"%{self.price_settings.zp_brands_setting}%"))).delete()
 
 
             self.delete_exceptions(sess)
-            count_after_first_filter = sess.execute(func.count(FinalPrice.id)).scalar()
+            count_after_first_filter = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
 
             self.add_log(self.price_settings.buyer_price_code, f"Кол-во строк после первого фильтра: {count_after_first_filter}",
                          cur_time)
-
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Расчёт цены и количества ...', False)
 
             cur_time = datetime.datetime.now()
 
@@ -334,10 +359,14 @@ class Sender(QThread):
             self.update_price_2(sess)
 
             self.add_log(self.price_settings.buyer_price_code, f"Расчёт цены и количества", cur_time)
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Удаление дублей ...', False)
 
             cur_time = datetime.datetime.now()
             self.del_duples(sess)
             self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Расчёт рейтинга, удаление ЦенаБ, макс. снижение цены ...', False)
 
             cur_time = datetime.datetime.now()
 
@@ -350,14 +379,18 @@ class Sender(QThread):
 
             self.set_rating(sess)
             self.create_dupls(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, Макс. снижение цены", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, макс. снижение цены", cur_time)
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Создание csv ...', False)
 
             cur_time = datetime.datetime.now()
             self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
             self.create_csv(sess)
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
+            self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
+                                                   'Отправка, сохранение прайса в истории ...', False)
 
-            total_rows = sess.execute(func.count(FinalPrice.id)).scalar()
+            total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
             log_msg = f"Итоговое кол-во строк: {total_rows}"
             if self.price_settings.max_rows:
                 log_msg += f". Лимит: {self.price_settings.max_rows}"
@@ -380,14 +413,14 @@ class Sender(QThread):
                 if self.need_to_send and str(self.price_settings.for_send).upper() == 'ДА' and not recent_send:
                     if self.send_mail():
                         last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                        sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._07supplier_code == last_supplier_price_updates.c.price_code).
                                      values(supplier_update_time=last_supplier_price_updates.c.db_added))
                 if self.need_to_send and not recent_send:
                     if self.price_settings.price_site == r'https://autopiter.ru/account/supplier/price-lists':
                         if self.load_price_autopiter():
                             last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                            sess.execute(update(FinalPrice).where(
-                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                            sess.execute(update(self.FinalPriceTmp).where(
+                                self.FinalPriceTmp._07supplier_code == last_supplier_price_updates.c.price_code).
                                          values(supplier_update_time=last_supplier_price_updates.c.db_added))
                         else:
                             self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
@@ -396,23 +429,23 @@ class Sender(QThread):
                     elif self.price_settings.price_site == r'suppliers-ftp.avtoto.ru':
                         if self.load_price_avtoto():
                             last_supplier_price_updates = select(PriceReport.price_code, PriceReport.db_added)
-                            sess.execute(update(FinalPrice).where(
-                                FinalPrice._07supplier_code == last_supplier_price_updates.c.price_code).
+                            sess.execute(update(self.FinalPriceTmp).where(
+                                self.FinalPriceTmp._07supplier_code == last_supplier_price_updates.c.price_code).
                                          values(supplier_update_time=last_supplier_price_updates.c.db_added))
                         else:
                             self.add_log(self.price_settings.buyer_price_code, "Не удалось загрузить на сайт")
                             self.new_info_msg = 'Не удалось загрузить на сайт'
 
 
-            cols_for_price = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-                              FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-                              FinalPrice.notice_s, FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand,
-                              FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count,
-                              FinalPrice._05price, FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
-                              FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
-                              FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old,
-                              FinalPrice.count, FinalPrice.price, FinalPrice.supplier_update_time, FinalPrice.tnved,
-                              FinalPrice.tnved]
+            cols_for_price = [self.FinalPriceTmp.key1_s, self.FinalPriceTmp.article_s, self.FinalPriceTmp.brand_s, self.FinalPriceTmp.name_s,
+                              self.FinalPriceTmp.count_s, self.FinalPriceTmp.price_s, self.FinalPriceTmp.currency_s, self.FinalPriceTmp.mult_s,
+                              self.FinalPriceTmp.notice_s, self.FinalPriceTmp._01article_comp, self.FinalPriceTmp._01article, self.FinalPriceTmp._02brand,
+                              self.FinalPriceTmp.brand, self.FinalPriceTmp._03name_old, self.FinalPriceTmp._03name, self.FinalPriceTmp._04count,
+                              self.FinalPriceTmp._05price, self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new, self.FinalPriceTmp._07supplier_code,
+                              self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
+                              self.FinalPriceTmp._15code_optt, self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old,
+                              self.FinalPriceTmp.count, self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.tnved,
+                              self.FinalPriceTmp.tnved]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
             if self.new_send_time is not None:
@@ -428,8 +461,8 @@ class Sender(QThread):
             sess.execute(insert(FinalPriceHistory).from_select(['price_code', 'send_time', *cols_for_price.values()], price))
 
             price_count = sess.execute(
-                select(FinalPrice._07supplier_code, func.count(FinalPrice.id).label('cnt')).group_by(
-                    FinalPrice._07supplier_code))
+                select(self.FinalPriceTmp._07supplier_code, func.count(self.FinalPriceTmp.id).label('cnt')).group_by(
+                    self.FinalPriceTmp._07supplier_code))
 
             prices_count_msg = ''
             new_total_prices_result = dict()
@@ -462,7 +495,7 @@ class Sender(QThread):
                                    price_del=self.price_del, dup_del=self.dup_del, price_compare_del=self.price_compare_del,
                                    prices_count=prices_count_msg, unused_prices=self.unused_prices))
 
-            # sess.query(FinalPrice).delete()
+            # sess.query(self.FinalPriceTmp).delete()
             sess.commit()
             # if is_sended:
             self.add_log(self.price_settings.buyer_price_code, f"Отправка, сохранение прайса в истории", cur_time)
@@ -474,19 +507,19 @@ class Sender(QThread):
                          f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
                          f"{self.price_settings.buyer_price_code}</span> готов! ({self.cur_file_count + 1}/{self.total_file_count}) [{total_price_calc_time}]")
 
-        FinalPrice.__table__.drop(engine)
-        FinalComparePrice.__table__.drop(engine)
+        self.FinalPriceTmp.__table__.drop(engine)
+        self.FinalComparePriceTmp.__table__.drop(engine)
 
 
     def add_dels_in_history(self, sess, condition, reason):
-        # cols_for_del_history = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-        #                   FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-        #                   FinalPrice.notice_s, FinalPrice._01article_comp, FinalPrice._01article, FinalPrice._02brand,
-        #                   FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count, FinalPrice._05price,
-        #                   FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
-        #                   FinalPrice.alternative_article, FinalPrice._14brand_filled_in, FinalPrice._15code_optt,
-        #                   FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
-        #                   FinalPrice.supplier_update_time, FinalPrice.tnved, FinalPrice.okpd2]
+        # cols_for_del_history = [self.FinalPriceTmp.key1_s, self.FinalPriceTmp.article_s, self.FinalPriceTmp.brand_s, self.FinalPriceTmp.name_s,
+        #                   self.FinalPriceTmp.count_s, self.FinalPriceTmp.price_s, self.FinalPriceTmp.currency_s, self.FinalPriceTmp.mult_s,
+        #                   self.FinalPriceTmp.notice_s, self.FinalPriceTmp._01article_comp, self.FinalPriceTmp._01article, self.FinalPriceTmp._02brand,
+        #                   self.FinalPriceTmp.brand, self.FinalPriceTmp._03name_old, self.FinalPriceTmp._03name, self.FinalPriceTmp._04count, self.FinalPriceTmp._05price,
+        #                   self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new, self.FinalPriceTmp._07supplier_code,
+        #                   self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in, self.FinalPriceTmp._15code_optt,
+        #                   self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count, self.FinalPriceTmp.price,
+        #                   self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2]
         #
         # price = select(literal_column(f"'{reason}'"),
         #                literal_column(f"'{self.price_settings.buyer_price_code}'"),
@@ -494,20 +527,20 @@ class Sender(QThread):
         # cnt = sess.execute(insert(FinalPriceHistoryDel).from_select(['reason', 'price_code', 'send_time', *cols_for_del_history], price)).rowcount
         # return cnt
 
-        cols_for_del_history = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s,
-                                FinalPrice.count_s, FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s,
-                                FinalPrice.notice_s, FinalPrice._01article_comp, FinalPrice._01article,
-                                FinalPrice._02brand,
-                                FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name, FinalPrice._04count,
-                                FinalPrice._05price,
-                                FinalPrice._05price_plus, FinalPrice._06mult_new, FinalPrice._07supplier_code,
-                                FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
-                                FinalPrice._15code_optt,
-                                FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
-                                FinalPrice.supplier_update_time, FinalPrice.tnved, FinalPrice.okpd2]
+        cols_for_del_history = [self.FinalPriceTmp.key1_s, self.FinalPriceTmp.article_s, self.FinalPriceTmp.brand_s, self.FinalPriceTmp.name_s,
+                                self.FinalPriceTmp.count_s, self.FinalPriceTmp.price_s, self.FinalPriceTmp.currency_s, self.FinalPriceTmp.mult_s,
+                                self.FinalPriceTmp.notice_s, self.FinalPriceTmp._01article_comp, self.FinalPriceTmp._01article,
+                                self.FinalPriceTmp._02brand,
+                                self.FinalPriceTmp.brand, self.FinalPriceTmp._03name_old, self.FinalPriceTmp._03name, self.FinalPriceTmp._04count,
+                                self.FinalPriceTmp._05price,
+                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new, self.FinalPriceTmp._07supplier_code,
+                                self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
+                                self.FinalPriceTmp._15code_optt,
+                                self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count, self.FinalPriceTmp.price,
+                                self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2]
         raw_name_cols_for_del_history = [c.__dict__['name'] for c in cols_for_del_history]
 
-        del_put_away_zp = delete(FinalPrice).where(condition).returning(*cols_for_del_history).cte()
+        del_put_away_zp = delete(self.FinalPriceTmp).where(condition).returning(*cols_for_del_history).cte()
 
         selected_rows = select(literal_column(f"'{reason}'"),
                                literal_column(f"'{self.price_settings.buyer_price_code}'"),
@@ -546,7 +579,7 @@ class Sender(QThread):
         return select(Data07.setting).where(Data07.setting.in_(allow_prices))
 
     def delete_exceptions(self, sess):
-        cols = {"03Наименование": FinalPrice._03name, "15КодТутОптТорг": FinalPrice._15code_optt, }
+        cols = {"03Наименование": self.FinalPriceTmp._03name, "15КодТутОптТорг": self.FinalPriceTmp._15code_optt, }
         conditions = {"Начинается с": lambda col, x: col.ilike(f"{x}%"),  # '^{}'], startswith
                       "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
                       "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
@@ -565,17 +598,17 @@ class Sender(QThread):
             col = cols.get(e.find, None)
             if condition and col:
                 if e.price_code:
-                    sess.execute(update(FinalPrice).where(and_(FinalPrice._07supplier_code==e.price_code, condition(col, e.text))).
+                    sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._07supplier_code==e.price_code, condition(col, e.text))).
                                  values(mult_less='0'))
                 else:
-                    sess.execute(update(FinalPrice).where(condition(col, e.text)).values(mult_less='0'))
+                    sess.execute(update(self.FinalPriceTmp).where(condition(col, e.text)).values(mult_less='0'))
 
 
-        # self.exception_words_del = self.add_dels_in_history(sess, (FinalPrice.mult_less != None), 'Слова исключения')
+        # self.exception_words_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.mult_less != None), 'Слова исключения')
         # if self.exception_words_del:
-        #     sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
+        #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less != None).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.exception_words_del} (Слова исключения)")
-        self.exception_words_del = self.add_dels_in_history(sess, FinalPrice.mult_less != None, 'Слова исключения')
+        self.exception_words_del = self.add_dels_in_history(sess, self.FinalPriceTmp.mult_less != None, 'Слова исключения')
         if self.exception_words_del:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.exception_words_del} (Слова исключения)")
 
@@ -583,15 +616,15 @@ class Sender(QThread):
         self.count_mult_del = 0
         # расчёт кол-ва
         if self.price_settings.us_above is not None:
-            sess.execute(update(FinalPrice).where(and_(FinalPrice.unload_percent != 1,
-                                                       FinalPrice.unload_percent < self.price_settings.us_above)).
-                         values(count=func.floor(FinalPrice.count * self.price_settings.us_above)))
-            # self.count_mult_del = self.add_dels_in_history(sess, (or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count)), 'Кол-во или кратность')
+            sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent != 1,
+                                                       self.FinalPriceTmp.unload_percent < self.price_settings.us_above)).
+                         values(count=func.floor(self.FinalPriceTmp.count * self.price_settings.us_above)))
+            # self.count_mult_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count)), 'Кол-во или кратность')
             # if self.count_mult_del:
-            #     sess.query(FinalPrice).where(or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count)).delete()
+            #     sess.query(self.FinalPriceTmp).where(or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count)).delete()
             #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.count_mult_del} (Кол-во или кратность)")
 
-            self.count_mult_del = self.add_dels_in_history(sess, or_(FinalPrice.count < 1, FinalPrice._06mult_new > FinalPrice.count), 'Кол-во или кратность')
+            self.count_mult_del = self.add_dels_in_history(sess, or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count), 'Кол-во или кратность')
             if self.count_mult_del:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.count_mult_del} (Кол-во или кратность)")
 
@@ -599,15 +632,15 @@ class Sender(QThread):
         # allow_brands = select(CrossBrandTypeMarkupPct.supplier_price_code, CrossBrandTypeMarkupPct.normalized_brand).where(
         #     self.price_settings.buyer_price_code==CrossBrandTypeMarkupPct.customer_price_code)
         allow_brands = sess.query(CrossBrandTypeMarkupPct).where(and_(self.price_settings.buyer_price_code == CrossBrandTypeMarkupPct.customer_price_code,
-                                                                  FinalPrice._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
-                                                                  FinalPrice._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand))
+                                                                  self.FinalPriceTmp._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
+                                                                  self.FinalPriceTmp._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand))
 
         # self.correct_brands_del = self.add_dels_in_history(sess, (~allow_brands.exists()), 'Правильные бренды')
         #
         # # print(self.correct_brands_del)
         # if self.correct_brands_del:
-        #    # sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
-        #     sess.query(FinalPrice).where(~allow_brands.exists()).delete()
+        #    # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp._14brand_filled_in.not_in(allow_brands_set)).delete()
+        #     sess.query(self.FinalPriceTmp).where(~allow_brands.exists()).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.correct_brands_del} (Правильные бренды)")
 
         self.correct_brands_del = self.add_dels_in_history(sess, ~allow_brands.exists(),'Правильные бренды')
@@ -615,39 +648,39 @@ class Sender(QThread):
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.correct_brands_del} (Правильные бренды)")
 
 
-        sess.execute(update(FinalPrice).where(and_(self.price_settings.buyer_price_code == CrossBrandTypeMarkupPct.customer_price_code,
-                            FinalPrice._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
-                            FinalPrice._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand)).
-                     values(brand=CrossBrandTypeMarkupPct.customer_brand, _03name=case((CrossBrandTypeMarkupPct.short_name=='ДА', FinalPrice._18short_name),
-                                                                                       else_=FinalPrice._03name)))
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.price_settings.buyer_price_code == CrossBrandTypeMarkupPct.customer_price_code,
+                            self.FinalPriceTmp._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
+                            self.FinalPriceTmp._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand)).
+                     values(brand=CrossBrandTypeMarkupPct.customer_brand, _03name=case((CrossBrandTypeMarkupPct.short_name=='ДА', self.FinalPriceTmp._18short_name),
+                                                                                       else_=self.FinalPriceTmp._03name)))
         # short name
-        # sess.execute(update(FinalPrice).where(and_(self.price_settings.buyer_price_code == CrossBrandTypeMarkupPct.customer_price_code,
-        #                     FinalPrice._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
-        #                     FinalPrice._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand,
-        #                     CrossBrandTypeMarkupPct.short_name=='ДА')).values(_03name=FinalPrice._18short_name))
+        # sess.execute(update(self.FinalPriceTmp).where(and_(self.price_settings.buyer_price_code == CrossBrandTypeMarkupPct.customer_price_code,
+        #                     self.FinalPriceTmp._07supplier_code==CrossBrandTypeMarkupPct.supplier_price_code,
+        #                     self.FinalPriceTmp._14brand_filled_in == CrossBrandTypeMarkupPct.normalized_brand,
+        #                     CrossBrandTypeMarkupPct.short_name=='ДА')).values(_03name=self.FinalPriceTmp._18short_name))
 
-        # b_ok = sess.execute(update(FinalPrice).where(and_(FinalPrice._07supplier_code==allow_brands.c.supplier_price_code,
-        #              FinalPrice._14brand_filled_in==allow_brands.c.normalized_brand)).values(mult_less='b')).rowcount
+        # b_ok = sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._07supplier_code==allow_brands.c.supplier_price_code,
+        #              self.FinalPriceTmp._14brand_filled_in==allow_brands.c.normalized_brand)).values(mult_less='b')).rowcount
         # print(f"{b_ok=}")
-        # b_del = sess.query(FinalPrice).where(FinalPrice.mult_less != 'b').delete()
-        # sess.execute(update(FinalPrice).values(mult_less=None))
-        # self.correct_brands_del = self.add_dels_in_history(sess, (FinalPrice.mult_less!='b'), 'Правильные бренды')
+        # b_del = sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less != 'b').delete()
+        # sess.execute(update(self.FinalPriceTmp).values(mult_less=None))
+        # self.correct_brands_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.mult_less!='b'), 'Правильные бренды')
         #
         # print(self.correct_brands_del)
         # if self.correct_brands_del:
-        #    # sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
-            # sess.query(FinalPrice).where(FinalPrice.mult_less!='b').delete()
+        #    # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp._14brand_filled_in.not_in(allow_brands_set)).delete()
+            # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less!='b').delete()
             # self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.correct_brands_del} (Правильные бренды)")
 
         # sess.query(CrossBrandTypeMarkupPct).where(and_(self.price_settings.buyer_price_code==CrossBrandTypeMarkupPct.customer_price_code,
-        #                                                FinalPrice._14brand_filled_in.in_(CrossBrandTypeMarkupPct.))).delete()
+        #                                                self.FinalPriceTmp._14brand_filled_in.in_(CrossBrandTypeMarkupPct.))).delete()
 
 
         # allow_brands_set = set(b.correct for b in allow_brands)
         #
-        # self.correct_brands_del = self.add_dels_in_history(sess, (FinalPrice._14brand_filled_in.not_in(allow_brands_set)), 'Правильные бренды')
+        # self.correct_brands_del = self.add_dels_in_history(sess, (self.FinalPriceTmp._14brand_filled_in.not_in(allow_brands_set)), 'Правильные бренды')
         # if self.correct_brands_del:
-        #     sess.query(FinalPrice).where(FinalPrice._14brand_filled_in.not_in(allow_brands_set)).delete()
+        #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp._14brand_filled_in.not_in(allow_brands_set)).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.correct_brands_del} (Правильные бренды)")
         #
         # short_name = set()
@@ -655,80 +688,80 @@ class Sender(QThread):
         #     if str(b.short_name).upper() == 'ДА':
         #         short_name.add(b.correct)
         #
-        # sess.execute(update(FinalPrice).where(FinalPrice._14brand_filled_in.in_(short_name)).
-        #              values(_03name=FinalPrice._18short_name))
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._14brand_filled_in.in_(short_name)).
+        #              values(_03name=self.FinalPriceTmp._18short_name))
         #
-        # sess.execute(update(FinalPrice).where(and_(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting,
-        #                                            FinalPrice._14brand_filled_in == Brands_3.correct)).values(brand=Brands_3.brand))
+        # sess.execute(update(self.FinalPriceTmp).where(and_(Brands_3.zp_brands_setting == self.price_settings.zp_brands_setting,
+        #                                            self.FinalPriceTmp._14brand_filled_in == Brands_3.correct)).values(brand=Brands_3.brand))
 
 
 
     # def update_price(self, sess):
-    #     sess.execute(update(FinalPrice).where(and_(SaleDK.agr == self.price_settings.buyer_code,
-    #                                                SaleDK.price_code == FinalPrice._07supplier_code,
+    #     sess.execute(update(self.FinalPriceTmp).where(and_(SaleDK.agr == self.price_settings.buyer_code,
+    #                                                SaleDK.price_code == self.FinalPriceTmp._07supplier_code,
     #                                                SaleDK.val is not None)).
-    #                  values(price=FinalPrice._05price_plus * cast(SaleDK.val, REAL)))
+    #                  values(price=self.FinalPriceTmp._05price_plus * cast(SaleDK.val, REAL)))
     #     if str(self.price_settings.sell_for_kos).upper() == 'ДА':
-    #         sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-    #                                                    FinalPrice.sell_for_OS == 'ДА',
-    #                                                    FinalPrice.buy_count == None,
-    #                                                    FinalPrice.delay > self.price_settings.delay,
-    #                                                    FinalPrice.offers_wh != None)).
-    #                      values(price=FinalPrice._05price_plus * (FinalPrice.min_markup - (FinalPrice.markup_os *
-    #                                     (FinalPrice.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
+    #         sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
+    #                                                    self.FinalPriceTmp.sell_for_OS == 'ДА',
+    #                                                    self.FinalPriceTmp.buy_count == None,
+    #                                                    self.FinalPriceTmp.delay > self.price_settings.delay,
+    #                                                    self.FinalPriceTmp.offers_wh != None)).
+    #                      values(price=self.FinalPriceTmp._05price_plus * (self.FinalPriceTmp.min_markup - (self.FinalPriceTmp.markup_os *
+    #                                     (self.FinalPriceTmp.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
     #
     #     # БазоваяНаценка, МножительПокупателя
-    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-    #                                                FinalPrice.offers_wh == None)).
-    #                  values(base_markup=FinalPrice.min_markup + (FinalPrice.grad_step * FinalPrice._13grad),
+    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
+    #                                                self.FinalPriceTmp.offers_wh == None)).
+    #                  values(base_markup=self.FinalPriceTmp.min_markup + (self.FinalPriceTmp.grad_step * self.FinalPriceTmp._13grad),
     #                         buyer_mult=self.price_settings.final_markup + 1))
-    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None,
-    #                                                FinalPrice.base_markup == None)).
-    #                  values(base_markup=FinalPrice.min_wholesale_markup + (FinalPrice.wh_step * FinalPrice._13grad),
+    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
+    #                                                self.FinalPriceTmp.base_markup == None)).
+    #                  values(base_markup=self.FinalPriceTmp.min_wholesale_markup + (self.FinalPriceTmp.wh_step * self.FinalPriceTmp._13grad),
     #                         buyer_mult=self.price_settings.markup_buyer_wh + 1))
     #
     #     # ЦенаСНаценкой
-    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
+    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
     #                  values(
-    #         price_with_markup=FinalPrice._05price_plus * FinalPrice.base_markup * FinalPrice.buyer_mult))
+    #         price_with_markup=self.FinalPriceTmp._05price_plus * self.FinalPriceTmp.base_markup * self.FinalPriceTmp.buyer_mult))
     #
     #     # ЦенаР
-    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
-    #                  values(price_r=FinalPrice._05price_plus + FinalPrice.markup_R))
+    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
+    #                  values(price_r=self.FinalPriceTmp._05price_plus + self.FinalPriceTmp.markup_R))
     #
     #     # ОбычнаяЦена
-    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).
+    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
     #                  values(
-    #         default_price=func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup) * (FinalPrice.markup_pb + 1)))
+    #         default_price=func.greatest(self.FinalPriceTmp.price_r, self.FinalPriceTmp.price_with_markup) * (self.FinalPriceTmp.markup_pb + 1)))
     #
-    #     sess.execute(update(FinalPrice).where(and_(FinalPrice.price == None, FinalPrice.min_price != None)).
-    #                  values(price=func.least(FinalPrice.default_price,
-    #                                          func.greatest(FinalPrice.price_r, FinalPrice.price_with_markup,
-    #                                                        FinalPrice.min_price))))
+    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None, self.FinalPriceTmp.min_price != None)).
+    #                  values(price=func.least(self.FinalPriceTmp.default_price,
+    #                                          func.greatest(self.FinalPriceTmp.price_r, self.FinalPriceTmp.price_with_markup,
+    #                                                        self.FinalPriceTmp.min_price))))
     #
-    #     sess.execute(update(FinalPrice).where(FinalPrice.price == None).values(price=FinalPrice.default_price))
+    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).values(price=self.FinalPriceTmp.default_price))
     #
-    #     self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)), 'Цена меньше/равна 0')
+    #     self.price_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)), 'Цена меньше/равна 0')
     #     if self.price_del:
-    #         sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
+    #         sess.query(self.FinalPriceTmp).where(or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)).delete()
     #         self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
     def update_price_2(self, sess):
         # БЕЗ ОТБОРА ПО БРЕНДАМ?? САМО ОТБЕРЁТСЯ ПО ЦЕНЕ = 0
-        # conditions = [(and_(FinalPrice.offers_wh > 1, CrossBrandTypeMarkupPct.customer_price_code==self.price_settings.buyer_price_code,
-        #                     CrossBrandTypeMarkupPct.supplier_price_code==FinalPrice._07supplier_code,
-        #                     CrossBrandTypeMarkupPct.normalized_brand==FinalPrice._14brand_filled_in),
-        #                FinalPrice._05price_plus * (1 + func.greatest(CrossBrandTypeMarkupPct.floor_markup_pct, (CrossBrandTypeMarkupPct.opt_starting_markup_pct +
-        #                                                                    (CrossBrandTypeMarkupPct.opt_grad_step_pct * FinalPrice.grad_step))))),
-        #                (and_(FinalPrice.offers_wh < 2,
+        # conditions = [(and_(self.FinalPriceTmp.offers_wh > 1, CrossBrandTypeMarkupPct.customer_price_code==self.price_settings.buyer_price_code,
+        #                     CrossBrandTypeMarkupPct.supplier_price_code==self.FinalPriceTmp._07supplier_code,
+        #                     CrossBrandTypeMarkupPct.normalized_brand==self.FinalPriceTmp._14brand_filled_in),
+        #                self.FinalPriceTmp._05price_plus * (1 + func.greatest(CrossBrandTypeMarkupPct.floor_markup_pct, (CrossBrandTypeMarkupPct.opt_starting_markup_pct +
+        #                                                                    (CrossBrandTypeMarkupPct.opt_grad_step_pct * self.FinalPriceTmp.grad_step))))),
+        #                (and_(self.FinalPriceTmp.offers_wh < 2,
         #                     CrossBrandTypeMarkupPct.customer_price_code == self.price_settings.buyer_price_code,
-        #                     CrossBrandTypeMarkupPct.supplier_price_code == FinalPrice._07supplier_code,
-        #                     CrossBrandTypeMarkupPct.normalized_brand == FinalPrice._14brand_filled_in),
-        #                FinalPrice._05price_plus * (1 + func.greatest(CrossBrandTypeMarkupPct.floor_markup_pct,
+        #                     CrossBrandTypeMarkupPct.supplier_price_code == self.FinalPriceTmp._07supplier_code,
+        #                     CrossBrandTypeMarkupPct.normalized_brand == self.FinalPriceTmp._14brand_filled_in),
+        #                self.FinalPriceTmp._05price_plus * (1 + func.greatest(CrossBrandTypeMarkupPct.floor_markup_pct,
         #                         (CrossBrandTypeMarkupPct.unique_starting_markup_pct +
-        #                          (CrossBrandTypeMarkupPct.unique_grad_step_pct * FinalPrice.grad_step))))),]
+        #                          (CrossBrandTypeMarkupPct.unique_grad_step_pct * self.FinalPriceTmp.grad_step))))),]
         #
-        # sess.execute(update(FinalPrice).where().values(price=case(*conditions)))
+        # sess.execute(update(self.FinalPriceTmp).where().values(price=case(*conditions)))
         # print('start')
         # nt = datetime.datetime.now()
 
@@ -744,129 +777,132 @@ class Sender(QThread):
         # text
         # Цена = Ø5price_plus + базовая_наценка + дополнительная_наценка
 
-        sess.execute(update(FinalPrice).where(and_(CrossBrandTypeMarkupPct.customer_price_code == self.price_settings.buyer_price_code,
-                            CrossBrandTypeMarkupPct.supplier_price_code == FinalPrice._07supplier_code,
-                            CrossBrandTypeMarkupPct.normalized_brand == FinalPrice._14brand_filled_in)).values(
+        sess.execute(update(self.FinalPriceTmp).where(and_(CrossBrandTypeMarkupPct.customer_price_code == self.price_settings.buyer_price_code,
+                            CrossBrandTypeMarkupPct.supplier_price_code == self.FinalPriceTmp._07supplier_code,
+                            CrossBrandTypeMarkupPct.normalized_brand == self.FinalPriceTmp._14brand_filled_in)).values(
             floor_markup_pct=CrossBrandTypeMarkupPct.floor_markup_pct, opt_starting_markup_pct=CrossBrandTypeMarkupPct.opt_starting_markup_pct,
             opt_grad_step_pct=CrossBrandTypeMarkupPct.opt_grad_step_pct, unique_starting_markup_pct=CrossBrandTypeMarkupPct.unique_starting_markup_pct,
             unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias))
         # print('ok', datetime.datetime.now() - nt)
 
-        # and_(FinalPrice.offers_wh > 1,
-        # sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
-        #     price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
-        #                                                              (PrevDynamicParts.parts_markup_pct + FinalPrice.opt_starting_markup_pct +
-        #                                                                   (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
+        # and_(self.FinalPriceTmp.offers_wh > 1,
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+        #     price=self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct,
+        #                                                              (PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.opt_starting_markup_pct +
+        #                                                                   (self.FinalPriceTmp.opt_grad_step_pct * self.FinalPriceTmp.grad_step))))
         # ))
 
-        conditions = [(FinalPrice.offers_wh > 1,
-                       FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct, (FinalPrice.opt_starting_markup_pct +
-                                                                           (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step))))
+        conditions = [(self.FinalPriceTmp.offers_wh > 1,
+                       self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct, (self.FinalPriceTmp.opt_starting_markup_pct +
+                                                                           (self.FinalPriceTmp.opt_grad_step_pct * self.FinalPriceTmp.grad_step))))
                       ),
-                       (FinalPrice.offers_wh < 2,
-                       FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
-                                (FinalPrice.unique_starting_markup_pct +
-                                 (FinalPrice.unique_grad_step_pct * FinalPrice.grad_step))))),]
+                       (self.FinalPriceTmp.offers_wh < 2,
+                       self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct,
+                                (self.FinalPriceTmp.unique_starting_markup_pct +
+                                 (self.FinalPriceTmp.unique_grad_step_pct * self.FinalPriceTmp.grad_step))))),]
 
-        # nt = datetime.datetime.now()  where(FinalPrice.price is not None)
-        sess.execute(update(FinalPrice).values(price=case(*conditions)))
-        sess.execute(update(FinalPrice).where(FinalPrice._15code_optt == PrevDynamicParts.code_optt).values(
-            price=FinalPrice.price * (1 + PrevDynamicParts.parts_markup_pct)))
+        # nt = datetime.datetime.now()  where(self.FinalPriceTmp.price is not None)
+        sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+            price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct)))
         # print('ok 2', rc, datetime.datetime.now() - nt)
 
 
         # nt = datetime.datetime.now()
-        # rc = sess.execute(update(FinalPrice).where(FinalPrice.offers_wh > 1).values(price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
-        #                                                                (FinalPrice.opt_starting_markup_pct +
-        #                                                                    (FinalPrice.opt_grad_step_pct * FinalPrice.grad_step)))))).rowcount
+        # rc = sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.offers_wh > 1).values(price=self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct,
+        #                                                                (self.FinalPriceTmp.opt_starting_markup_pct +
+        #                                                                    (self.FinalPriceTmp.opt_grad_step_pct * self.FinalPriceTmp.grad_step)))))).rowcount
         # print('ok 2', rc, datetime.datetime.now() - nt)
         # nt = datetime.datetime.now()
-        # rc = sess.execute(update(FinalPrice).where(FinalPrice.price==None).values(price=FinalPrice._05price_plus * (1 + func.greatest(FinalPrice.floor_markup_pct,
-        #                         (FinalPrice.unique_starting_markup_pct +
-        #                          (FinalPrice.unique_grad_step_pct * FinalPrice.grad_step)))))).rowcount
+        # rc = sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price==None).values(price=self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct,
+        #                         (self.FinalPriceTmp.unique_starting_markup_pct +
+        #                          (self.FinalPriceTmp.unique_grad_step_pct * self.FinalPriceTmp.grad_step)))))).rowcount
         # print('ok 3', rc, datetime.datetime.now() - nt)
 
 
 
     def del_duples(self, sess):
         # было _15code_optt
-        sess.execute(update(FinalPrice).values(art_brand=text(f"upper(concat({FinalPrice._01article_comp.__dict__['name']}, {FinalPrice.brand.__dict__['name']}))")))
+        sess.execute(update(self.FinalPriceTmp).values(art_brand=text(f"upper(concat({self.FinalPriceTmp._01article_comp.__dict__['name']}, "
+                                                                      f"{self.FinalPriceTmp.brand.__dict__['name']}))")))
         # D для всех дублей
-        duples = select(FinalPrice.art_brand).group_by(FinalPrice.art_brand).having(func.count(FinalPrice.id) > 1)
-        sess.execute(update(FinalPrice).where(FinalPrice.art_brand.in_(duples)).values(mult_less='D'))
+        duples = select(self.FinalPriceTmp.art_brand).group_by(self.FinalPriceTmp.art_brand).having(func.count(self.FinalPriceTmp.id) > 1)
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.art_brand.in_(duples)).values(mult_less='D'))
 
         # D1 не с мин. ценой среди D
-        min_p_table = (select(FinalPrice.art_brand, func.min(FinalPrice.price).label('min_p')).
-                       where(FinalPrice.mult_less=='D').group_by(FinalPrice.art_brand))
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.art_brand==min_p_table.c.art_brand,
-                                                   FinalPrice.price==min_p_table.c.min_p)).values(mult_less='D1'))
+        min_p_table = (select(self.FinalPriceTmp.art_brand, func.min(self.FinalPriceTmp.price).label('min_p')).
+                       where(self.FinalPriceTmp.mult_less=='D').group_by(self.FinalPriceTmp.art_brand))
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.art_brand==min_p_table.c.art_brand,
+                                                   self.FinalPriceTmp.price==min_p_table.c.min_p)).values(mult_less='D1'))
 
         # D2 не с макс. кол-вом среди D1
-        max_c_table = select(FinalPrice.art_brand, func.max(FinalPrice.count).label('max_c')).where(FinalPrice.mult_less == 'D1').group_by(FinalPrice.art_brand)
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.art_brand==max_c_table.c.art_brand,
-                                                   FinalPrice.count==max_c_table.c.max_c)).values(mult_less='D2'))
+        max_c_table = (select(self.FinalPriceTmp.art_brand, func.max(self.FinalPriceTmp.count).label('max_c')).
+                       where(self.FinalPriceTmp.mult_less == 'D1').group_by(self.FinalPriceTmp.art_brand))
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.art_brand==max_c_table.c.art_brand,
+                                                   self.FinalPriceTmp.count==max_c_table.c.max_c)).values(mult_less='D2'))
 
         # D3 не с макс. id среди D2
-        max_id_table = select(FinalPrice.art_brand, func.max(FinalPrice.id).label('max_id')).where(FinalPrice.mult_less == 'D2').group_by(FinalPrice.art_brand)
-        sess.execute(update(FinalPrice).where(FinalPrice.id==max_id_table.c.max_id).values(mult_less='D3'))
+        max_id_table = (select(self.FinalPriceTmp.art_brand, func.max(self.FinalPriceTmp.id).label('max_id')).
+                        where(self.FinalPriceTmp.mult_less == 'D2').group_by(self.FinalPriceTmp.art_brand))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.id==max_id_table.c.max_id).values(mult_less='D3'))
 
-        sess.execute(update(FinalPrice).where(FinalPrice.mult_less=='D3').values(mult_less=None))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less=='D3').values(mult_less=None))
 
-        # self.dup_del = self.add_dels_in_history(sess, (FinalPrice.mult_less != None),'Дубли')
+        # self.dup_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.mult_less != None),'Дубли')
         # if self.dup_del:
-        #     sess.query(FinalPrice).where(FinalPrice.mult_less != None).delete()
+        #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less != None).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
 
-        self.dup_del = self.add_dels_in_history(sess, FinalPrice.mult_less != None,'Дубли')
+        self.dup_del = self.add_dels_in_history(sess, self.FinalPriceTmp.mult_less != None,'Дубли')
         if self.dup_del:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.dup_del} (Дубли)")
 
 
     def price_check(self, sess):
         # !! ТОЛЬКО ЕСЛИ art_brand СОЗАДЁТСЯ ДО ЭТОГО МЕТОДА !!
-        sess.execute(update(FinalPrice).values(art_brand_07=text(
-            f"upper(concat({FinalPrice.art_brand.__dict__['name']}, {FinalPrice._07supplier_code.__dict__['name']}))")))
-        cond = and_(SuppliersForm.setting==FinalPrice._07supplier_code, SuppliersForm.max_price_drop_pct > 0,
+        sess.execute(update(self.FinalPriceTmp).values(art_brand_07=text(
+            f"upper(concat({self.FinalPriceTmp.art_brand.__dict__['name']}, {self.FinalPriceTmp._07supplier_code.__dict__['name']}))")))
+        cond = and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0,
                     LastPrice.price_code==self.price_settings.buyer_price_code,
-                    FinalPrice.art_brand_07==LastPrice.art_brand_07,
-                    FinalPrice.price < LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))
-        changed_rows = sess.execute(update(FinalPrice).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))).rowcount
+                    self.FinalPriceTmp.art_brand_07==LastPrice.art_brand_07,
+                    self.FinalPriceTmp.price < LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))
+        changed_rows = sess.execute(update(self.FinalPriceTmp).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))).rowcount
         if changed_rows:
             self.add_log(self.price_settings.buyer_price_code, f"Строк с изменённой ценой по макс. снижению: {changed_rows}")
 
-        new_prices = sess.query(LastPrice).where(LastPrice.art_brand_07==FinalPrice.art_brand_07)
+        new_prices = sess.query(LastPrice).where(LastPrice.art_brand_07==self.FinalPriceTmp.art_brand_07)
         sess.query(LastPrice).where(new_prices.exists()).delete()
         sess.execute(insert(LastPrice).from_select(['art_brand_07', 'price_code', 'price', 'updated_at'],
-                                                   select(FinalPrice.art_brand_07, literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                                                          FinalPrice.price, literal_column(f"now()"))
-               .where(and_(SuppliersForm.setting==FinalPrice._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
+                                                   select(self.FinalPriceTmp.art_brand_07, literal_column(f"'{self.price_settings.buyer_price_code}'"),
+                                                          self.FinalPriceTmp.price, literal_column(f"now()"))
+               .where(and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
 
 
     def del_price_below_zero(self, sess):
-        # self.price_del = self.add_dels_in_history(sess, (or_(FinalPrice.price <= 0, FinalPrice.price == None)),
+        # self.price_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)),
         #                                           'Цена меньше/равна 0')
         # if self.price_del:
-        #     sess.query(FinalPrice).where(or_(FinalPrice.price <= 0, FinalPrice.price == None)).delete()
+        #     sess.query(self.FinalPriceTmp).where(or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
-        self.price_del = self.add_dels_in_history(sess, or_(FinalPrice.price <= 0, FinalPrice.price == None),'Цена меньше/равна 0')
+        self.price_del = self.add_dels_in_history(sess, or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None),'Цена меньше/равна 0')
         if self.price_del:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
     def del_over_price_b(self, sess):
-        # sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
-        #                                            FinalPrice.price_b / self.price_settings.kb_price < FinalPrice.price)).
+        # sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price_b != None,
+        #                                            self.FinalPriceTmp.price_b / self.price_settings.kb_price < self.FinalPriceTmp.price)).
         #              values(over_base_price=True))
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.price_b != None,
-                                   FinalPrice.price > FinalPrice.price_b * (1 + self.price_settings.base_price_tolerance_pct + FinalPrice._13grad/100))).
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price_b != None,
+                                   self.FinalPriceTmp.price > self.FinalPriceTmp.price_b * (1 + self.price_settings.base_price_tolerance_pct + self.FinalPriceTmp._13grad/100))).
                      values(over_base_price=True))
 
-        # self.del_price_b = self.add_dels_in_history(sess, (FinalPrice.over_base_price == True), 'ЦенаБ')
+        # self.del_price_b = self.add_dels_in_history(sess, (self.FinalPriceTmp.over_base_price == True), 'ЦенаБ')
         # if self.del_price_b:
-        #     sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
+        #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.over_base_price == True).delete()
         #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_price_b} (ЦенаБ)")
 
-        self.del_price_b = self.add_dels_in_history(sess, FinalPrice.over_base_price == True,'ЦенаБ')
+        self.del_price_b = self.add_dels_in_history(sess, self.FinalPriceTmp.over_base_price == True,'ЦенаБ')
         if self.del_price_b:
             self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_price_b} (ЦенаБ)")
 
@@ -883,79 +919,79 @@ class Sender(QThread):
                     main_price = pd.read_csv(price_path, header=0, sep=';', encoding='windows-1251',
                                              usecols=["Артикул", "Бренд", "Цена"], encoding_errors='ignore',
                                              na_filter=False)
-                    main_price = main_price.rename(columns={"Артикул": FinalComparePrice._01article.__dict__['name'],
-                                                            "Бренд": FinalComparePrice._14brand_filled_in.__dict__['name'],
-                                                            "Цена": FinalComparePrice.price.__dict__['name']})
+                    main_price = main_price.rename(columns={"Артикул": self.FinalComparePriceTmp._01article.__dict__['name'],
+                                                            "Бренд": self.FinalComparePriceTmp._14brand_filled_in.__dict__['name'],
+                                                            "Цена": self.FinalComparePriceTmp.price.__dict__['name']})
                     main_price['period'] = self.price_settings.period
                     main_price['price'] = main_price['price'].str.replace(',', '.')
-                    main_price.to_sql(name=FinalComparePrice.__tablename__, con=sess.connection(), if_exists='append',
+                    main_price.to_sql(name=self.FinalComparePriceTmp.__tablename__, con=sess.connection(), if_exists='append',
                                       index=False)
                     sess.commit()
 
-                    sess.execute(update(FinalPrice).where(and_(FinalPrice._01article == FinalComparePrice._01article,
-                                                               FinalPrice._14brand_filled_in == FinalComparePrice._14brand_filled_in,
-                                                               FinalPrice.price > FinalComparePrice.price)).
+                    sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._01article == self.FinalComparePriceTmp._01article,
+                                                               self.FinalPriceTmp._14brand_filled_in == self.FinalComparePriceTmp._14brand_filled_in,
+                                                               self.FinalPriceTmp.price > self.FinalComparePriceTmp.price)).
                                  values(over_base_price=True))
-                    # new_del = self.add_dels_in_history(sess, (FinalPrice.over_base_price == True), 'Сравнение цены с осн. прайсом')
-                    new_del = self.add_dels_in_history(sess, FinalPrice.over_base_price == True, 'Сравнение цены с осн. прайсом')
+                    # new_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.over_base_price == True), 'Сравнение цены с осн. прайсом')
+                    new_del = self.add_dels_in_history(sess, self.FinalPriceTmp.over_base_price == True, 'Сравнение цены с осн. прайсом')
                     if new_del:
-                        # sess.query(FinalPrice).where(FinalPrice.over_base_price == True).delete()
+                        # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.over_base_price == True).delete()
                         self.price_compare_del += new_del
-                    sess.query(FinalComparePrice).delete()
+                    sess.query(self.FinalComparePriceTmp).delete()
 
             if self.price_compare_del:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_compare_del} (Сравнение цены с осн. прайсом)")
 
     def set_rating(self, sess):
-        sess.execute(update(FinalPrice).where(FinalPrice._07supplier_code == SuppliersForm.setting).
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._07supplier_code == SuppliersForm.setting).
                      values(rating=SuppliersForm.rating))
-        sess.execute(update(FinalPrice).values(rating=FinalPrice.rating * FinalPrice.price))
+        sess.execute(update(self.FinalPriceTmp).values(rating=self.FinalPriceTmp.rating * self.FinalPriceTmp.price))
 
-        if sess.execute(select(func.count(FinalPrice.id))).scalar() < self.price_settings.max_rows:
+        if sess.execute(select(func.count(self.FinalPriceTmp.id))).scalar() < self.price_settings.max_rows:
             return
 
-        ratings = select(FinalPrice.rating).order_by(FinalPrice.rating.desc()).limit(self.price_settings.max_rows)
+        ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
         if min_rating:
-            # self.del_min_r = self.add_dels_in_history(sess, (FinalPrice.rating < min_rating), 'Лимит строк')
+            # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
             # if self.del_min_r:  # для оптимизации
-            #     sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()
+            #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()
             #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
-            self.del_min_r = self.add_dels_in_history(sess, FinalPrice.rating < min_rating, 'Лимит строк')
+            self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.rating < min_rating, 'Лимит строк')
             if self.del_min_r:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
 
-            # sess.query(FinalPrice).where(FinalPrice.rating < min_rating).delete()  # для оптимизации
+            # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()  # для оптимизации
             # self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
 
     def create_dupls(self, sess):
-        cols = [FinalPrice.key1_s, FinalPrice.article_s, FinalPrice.brand_s, FinalPrice.name_s, FinalPrice.count_s,
-                FinalPrice.price_s, FinalPrice.currency_s, FinalPrice.mult_s, FinalPrice.notice_s, FinalPrice._01article_comp,
-                FinalPrice._01article, FinalPrice._02brand, FinalPrice.brand, FinalPrice._03name_old, FinalPrice._03name,
-                FinalPrice._04count, FinalPrice._05price, FinalPrice._05price_plus, FinalPrice._06mult_new,
-                FinalPrice._07supplier_code, FinalPrice.alternative_article, FinalPrice._14brand_filled_in,
-                FinalPrice._15code_optt, FinalPrice._17code_unique, FinalPrice.count_old, FinalPrice.count, FinalPrice.price,
-                FinalPrice.supplier_update_time, FinalPrice.customer_brand_alias, FinalPrice.tnved, FinalPrice.okpd2]
-        dupl_rows = select(*cols, literal_column("'e'")).where(FinalPrice.customer_brand_alias != None)
+        cols = [self.FinalPriceTmp.key1_s, self.FinalPriceTmp.article_s, self.FinalPriceTmp.brand_s, self.FinalPriceTmp.name_s, self.FinalPriceTmp.count_s,
+                self.FinalPriceTmp.price_s, self.FinalPriceTmp.currency_s, self.FinalPriceTmp.mult_s, self.FinalPriceTmp.notice_s, self.FinalPriceTmp._01article_comp,
+                self.FinalPriceTmp._01article, self.FinalPriceTmp._02brand, self.FinalPriceTmp.brand, self.FinalPriceTmp._03name_old, self.FinalPriceTmp._03name,
+                self.FinalPriceTmp._04count, self.FinalPriceTmp._05price, self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new,
+                self.FinalPriceTmp._07supplier_code, self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
+                self.FinalPriceTmp._15code_optt, self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count, self.FinalPriceTmp.price,
+                self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.customer_brand_alias, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2]
+        dupl_rows = select(*cols, literal_column("'e'")).where(self.FinalPriceTmp.customer_brand_alias != None)
         cols_names = [i.__dict__['name'] for i in cols]
 
-        sess.execute(insert(FinalPrice).from_select([*cols_names, 'mult_less'], dupl_rows))
-        sess.execute(update(FinalPrice).where(FinalPrice.mult_less!=None).values(brand=FinalPrice.customer_brand_alias))
+        sess.execute(insert(self.FinalPriceTmp).from_select([*cols_names, 'mult_less'], dupl_rows))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less!=None).values(brand=self.FinalPriceTmp.customer_brand_alias))
 
         # добавление артикула к имени
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.article_s != None,
-                                                   not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
-                                                        (FinalPrice.article_s.regexp_replace('\W|_', '', 'g')))))
-                     .values(_03name=text(f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice._01article.__dict__['name']})")))
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.mult_less != None, self.FinalPriceTmp.article_s != None,
+                                                   not_(self.FinalPriceTmp._03name.regexp_replace('\W|_', '', 'g').op('~*')
+                                                        (self.FinalPriceTmp.article_s.regexp_replace('\W|_', '', 'g')))))
+                     .values(_03name=text(f"concat({self.FinalPriceTmp._03name.__dict__['name']}, ' ', {self.FinalPriceTmp._01article.__dict__['name']})")))
         # добавление бренда к имени
-        sess.execute(update(FinalPrice).where(and_(FinalPrice.mult_less != None, FinalPrice.brand_s != None,
-                                                   not_(FinalPrice._03name.regexp_replace('\W|_', '', 'g').op('~*')
-                                                        (FinalPrice.brand_s.regexp_replace('\W|_', '', 'g')))))
+        sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.mult_less != None, self.FinalPriceTmp.brand_s != None,
+                                                   not_(self.FinalPriceTmp._03name.regexp_replace('\W|_', '', 'g').op('~*')
+                                                        (self.FinalPriceTmp.brand_s.regexp_replace('\W|_', '', 'g')))))
                      .values(_03name=text(
-            f"concat({FinalPrice._03name.__dict__['name']}, ' ', {FinalPrice.brand.__dict__['name']})")))
+            f"concat({self.FinalPriceTmp._03name.__dict__['name']}, ' ', {self.FinalPriceTmp.brand.__dict__['name']})")))
 
-        # sess.execute(update(FinalPrice).where(FinalPrice.mult_less != None).values(_01article=FinalPrice.alternative_article,
-        #                _01article_comp=func.upper(FinalPrice.alternative_article.regexp_replace(r'\W|_', '', 'g'))))
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.mult_less != None).values(_01article=self.FinalPriceTmp.alternative_article,
+        #                _01article_comp=func.upper(self.FinalPriceTmp.alternative_article.regexp_replace(r'\W|_', '', 'g'))))
         # ПРИ ФОРМАТЕ В СКОБКАХ, МОЖНО ИСПОЛЬЗОВАТЬ ДОП КОЛОНКИ ДЛЯ ВРЕМЕННОГО СОДЕРЖАНИЯ НОВЫХ ДАННЫХ, ДАЛЬШЕ ИХ ОБЪЕДИНИТЬ
 
 
@@ -963,10 +999,10 @@ class Sender(QThread):
         try:
             csv_path = fr"{settings_data['catalogs_dir']}/pre Отправка"
 
-            headers_patterns = {"Артикул": FinalPrice._01article, "Бренд": FinalPrice.brand, "Наименование": FinalPrice._03name,
-                                "Кол-во": FinalPrice.count, "Цена": FinalPrice.price, "Кратность": FinalPrice._06mult_new,
-                                "17КодУникальности": FinalPrice._17code_unique, "ОКПД2": FinalPrice.okpd2,
-                                "ТН ВЭД": FinalPrice.tnved}
+            headers_patterns = {"Артикул": self.FinalPriceTmp._01article, "Бренд": self.FinalPriceTmp.brand, "Наименование": self.FinalPriceTmp._03name,
+                                "Кол-во": self.FinalPriceTmp.count, "Цена": self.FinalPriceTmp.price, "Кратность": self.FinalPriceTmp._06mult_new,
+                                "17КодУникальности": self.FinalPriceTmp._17code_unique, "ОКПД2": self.FinalPriceTmp.okpd2,
+                                "ТН ВЭД": self.FinalPriceTmp.tnved}
             cols = [self.price_settings.col_1, self.price_settings.col_2, self.price_settings.col_3, self.price_settings.col_4,
                     self.price_settings.col_5, self.price_settings.col_6, self.price_settings.col_7, self.price_settings.col_8,
                     self.price_settings.col_9]
@@ -989,16 +1025,16 @@ class Sender(QThread):
             while True:
                 if self.price_settings.max_rows < loaded + limit:
                     limit = self.price_settings.max_rows - loaded
-                req = select(*headers.values()).order_by(FinalPrice.rating.desc(), FinalPrice.art_brand_07).offset(loaded).limit(limit)
+                req = select(*headers.values()).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
-                df = df.sort_values(FinalPrice.price.__dict__['name'])
+                df = df.sort_values(self.FinalPriceTmp.price.__dict__['name'])
 
                 df_len = len(df)
 
                 if not df_len:
                     break
 
-                # df[FinalPrice._01article.__dict__['name']] = df[FinalPrice._01article.__dict__['name']].apply(lambda x: f'="{x}"' if str(x).startswith('0') else x)
+                # df[self.FinalPriceTmp._01article.__dict__['name']] = df[self.FinalPriceTmp._01article.__dict__['name']].apply(lambda x: f'="{x}"' if str(x).startswith('0') else x)
                 df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
                           errors='ignore')

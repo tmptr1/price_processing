@@ -22,6 +22,9 @@ class Base2_1(DeclarativeBase):
 class Base3(DeclarativeBase):
     pass
 
+class Base3_1(DeclarativeBase):
+    pass
+
 intpk = Annotated[int, mapped_column(primary_key=True)]
 uuidpk = Annotated[uuid.UUID, mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))]
 str_x = lambda x:Annotated[String, mapped_column(String(x), nullable=True)]
@@ -1081,6 +1084,135 @@ class FinalPrice(Base3):
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
 
+class FinalPrice_1(Base3_1):
+    __tablename__ = "final_price_1"
+    __table_args__ = (#Index("final_price_15code_optt_index", "_15code_optt"),
+                      Index("final_price_art_brand_index_1", "art_brand"),
+                      Index("final_price_art_brand_07_index_1", "art_brand_07"),
+                      Index("final_price_01_14_index_1", "_01article", "_14brand_filled_in"),
+                      # Index("final_price_07_14_index", "_07supplier_code", "_14brand_filled_in"),
+                      {"prefixes": ['UNLOGGED'], }, # ["TEMPORARY"],
+                      )
+
+
+    id: Mapped[intpk]
+    # Ключ1_поставщика varchar(256),
+    key1_s: Mapped[str_x(256)]
+    # Артикул_поставщика varchar(256),
+    article_s: Mapped[str_x(256)]
+    # Производитель_поставщика varchar(256),
+    brand_s: Mapped[str_x(256)]
+    # Наименование_поставщика varchar(256),
+    name_s: Mapped[str_x(256)]
+    # Количество_поставщика REAL,
+    count_s: Mapped[intgr]
+    # Цена_поставщика NUMERIC(12,2),
+    price_s: Mapped[numeric]
+    currency_s: Mapped[str_x(50)]
+    # Кратность_поставщика REAL,
+    mult_s: Mapped[intgr]
+    # Примечание_поставщика varchar(1000),
+    notice_s: Mapped[str_x(256)]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _01article_comp: Mapped[str_x(256)]
+    _01article_comp: Mapped[str_x(256)]
+    _02brand: Mapped[str_x(256)]
+    brand: Mapped[str_x(256)]
+    # _03Наименование varchar(500),
+    _03name: Mapped[str_x(786)]  # 256 * 3 (_03name + _01article + brand)
+    _03name_old: Mapped[str_x(256)]
+    # _04Количество REAL,
+    _04count: Mapped[intgr]
+    # _05Цена NUMERIC(12,2),
+    _05price: Mapped[numeric]
+    # _05Цена_плюс NUMERIC(12,2),
+    _05price_plus: Mapped[numeric]
+    # _06Кратность REAL,
+    # _06mult: Mapped[intgr]
+    _06mult_new: Mapped[intgr]
+    # _07Код_поставщика varchar(150),
+    _07supplier_code: Mapped[str_x(20)]
+    alternative_article: Mapped[str_x(256)]
+    # _13Градация REAL,
+    _13grad: Mapped[intgr]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
+    art_brand: Mapped[str_x(512)]
+    art_brand_07: Mapped[str_x(516)]
+    # _17КодУникальности varchar(500),
+    _17code_unique: Mapped[str_x(256)]
+    # _18КороткоеНаименование varchar(256),
+    _18short_name: Mapped[str_x(256)]
+    # Отсрочка REAL,
+    delay: Mapped[real]
+    # Продаём_для_ОС varchar(20),
+    sell_for_OS: Mapped[str_x(20)]
+    # Наценка_для_ОС REAL,
+    # markup_os: Mapped[real]
+    # Наценка_Р REAL,
+    markup_R: Mapped[real]
+    # Наценка_ПБ REAL,
+    markup_pb: Mapped[real]
+    # Мин_наценка REAL,
+    min_markup: Mapped[real]
+    # Мин опт наценка
+    min_wholesale_markup: Mapped[real]
+    # Шаг_градаци REAL,
+    grad_step: Mapped[real]
+    # Шаг_опт REAL,
+    wh_step: Mapped[real]
+    # Разрешения_ПП varchar(3000),
+    access_pp: Mapped[str_x(500)]
+    # УбратьЗП varchar(3000),
+    put_away_zp: Mapped[str_x(500)]
+    # Предложений_опт REAL,
+    offers_wh: Mapped[intgr]
+    # ЦенаБ NUMERIC(12,2),
+    price_b: Mapped[numeric]
+    # Кол_во REAL,
+    count_old: Mapped[intgr]
+    count: Mapped[intgr]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
+    # Код_ПБ_П varchar,
+    # code_pb_p: Mapped[str_x(500)]
+    # Кратность_меньше varchar(25),
+    mult_less: Mapped[str_x(20)]
+    # Количество_закупок REAL,
+    buy_count: Mapped[real]
+    # Процент_Отгрузки REAL,
+    unload_percent: Mapped[real]
+    #   ЦенаМин numeric(12,2),
+    min_price: Mapped[numeric]
+    # В прайс
+    to_price: Mapped[intgr]
+    # БазоваяНаценка
+    base_markup: Mapped[real]
+    # МножительПокупателя
+    buyer_mult: Mapped[real]
+    # ЦенаСНаценкой
+    price_with_markup: Mapped[numeric]
+    # ЦенаР
+    price_r: Mapped[numeric]
+    # ОбычнаяЦена
+    default_price: Mapped[numeric]
+    # Превышение базовой цены
+    over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
+    # рейтинг
+    rating: Mapped[real]
+    floor_markup_pct: Mapped[real]
+    opt_starting_markup_pct: Mapped[real]
+    opt_grad_step_pct: Mapped[real]
+    unique_starting_markup_pct: Mapped[real]
+    unique_grad_step_pct: Mapped[real]
+    supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
+    customer_brand_alias: Mapped[str_x(256)]
+    tnved: Mapped[str_x(150)]
+    okpd2: Mapped[str_x(150)]
+
 
 class FinalPriceHistory(Base):
     __tablename__ = "final_price_history"
@@ -1209,6 +1341,22 @@ class FinalPriceHistoryDel(Base):
 class FinalComparePrice(Base3):
     __tablename__ = "final_compare_price"
     __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),
+                      {"prefixes": ['UNLOGGED'], }, # ["UNLOGGED"],
+                      )
+
+    id: Mapped[intpk]
+    # _01Артикул varchar(256),
+    _01article: Mapped[str_x(256)]
+    # _14Производитель_заполнен varchar(1000),
+    _14brand_filled_in: Mapped[str_x(256)]
+    # Цена NUMERIC(12,2),
+    price: Mapped[numeric]
+    # Срок
+    period: Mapped[intgr]
+
+class FinalComparePrice_1(Base3_1):
+    __tablename__ = "final_compare_price_1"
+    __table_args__ = (Index("final_compare_price_01_14_index_1", "_01article", "_14brand_filled_in"),
                       {"prefixes": ['UNLOGGED'], }, # ["UNLOGGED"],
                       )
 

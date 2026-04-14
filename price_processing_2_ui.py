@@ -385,7 +385,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.TotalTimeLabel)
 
-        self.horizontalSpacer_4 = QSpacerItem(80, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_4)
 
@@ -619,7 +619,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_22.addWidget(self.TotalTimeLabel_3)
 
-        self.horizontalSpacer_32 = QSpacerItem(80, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_32 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_22.addItem(self.horizontalSpacer_32)
 
@@ -713,6 +713,28 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_9.addLayout(self.horizontalLayout_25)
 
+        self.verticalSpacer_13 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_9.addItem(self.verticalSpacer_13)
+
+        self.horizontalLayout_27 = QHBoxLayout()
+        self.horizontalLayout_27.setObjectName(u"horizontalLayout_27")
+        self.horizontalSpacer_35 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_27.addItem(self.horizontalSpacer_35)
+
+        self.PriceStatusTableView_4 = QTableView(self.tab_5)
+        self.PriceStatusTableView_4.setObjectName(u"PriceStatusTableView_4")
+
+        self.horizontalLayout_27.addWidget(self.PriceStatusTableView_4)
+
+        self.horizontalSpacer_36 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_27.addItem(self.horizontalSpacer_36)
+
+
+        self.verticalLayout_9.addLayout(self.horizontalLayout_27)
+
         self.verticalSpacer_12 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_9.addItem(self.verticalSpacer_12)
@@ -770,6 +792,28 @@ class Ui_MainWindow(object):
         self.TotalTimeLabel_4.setFrameShape(QFrame.Shape.NoFrame)
 
         self.horizontalLayout_26.addWidget(self.TotalTimeLabel_4)
+
+        self.horizontalSpacer_37 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_26.addItem(self.horizontalSpacer_37)
+
+        self.progressBar_4_1 = QProgressBar(self.tab_5)
+        self.progressBar_4_1.setObjectName(u"progressBar_4_1")
+        self.progressBar_4_1.setMaximumSize(QSize(16777215, 14))
+        self.progressBar_4_1.setValue(0)
+        self.progressBar_4_1.setTextVisible(False)
+
+        self.horizontalLayout_26.addWidget(self.progressBar_4_1)
+
+        self.ProgressLabel_4_1 = QLabel(self.tab_5)
+        self.ProgressLabel_4_1.setObjectName(u"ProgressLabel_4_1")
+
+        self.horizontalLayout_26.addWidget(self.ProgressLabel_4_1)
+
+        self.TotalTimeLabel_4_1 = QLabel(self.tab_5)
+        self.TotalTimeLabel_4_1.setObjectName(u"TotalTimeLabel_4_1")
+
+        self.horizontalLayout_26.addWidget(self.TotalTimeLabel_4_1)
 
 
         self.verticalLayout_8.addLayout(self.horizontalLayout_26)
@@ -836,8 +880,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_9.addLayout(self.gridLayout_15)
 
         self.verticalLayout_9.setStretch(0, 3)
-        self.verticalLayout_9.setStretch(1, 12)
-        self.verticalLayout_9.setStretch(2, 35)
+        self.verticalLayout_9.setStretch(1, 1)
+        self.verticalLayout_9.setStretch(2, 10)
+        self.verticalLayout_9.setStretch(3, 1)
+        self.verticalLayout_9.setStretch(4, 35)
 
         self.gridLayout_16.addLayout(self.verticalLayout_9, 0, 0, 1, 1)
 
@@ -1326,6 +1372,8 @@ class Ui_MainWindow(object):
         self.progressBar_4.setFormat(QCoreApplication.translate("MainWindow", u"%p%", None))
         self.ProgressLabel_4.setText(QCoreApplication.translate("MainWindow", u"0/0", None))
         self.TotalTimeLabel_4.setText(QCoreApplication.translate("MainWindow", u"[0:00:00]", None))
+        self.ProgressLabel_4_1.setText(QCoreApplication.translate("MainWindow", u"0/0", None))
+        self.TotalTimeLabel_4_1.setText(QCoreApplication.translate("MainWindow", u"[0:00:00]", None))
         self.Label_4.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043e\u0442\u0447\u0451\u0442\u0430:", None))
         self.TimeOfLastReportUpdatelabel_4.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.OpenReportButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))

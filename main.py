@@ -109,7 +109,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceReportUpdate_2.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_3.setText(x))
         self.PriceReportUpdate_2.ResetPriceReportTime.connect(lambda _: self.update_price_2_report_table)
 
-        self.PriceSender = Sender(log=Log)
+        self.PriceSender = Sender(0, log=Log)
+        self.PriceSender2 = Sender(1, log=Log)
 
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
@@ -157,6 +158,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PauseCheckBox_3.checkStateChanged.connect(lambda b: self.setPause(b, self.Calculate))
         self.PauseCheckBox_3.checkStateChanged.connect(lambda b: self.setPause(b, self.Calculate2))
         self.PauseCheckBox_4.checkStateChanged.connect(lambda b: self.setPause(b, self.PriceSender))
+        self.PauseCheckBox_4.checkStateChanged.connect(lambda b: self.setPause(b, self.PriceSender2))
 
 
         self.MW.UpdateReportSignal.connect(self.update_price_1_report_table)
@@ -275,6 +277,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.total_timers_3 = [None, None]
 
 
+        self.model_4_1 = QStandardItemModel()
+        self.model_4_1.setHorizontalHeaderLabels(['Code', 'Status', 'Time', 'Total Time'])
+        items = [QStandardItem('') for _ in range(self.model_4_1.columnCount())]
+        self.model_4_1.appendRow(items)
+        self.model_4_1.appendRow(items)
+        self.PriceStatusTableView_4.setModel(self.model_4_1)
+        self.PriceStatusTableView_4.verticalHeader().hide()
+        self.PriceStatusTableView_4.setEditTriggers(QTableView.NoEditTriggers)
+        self.PriceStatusTableView_4.horizontalHeader().setStretchLastSection(True)
+        self.PriceStatusTableView_4.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
         self.model_4 = QStandardItemModel()
         self.model_4.setHorizontalHeaderLabels(['Code', 'Status', 'Send time'])
         self.FinalPriceSendTableView_4.setModel(self.model_4)
@@ -282,15 +295,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.FinalPriceSendTableView_4.setEditTriggers(QTableView.NoEditTriggers)
         self.FinalPriceSendTableView_4.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
-        self.PriceSender.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_4, self.PauseCheckBox_4))
+        # self.PriceSender.SetButtonEnabledSignal.connect(lambda _: self.set_enabled_start_buttons(_, self.StartButton_4, self.PauseCheckBox_4))
         self.PriceSender.SetProgressBarValue.connect(lambda cur, total: self.set_value_in_prigress_bar(cur, total, self.ProgressLabel_4,
                                                               self.progressBar_4))
+        self.PriceSender2.SetProgressBarValue.connect(lambda cur, total: self.set_value_in_prigress_bar(cur, total, self.ProgressLabel_4_1,
+                                                              self.progressBar_4_1))
         self.StartButton_4.clicked.connect(self.start_send)
         self.LogButton_4.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[4]}"))
         self.LogButton_4.setToolTip("Открыть файл с логами")
         self.SendCheckBox_4.checkStateChanged.connect(lambda status: self.setSendStatus(status))
-        self.PriceSender.StartCreationSignal.connect(lambda b: self.set_total_time_4(b))
+        self.PriceSender.StartCreationSignal.connect(lambda i, s: self.set_total_time_4(i, s))
+        self.PriceSender2.StartCreationSignal.connect(lambda i, s: self.set_total_time_4(i, s))
         self.PriceSender.UpdateReportSignal.connect(self.update_price_4_report_table)
+        self.PriceSender2.UpdateReportSignal.connect(self.update_price_4_report_table)
+        self.PriceSender.ResetPriceStatusTableSignal.connect(self.reset_model_4_1)
+        self.PriceSender2.ResetPriceStatusTableSignal.connect(self.reset_model_4_1)
+        self.PriceSender.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
+        self.PriceSender2.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
+
         self.ToFilesDirButton_4.clicked.connect(lambda _: self.open_dir(settings_data['send_dir']))
         self.FinalPriceReportReset = FinalPriceReportReset(log=Log)
         self.ResetPriceReportButton_4.clicked.connect(self.reset_final_price_report)
@@ -301,6 +323,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.FinalPriceReportUpdate.UpdateInfoTableSignal.connect(self.add_item_to_price_4_report_table)
         self.FinalPriceReportUpdate.UpdatePriceReportTime.connect(lambda x: self.TimeOfLastReportUpdatelabel_4.setText(x))
         self.UpdateReportButton_4.clicked.connect(self.update_price_4_report_table)
+
+        self.timer_4 = [None, None]
+        self.total__table_timer_4 = [None, None]
+        self.total_timers_4 = [None, None]
 
 
         times = CatalogUpdate.get_catalogs_time_update()
@@ -533,14 +559,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.MP.UpdateReportSignal.connect(self.start_update_mail_report_table)
         self.MP.start()
 
-    def set_total_time_4(self, start):
+    # def set_total_time_4(self, row_id, start):
+    #     timers_stt4 = [self.TotalTimeLabel_4, self.TotalTimeLabel_4_1]
+    #     if start:
+    #         self.total_timer_4 = MyTimer()
+    #         self.total_timer_4.SetTimeSignal.connect(lambda t: self.set_text_to_label(timers_stt4[row_id], t))
+    #         # self.total_timer.SetTimeSignal.connect(self.set_total_time_on_label)
+    #     else:
+    #         self.total_timer_4 = None
+    #         # self.TotalTimeLabel_4.setText('[0:00:00]')
+
+    def set_total_time_4(self, type_id, start):
+        TotalTimeLabels_4 = [self.TotalTimeLabel_4, self.TotalTimeLabel_4_1]
         if start:
-            self.total_timer_4 = MyTimer()
-            self.total_timer_4.SetTimeSignal.connect(lambda t: self.set_text_to_label(self.TotalTimeLabel_4, t))
-            # self.total_timer.SetTimeSignal.connect(self.set_total_time_on_label)
+            self.total_timers_4[type_id] = MyTimer()
+            self.total_timers_4[type_id].SetTimeSignal.connect(lambda t: self.set_text_to_label(TotalTimeLabels_4[type_id], t))
         else:
-            self.total_timer_4 = None
-            # self.TotalTimeLabel_4.setText('[0:00:00]')
+            self.total_timers_4[type_id] = None
+            TotalTimeLabels_4[type_id].setText(TotalTimeLabels_4[type_id].text())
 
     def set_total_time_on_label(self, text):
         self.TotalTimeLabel.setText(text)
@@ -677,6 +713,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def start_send(self):
         if not self.PriceSender.isRunning():
             self.PriceSender.start()
+        if not self.PriceSender2.isRunning():
+            self.PriceSender2.start()
 
     def set_text_to_label(self, label, text):
         label.setText(text)
@@ -687,6 +725,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def setSendStatus(self, state):
         self.PriceSender.need_to_send = (state != Qt.CheckState.Checked)
+        self.PriceSender2.need_to_send = (state != Qt.CheckState.Checked)
 
     def set_enabled_start_buttons(self, enabled, btn, chb):
         btn.setEnabled(enabled)
@@ -697,6 +736,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         chb.setEnabled(not enabled)
         if enabled:
             chb.setChecked(False)
+
+    def reset_model_4_1(self, row_id):
+        self.timer_4[row_id] = None
+        self.total__table_timer_4[row_id] = None
+        for c in range(self.model_4_1.columnCount()):
+            self.model_4_1.setItem(row_id, c, QStandardItem(''))
+
+    def set_time_4(self, r, c, str_time):
+        self.model_4_1.setData(self.model_4_1.index(r, c), str_time)
+
+    def update_status_table_4_1(self, row_id, price_code, status, total_timer):
+        self.model_4_1.setData(self.model_4_1.index(row_id, 0), f"{price_code}")
+        self.model_4_1.setData(self.model_4_1.index(row_id, 1), f"{status}")
+        self.timer_4[row_id] = MyTimer(row_id, 2)
+        self.model_4_1.setData(self.model_4_1.index(row_id, 2), self.timer_4[row_id])
+        self.timer_4[row_id].SetTimeInTableSignal.connect(self.set_time_4)
+        if total_timer:
+            self.total__table_timer_4[row_id] = MyTimer(row_id, 3)
+            self.model_4_1.setData(self.model_4_1.index(row_id, 3), self.total__table_timer_4[row_id])
+            self.total__table_timer_4[row_id].SetTimeInTableSignal.connect(self.set_time_4)
 
 
 def main():
