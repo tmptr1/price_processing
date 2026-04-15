@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['TKT1 АКЦИЯ   .xls']
-                # new_files = ['1SHI Прайс_Эникс.xlsx']
+                # new_files = ['1VTT Инструмент.xlsx']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', ]
@@ -342,7 +342,7 @@ class MainWorker(QThread):
                                  f"Настройки столбцов не подошли ({self.cur_file_count}/{self.total_file_count})", cur_time)
                     return
 
-                sess.commit() #sess.flush()
+                # sess.commit() #sess.flush()
                 # add_log_cf(LOG_ID, "Загрузка сырых дынных завершена", sender, price_code, color, cur_time)
                 self.add_log(self.file_size_type, price_code,"Загрузка сырых дынных завершена", cur_time)
 
@@ -400,7 +400,7 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s-self.TmpPrice_1._04count))
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
 
-                sess.commit()  #sess.flush()
+                # sess.commit()  #sess.flush()
                 self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
@@ -453,7 +453,7 @@ class MainWorker(QThread):
                 # 18КороткоеНаименование
                 sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
-                sess.commit()  #sess.flush()
+                # sess.commit()  #sess.flush()
                 self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
@@ -468,7 +468,7 @@ class MainWorker(QThread):
                     and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
 
                 sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
-                sess.commit()  #sess.flush()
+                # sess.commit()  #sess.flush()
 
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
                 # sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
@@ -490,7 +490,7 @@ class MainWorker(QThread):
                                  "17КодУникальности": self.TmpPrice_1._17code_unique,
                                  "18КороткоеНаименование": self.TmpPrice_1._18short_name,
                                  }
-                sess.commit()
+                # sess.commit()
                 self.cur_file_count += 1
                 # to csv
                 if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
