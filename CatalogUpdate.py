@@ -675,8 +675,20 @@ class CatalogUpdate(QThread):
                         "unique_starting_markup_pct": ["unique_starting_markup_pct"],
                         "opt_starting_markup_pct": ["opt_starting_markup_pct"], "unique_grad_step_pct": ["unique_grad_step_pct"],
                         "opt_grad_step_pct": ["opt_grad_step_pct"], }
-                sheet_name = "Разрешения и наценки"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                # sheet_name = "Разрешения и наценки"
+                # update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                sheet_names = []
+                df = pd.ExcelFile(path_to_file)
+                for c in df.sheet_names:
+                    if str(c).startswith('cross_brand_type_markup_pct'):
+                        sheet_names.append(c)
+                if sheet_names:
+                    update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_names[0])
+                if len(sheet_names) > 1:
+                    for sh in sheet_names[1:]:
+                        update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sh, del_table=False)
+
+
                 sess.execute(update(CrossBrandTypeMarkupPct).values(short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
                                                                     normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
 
