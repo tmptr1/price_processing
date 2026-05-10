@@ -5,6 +5,7 @@ import datetime
 import traceback
 import requests
 import os
+import re
 import shutil
 import pandas as pd
 import openpyxl
@@ -13,7 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from email import encoders
-from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, distinct, case, cast, REAL, Numeric
+from sqlalchemy import text, select, delete, insert, update, Sequence, func, and_, or_, not_, distinct, case, cast, REAL, Numeric
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, SupplierPriceSettings, FileSettings,
@@ -23,6 +24,9 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
 from telebot import TeleBot
 from telebot import apihelper
+import holidays
+import holidays_ru
+
 from tg_users_id import USERS, TG_TOKEN
 import colors
 
@@ -38,6 +42,25 @@ tg_bot = TeleBot(TG_TOKEN)
 PARAM_LIST = ["base_price_update", "mass_offers_update"]
 CHUNKSIZE = int(settings_data["chunk_size"])
 LOG_ID = 2
+
+def get_work_days(dt: datetime.datetime):
+    dt = dt.date()
+    # print(dt)
+    year = dt.year
+    work_days = 0
+    holiday_list = holidays.RU(years=year)
+
+    while dt < datetime.datetime.now().date():
+        # print(dt)
+        if dt.year != year:
+            year = dt.year
+            holiday_list = holidays.RU(years=year)
+        if dt.weekday() not in (5, 6) and dt not in holiday_list:
+            work_days += 1
+        dt = dt + datetime.timedelta(days=1)
+
+    return work_days
+
 
 class CatalogUpdate(QThread):
     SetButtonEnabledSignal = Signal(bool)
@@ -64,16 +87,29 @@ class CatalogUpdate(QThread):
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
-                # self.update_DB_4()
                 # self.update_price_settings_catalog_3_0()
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
+                # self.update_DB_4()
+
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
                 # self.update_currency()
                 # self.update_orders_table()
+                # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
+                #     expired_prices = sess.execute(select(PriceReport.price_code).where(and_(SupplierPriceSettings.price_code == PriceReport.price_code,
+                #             PriceReport.updated_at_2_step != None, SupplierPriceSettings.update_time > 0))).scalars().all()
+                #     print(expired_prices)
+                    # expired_prices_set = set()
+                    # for price_code, updated_at_2_step, update_time in expired_prices:
+                    #     print(price_code, updated_at_2_step, update_time, get_work_days(updated_at_2_step))
+                    #     if update_time < get_work_days(updated_at_2_step):
+                    #         expired_prices_set.add(price_code)
+                    #
+                    # print(expired_prices_set)
+
                 #     # engine.autocommit = True
                 #     cur_time = datetime.datetime.now()
                 #     self.log.add(LOG_ID, f"vacuum ...",
@@ -735,6 +771,7 @@ class CatalogUpdate(QThread):
                 table_name = 'suppliers_form'
                 table_class = SuppliersForm
                 cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "days": ["Дни трансляции"],
+                        "supplier_weekend_markup_pct": ["supplier_weekend_markup_pct"],
                         "price_age_for_notification_hours": ["price_age_for_notification_hours"],
                         "price_update_notification_emails": ["price_update_notification_emails"],
                         "max_price_drop_pct": ["max_price_drop_pct"],
@@ -882,10 +919,21 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
-            expired_prices = set(sess.execute(select(PriceReport.price_code).where(
-                and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step is not None,
-                     SupplierPriceSettings.update_time > 0,
-                     PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
+            # expired_prices = set(sess.execute(select(PriceReport.price_code).where(
+            #     and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step != None,
+            #          SupplierPriceSettings.update_time > 0,
+            #          PriceReport.updated_at_2_step < func.now() - SupplierPriceSettings.update_time * text("interval '1 day'")))).scalars().all())
+
+            expired_prices_req = sess.execute(
+                select(PriceReport.price_code, PriceReport.updated_at_2_step, SupplierPriceSettings.update_time).where(
+                    and_(SupplierPriceSettings.price_code == PriceReport.price_code,
+                         PriceReport.updated_at_2_step != None, SupplierPriceSettings.update_time > 0))).all()
+            expired_prices = set()
+            for price_code, updated_at_2_step, update_time in expired_prices_req:
+                # print(price_code, updated_at_2_step, update_time, get_work_days(updated_at_2_step))
+                if update_time < get_work_days(updated_at_2_step):
+                    expired_prices.add(price_code)
+
             if expired_prices:
                 self.log.add(LOG_ID, f"Не подходят по сроку обновления: {expired_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(expired_prices)).delete()
@@ -940,6 +988,26 @@ class CatalogUpdate(QThread):
 
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
                 buy_count=Buy_for_OS.buy_count))
+
+            # Обновить ColsFix discount, где currency_s == None + обнулить наценку? (расчёт цены по новой)
+            sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
+                                                         TotalPrice_2._07supplier_code == ColsFix.price_code,
+                                                         TotalPrice_2.currency_s == None,
+                                                         TotalPrice_2._14brand_filled_in == ColsFix.find,
+                                                         ColsFix.find != None)).values(
+                _05price=TotalPrice_2._05price * (
+                            1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
+                _05price_plus=None))
+
+            conditions = [(and_(TotalPrice_2._04count > 0, TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count),
+                           TotalPrice_2.markup_holidays / TotalPrice_2._04count)]
+            sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2.currency_s == None, TotalPrice_2._05price_plus == None)).
+                         values(_05price_plus=case(*conditions, else_=TotalPrice_2._05price)))
+
+            words_except(sess)
+            cols_fix(sess)
+
+
 
             self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
                       f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
@@ -1151,6 +1219,154 @@ class CatalogUpdate(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_mass_offers Error", ex_text)
+
+def words_except(sess):
+    cols_dict = {"Ключ1 поставщика": TotalPrice_2.key1_s, "Артикул поставщика": TotalPrice_2.article_s,
+                 "Производитель поставщика": TotalPrice_2.brand_s,
+                 "Наименование поставщика": TotalPrice_2.name_s, "Валюта поставщика": TotalPrice_2.currency_s,
+                 "Примечание поставщика": TotalPrice_2.notice_s,
+                 "Ключ1П": TotalPrice_2.key1_s, "АртикулП": TotalPrice_2.article_s, "ПроизводительП": TotalPrice_2.brand_s,
+                 "НаименованиеП": TotalPrice_2.name_s, " ВалютаП": TotalPrice_2.currency_s, "ПримечаниеП": TotalPrice_2.notice_s,
+                 "15КодТутОптТорг": TotalPrice_2._15code_optt,
+                 }
+    check_types = {"Начинается с": lambda col, x: col.ilike(f"{x}%"),  # '^{}'], startswith
+                   "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
+                   "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
+                   "Заканчивается на": lambda col, x: col.ilike(f"%{x}"),  # '{}$'], endswith
+                   "Равно": lambda col, x: func.upper(col) == x,
+                   "Не равно": lambda col, x: func.upper(col) != x,
+                   }
+    words = sess.execute(select(ColsFix).where(ColsFix.col_change == '20ИсключитьИзПрайса')).scalars().all()
+
+    not_like = dict()  # key: find, price_code
+    for w in words:
+        # print(f"{w.col_find}|{w.change_type}|{w.set}")
+        check = check_types.get(f"{w.change_type}", None)
+        col = cols_dict.get(w.col_find, None)
+        # print(check, col)
+        if check and col:
+            if w.change_type == 'Не содержит':
+                # not_like.append([col, w.find])
+                if not_like.get(w.col_find, None):
+                    not_like[w.col_find].append([w.find, w.price_code])
+                else:
+                    not_like[w.col_find] = [w.find, w.price_code]
+                continue
+            sess.execute(update(TotalPrice_2).where(and_(check(col, w.find), TotalPrice_2._20exclude==None,
+                                                         TotalPrice_2._07supplier_code==w.price_code)).values(_20exclude=str(w.set)[:50]))
+
+    if not_like:
+        # print(not_like)
+        for i in not_like:
+            cond = []
+            values = ''
+            not_like_cols = set(not_like[i][0])
+            for c in not_like_cols:
+                # print(c)
+                values += f"{c}, "
+                # cond.append(cols_dict[i].contains(c))
+                cond.append(cols_dict[i].ilike(f"%{c}%"))
+            values = values[:-2]
+            # print(cond)
+            sess.execute(update(TotalPrice_2).where(and_(not_(or_(*cond)), TotalPrice_2._20exclude == None,
+                                                         TotalPrice_2._07supplier_code == not_like[i][1])).values(_20exclude=values[:50]))
+
+
+def cols_fix(sess):
+    cols_name_find = {"Ключ1 поставщика": TotalPrice_2.key1_s, "Артикул поставщика": TotalPrice_2.article_s,
+                 "Производитель поставщика": TotalPrice_2.brand_s,
+                 "Наименование поставщика": TotalPrice_2.name_s, "Валюта поставщика": TotalPrice_2.currency_s,
+                 "Примечание поставщика": TotalPrice_2.notice_s, "01Артикул": TotalPrice_2._01article,
+                 "14Производитель заполнен": TotalPrice_2._14brand_filled_in,
+                 "03Наименование": TotalPrice_2._03name, "15КодТутОптТорг": TotalPrice_2._15code_optt,
+                 }
+    cols_name_set = {"01Артикул": TotalPrice_2._01article, "03Наименование": TotalPrice_2._03name,
+                 "Примечание поставщика": TotalPrice_2.notice_s,
+                 "15КодТутОптТорг": TotalPrice_2._15code_optt, "06Кратность": TotalPrice_2._06mult,
+                 }
+    # cols_name_set = {k: cols_name_set[k] for k in keys}
+    # print(cols_name_set)
+    custom_cols = {"Ключ1 поставщика": TotalPrice_2.key1_s.__dict__['name'],
+                   "Артикул поставщика": TotalPrice_2.article_s.__dict__['name'],
+                   "Производитель поставщика": TotalPrice_2.brand_s.__dict__['name'],
+                   "Наименование поставщика": TotalPrice_2.name_s.__dict__['name'],
+                   "Количество поставщика": TotalPrice_2.count_s.__dict__['name'],
+                   "Цена поставщика": TotalPrice_2.price_s.__dict__['name'],
+                   "Валюта поставщика": TotalPrice_2.currency_s.__dict__['name'], }
+    change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
+                    "Содержит": [lambda tb, x: tb.contains(x), '{}'],
+                    "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
+                    "Равно": [lambda tb, x: tb == x, '{}$'],
+                    "Не равно": [lambda tb, x: tb != x, '{}$'],
+                    "Добавить в конце": True,
+                    "Добавить в начале": True,
+                    }
+    req = select(ColsFix).where(ColsFix.col_change.in_(cols_name_set.keys()))
+    cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
+
+    for cs in cols_settings:
+        # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
+        change_type = change_types.get(cs.change_type, None)
+        set_col_name = cols_name_set.get(cs.col_change, None)
+        find_col_name = cols_name_find.get(cs.col_find, None)
+        # print(f"{change_type}|{col_name}")
+        if change_type and set_col_name and find_col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
+            # print(change_type, set_col_name, find_col_name)
+            if cs.change_type in ("Добавить в конце", "Добавить в начале"):
+                change = cs.set
+                not_null_check = "and "
+
+                for c in custom_cols:
+                    new_change = re.sub(c, f"',{custom_cols[c]},'", change)
+                    if new_change != change:
+                        change = new_change
+                        not_null_check += f"{custom_cols[c]} is not NULL and "
+
+                if change.startswith("',"):
+                    change = change[2:]
+                else:
+                    change = f"'{change}"
+                if change.endswith(",'"):
+                    change = change[:-2]
+                else:
+                    change = f"{change}'"
+                # print(change)
+                if not_null_check != "and ":
+                    not_null_check = not_null_check[:-5]
+                else:
+                    not_null_check = ''
+
+                if cs.change_type == "Добавить в конце":
+                    add_order = f"{find_col_name.__dict__['name']}, {change}"
+                else:
+                    add_order = f"{change},{find_col_name.__dict__['name']}"
+
+                req_text = (f"update {TotalPrice_2.__tablename__} set {set_col_name} = CONCAT({add_order}) "
+                            f"where _07supplier_code = '{cs.price_code}' {not_null_check}")
+                # print(req_text)
+                sess.execute(text(req_text))
+                # return
+                # pb = func.concat(Price_1.brand_s, ' ', func.cast(change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s), String))
+                # req = update(Price_1).where(Price_1._07supplier_code == price_code
+                #                             ).values({cols_name[a.col_name][1]: func.concat(cols_name[a.col_name][0],
+                #                                                                             # pb
+                #                         # change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s)
+                #                                                                             )
+                # })
+                # sess.execute(req)
+            elif cs.col_change == '06Кратность':
+                req = update(TotalPrice_2).where(and_(change_type[0](func.upper(find_col_name), cs.find),
+                                                      TotalPrice_2._07supplier_code == cs.price_code)
+                ).values({set_col_name: 0 if not cs.set else int(cs.set)})
+                sess.execute(req)
+            else:
+                # print(cs.price_code, cs.find, cs.change_type, cs.col_find)
+                req = update(TotalPrice_2).where(and_(change_type[0](func.upper(find_col_name), cs.find),
+                                                      TotalPrice_2._07supplier_code == cs.price_code)
+                ).values({set_col_name: find_col_name.
+                         regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
+                sess.execute(req)
+
 
 
 def mail_notification_send(header_text, html_text):

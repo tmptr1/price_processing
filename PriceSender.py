@@ -29,6 +29,8 @@ import os
 import shutil
 from zipfile import ZipFile, ZIP_DEFLATED
 import random
+import holidays
+import holidays_ru
 
 from tg_users_id import USERS, TG_TOKEN
 import colors
@@ -125,8 +127,11 @@ class Sender(QThread):
                                 except:
                                     pass
 
-                # price_name_list = [3]
-                # price_name_list = ["Прайс AvtoTO", ]
+                # Для тестов:
+                # price_name_list = []
+                # if self.therad_id==0:
+                #     price_name_list = [3]
+
 
                 self.cur_file_count = 0
                 self.total_file_count = len(price_name_list)
@@ -805,7 +810,12 @@ class Sender(QThread):
         sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
             price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct)))
-        # print('ok 2', rc, datetime.datetime.now() - nt)
+
+        next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+        if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
+            sess.execute(update(self.FinalPriceTmp).where(and_(SuppliersForm.supplier_weekend_markup_pct > 0,
+                                                               self.FinalPriceTmp._07supplier_code==SuppliersForm.setting))
+                         .values(price=self.FinalPriceTmp.price*(SuppliersForm.supplier_weekend_markup_pct+1)))
 
 
         # nt = datetime.datetime.now()
