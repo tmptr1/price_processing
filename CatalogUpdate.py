@@ -43,24 +43,6 @@ PARAM_LIST = ["base_price_update", "mass_offers_update"]
 CHUNKSIZE = int(settings_data["chunk_size"])
 LOG_ID = 2
 
-def get_work_days(dt: datetime.datetime):
-    dt = dt.date()
-    # print(dt)
-    year = dt.year
-    work_days = 0
-    holiday_list = holidays.RU(years=year)
-
-    while dt < datetime.datetime.now().date():
-        # print(dt)
-        if dt.year != year:
-            year = dt.year
-            holiday_list = holidays.RU(years=year)
-        if dt.weekday() not in (5, 6) and dt not in holiday_list:
-            work_days += 1
-        dt = dt + datetime.timedelta(days=1)
-
-    return work_days
-
 
 class CatalogUpdate(QThread):
     SetButtonEnabledSignal = Signal(bool)
@@ -1128,23 +1110,29 @@ class CatalogUpdate(QThread):
 
                 start_time = datetime.datetime.now()
                 # if days > 0 amd info_msg = 'Не подходит по сроку обновления' and last_not != None
-                # sess.execute(select(PriceReport.price_code).where(and_(PriceReport.info_message=='Не подходит по сроку обновления')))
-                prices = sess.execute(select(SuppliersForm.setting, SuppliersForm.price_update_notification_emails, PriceReport.updated_at).where(
-                    and_(PriceReport.info_message=='Не подходит по сроку обновления',
-                         SuppliersForm.price_age_for_notification_hours > 0, SuppliersForm.price_update_notification_emails!=None,
-                         PriceReport.price_code==SuppliersForm.setting, PriceReport.last_notification==None,
-                         PriceReport.updated_at < func.now() - SuppliersForm.price_age_for_notification_hours * text("interval '1 day'")))
-                             )  #.scalars().all()
-                if not prices.scalars().all():
-                    return
+                prices = sess.execute(select(distinct(SuppliersForm.setting), SuppliersForm.price_update_notification_emails, PriceReport.updated_at,
+                                             SuppliersForm.price_age_for_notification_hours).where(
+                    and_(SuppliersForm.price_age_for_notification_hours > 0, SuppliersForm.price_update_notification_emails!=None,
+                         PriceReport.price_code==SuppliersForm.setting, PriceReport.last_notification==None, PriceReport.updated_at!=None,)))  #.scalars().all()
+                # PriceReport.updated_at < func.now() - SuppliersForm.price_age_for_notification_hours * text("interval '1 day'"))
+                # PriceReport.info_message=='Не подходит по сроку обновления',
+                # if not prices.scalars().all():
+                #     return
 
+                # for price_code, emails, updated_at, days in prices:
+                #     if get_work_days(updated_at) <= days:
+                #         print('pass')
+                #     print(price_code, emails, updated_at, days)
+                # return
                 cur_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 self.log.add(LOG_ID, f"Рассылка уведомлений ...",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>Рассылка уведомлений</span> ...")
-                self.log.add(LOG_ID, f"{prices.scalars().all()}")
+                # self.log.add(LOG_ID, f"{prices.scalars().all()}")
                 price_codes = []
-                for price_code, emails, updated_at in prices:
+                for price_code, emails, updated_at, days in prices:
+                    if get_work_days(updated_at) <= days:
+                        continue
                     price_codes.append(price_code)
                     self.log.add(LOG_ID, f"{price_code} - {emails} ...")
                     emails = list(map(str.strip, str(emails).split(',')))
@@ -1156,7 +1144,6 @@ class CatalogUpdate(QThread):
                     with open('send.txt', 'r', encoding='utf-8') as f:
                         msg_text = f.read()
                         msg_text = msg_text.format(price_msg=price_msg, updated_at=updated_at)
-                        # print(msg_text)
 
                     for email in [*emails, "ytopttorg@mail.ru"]:
                         msg = MIMEText(msg_text, "plain", "utf-8")
@@ -1174,12 +1161,13 @@ class CatalogUpdate(QThread):
                         last_notification=cur_time))
 
                 if price_codes:
-                    # price_codes = ['VALA', '1LAM', 'XAA3']
                     price_codes = ', '.join(price_codes)
                     html_text = f'Напоминания о необходимости обновить прайсы отправлены ({price_codes})'
                     # for u in USERS:
                     #     tg_bot.send_message(chat_id=u, text=html_text, parse_mode='HTML', timeout=300)
                     mail_notification_send('Напоминания о необходимости обновить прайсы', html_text)
+                else:
+                    self.log.add(LOG_ID, f"Рассылка не требуется")
 
                 sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Рассылка уведомлений').values(
                     updated_at=cur_time))
@@ -1829,3 +1817,22 @@ def to_float(x):
         return x
     except:
         return 0
+
+
+def get_work_days(dt: datetime.datetime):
+    dt = dt.date()
+    # print(dt)
+    year = dt.year
+    work_days = 0
+    holiday_list = holidays.RU(years=year)
+
+    while dt < datetime.datetime.now().date():
+        # print(dt)
+        if dt.year != year:
+            year = dt.year
+            holiday_list = holidays.RU(years=year)
+        if dt.weekday() not in (5, 6) and dt not in holiday_list:
+            work_days += 1
+        dt = dt + datetime.timedelta(days=1)
+
+    return work_days
