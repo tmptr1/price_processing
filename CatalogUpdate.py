@@ -508,7 +508,7 @@ class CatalogUpdate(QThread):
                         "mass_offers": ["Для подсчёта предложений в опте"], "base_price": ["Для базовой цены"], }
                 sheet_name = "Справочник Бренды"
                 update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
-                sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W', '', 'g'))))
+                sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W|_', '', 'g'))))
 
                 table_name = 'supplier_goods_fix'
                 table_class = SupplierGoodsFix
