@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base2, Base2_1, Price_2, Price_2_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings,
-                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, Brands, ExchangeRate, AppSettings)
+                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings)
 import setting
 engine = setting.get_engine()
 # engine.echo = True

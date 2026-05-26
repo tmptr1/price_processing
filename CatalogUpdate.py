@@ -434,8 +434,13 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Обновление {base_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
 
-                table_name = 'file_settings'
+                tables_skip_rows_dict = get_tables_skip_row_dict(path_to_file)
+                # print(tables_skip_rows_dict)
+
+                # table_name = 'file_settings'
+                sheet_name = "Настройка строк"
                 table_class = FileSettings
+                ex_table_name = 'Настройка_строк'
                 cols = {"price_code": ["Прайс"], "parent_code": ["Прайс родитель"], "save": ["Сохраняем"], "email": ["Почта"],
                         "file_name_cond": ["Условие имени файла"], "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"],
                         "pass_down": ["Пропуск снизу"], "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"],
@@ -449,8 +454,7 @@ class CatalogUpdate(QThread):
                         "change_price_type": ["Вариант изменения цены"], "change_price_val": ["Значение исправления цены"],
                         "rc_tnved": ["R/C ТНВЭД"], "name_tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "name_okpd2": ["ОКПД2"],
                         }
-                sheet_name = "Настройка строк"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(FileSettings).values(email=FileSettings.email.regexp_replace(' ', '', 'g')))
 
                 rc_cols = [['r_key_s', 'c_key_s', 'rc_key_s'],
@@ -472,8 +476,10 @@ class CatalogUpdate(QThread):
                 sess.execute(text(req))
                 sess.query(FileSettings).filter(FileSettings.price_code == None).delete()
 
-                table_name = 'supplier_price_settings'
+                # table_name = 'supplier_price_settings'
+                sheet_name = "Настройка прайсов"
                 table_class = SupplierPriceSettings
+                ex_table_name = "Настройка_прайсов_поставщиков"
                 cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
@@ -489,29 +495,32 @@ class CatalogUpdate(QThread):
                         "supplier_rating": ["Рейтинг поставщика"],
                         }
                 # "markup_os": ["Наценка для ОС"],
-                sheet_name = "Настройка прайсов"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
                 sess.execute(update(SupplierPriceSettings).values(update_time=cast(func.regexp_substr(SupplierPriceSettings.update_time_str, r'\d+'), REAL)))
 
-                table_name = 'cols_fix'
+                # table_name = 'cols_fix'
+                sheet_name = "ИсправНомПоУсл"
                 table_class = ColsFix
+                ex_table_name = "Исправ_Ном_по_Услов"
                 cols = {"price_code": ["Код прайса"], "col_find": ["Столбец поиска"], "find": ["Найти"],
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
-                sheet_name = "ИсправНомПоУсл"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(ColsFix).values(find=func.upper(ColsFix.find)))
 
-                table_name = 'brands'
+                # table_name = 'brands'
+                sheet_name = "Справочник Бренды"
                 table_class = Brands
+                ex_table_name = "Бренды_"
                 cols = {"correct_brand": ["Правильный Бренд"], "brand": ["Поиск"],
                         "mass_offers": ["Для подсчёта предложений в опте"], "base_price": ["Для базовой цены"], }
-                sheet_name = "Справочник Бренды"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W|_', '', 'g'))))
 
-                table_name = 'supplier_goods_fix'
+                # table_name = 'supplier_goods_fix'
+                sheet_name = "Исправление товаров поставщиков"
                 table_class = SupplierGoodsFix
+                ex_table_name = "Исправление_товаров_поставщиков"
                 cols = {"supplier": ["Поставщик"], "import_setting": ["Настройка импорта прайса"], "key1": ["Ключ1"],
                         "article_s": ["Артикул поставщика"], "brand_s": ["Производитель поставщика"],
                         "name": ["Наименование"],
@@ -521,8 +530,7 @@ class CatalogUpdate(QThread):
                         "put_away_percent": ["Убрать %"], "put_away_count": ["Убрать шт"], "nomenclature": ["Номенклатура"],
                         "mult_s": ["Кратность поставщика"], "name_s": ["Наименование поставщика"]
                         }
-                sheet_name = "Исправление товаров поставщиков"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
@@ -684,7 +692,12 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Обновление {base_name} ...",
                              f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> ...")
 
-                table_name = 'cross_brand_type_markup_pct'
+                tables_skip_rows_dict = get_tables_skip_row_dict(path_to_file)
+                # print(tables_skip_rows_dict)
+
+                # table_name = 'cross_brand_type_markup_pct'
+                sheet_name = "Разрешения и наценки"
+                ex_table_name = "cross_brand_type_markup_pct"
                 table_class = CrossBrandTypeMarkupPct
                 cols = {"customer_brand_alias": ["customer_brand_alias"], "supplier_price_code": ["supplier_price_code"],
                         "normalized_brand": ["normalized_brand"], "customer_price_code": ["customer_price_code"],
@@ -693,8 +706,7 @@ class CatalogUpdate(QThread):
                         "unique_starting_markup_pct": ["unique_starting_markup_pct"],
                         "opt_starting_markup_pct": ["opt_starting_markup_pct"], "unique_grad_step_pct": ["unique_grad_step_pct"],
                         "opt_grad_step_pct": ["opt_grad_step_pct"], }
-                sheet_name = "Разрешения и наценки"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # sheet_names = []
                 # df = pd.ExcelFile(path_to_file)
@@ -710,17 +722,20 @@ class CatalogUpdate(QThread):
                 sess.execute(update(CrossBrandTypeMarkupPct).values(short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
                                                                     normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
 
-                table_name = 'data07_14'
+                # table_name = 'data07_14'
+                sheet_name = "07&14Данные"
                 table_class = Data07_14
+                ex_table_name = "_07_14Данные"
                 # "max_decline": ["Макс снижение от базовой цены"]
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
                         "correct": ["Правильное"], "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
-                sheet_name = "07&14Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
 
-                table_name = 'data07'
+                # table_name = 'data07'
+                sheet_name = "07Данные"
                 table_class = Data07
+                ex_table_name = "_07Данные"
                 # "max_decline": ["Макс снижение от базовой цены"],
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
                         "to_price": ["В прайс"], "delay": ["Отсрочка"], "sell_os": ["Продаём для ОС"],
@@ -729,40 +744,45 @@ class CatalogUpdate(QThread):
                         "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
                         "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
                 # "markup_os": ["Наценка для ОС"],
-                sheet_name = "07Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'data09'
-                table_class = Data09
-                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+                # table_name = 'data09'
                 sheet_name = "09Данные"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                table_class = Data09
+                ex_table_name = "_09Данные"
+                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'buy_for_os'
-                table_class = Buy_for_OS
-                cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
+                # table_name = 'buy_for_os'
                 sheet_name = "Закупки для ОС"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                table_class = Buy_for_OS
+                ex_table_name = "Закупки_для_ОС"
+                cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'reserve'
-                table_class = Reserve
-                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+                # table_name = 'reserve'
                 sheet_name = "Резерв_да"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                table_class = Reserve
+                ex_table_name = "Резерв_да"
+                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'suppliers_form'
+                # table_name = 'suppliers_form'
+                sheet_name = "Анкета поставщика"
                 table_class = SuppliersForm
+                ex_table_name = "Анкета_поставщика"
                 cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "days": ["Дни трансляции"],
                         "supplier_weekend_markup_pct": ["supplier_weekend_markup_pct"],
                         "price_age_for_notification_hours": ["price_age_for_notification_hours"],
                         "price_update_notification_emails": ["price_update_notification_emails"],
                         "max_price_drop_pct": ["max_price_drop_pct"],
                         }
-                sheet_name = "Анкета поставщика"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'buyers_form'
+                # table_name = 'buyers_form'
+                sheet_name = "Анкета покупателя"
                 table_class = BuyersForm
+                ex_table_name = "Анкета_покупателя"
                 # "us_set": ["Установить УС"], "kos_markup": ["Наценка для К.ОС"], "markup_buyer_wh": ["Наценка покупателя опт"],
                 # "final_markup": ["Итоговая наценка"], "d_val_was": ["Д Вал была"], "rise_markup": ["Доп наценка рост"],
                 # "val_dynamic": ["Динамика Вал"], "vp_dynamic": ["Динамика ВП"], "d_change": ["Д изменения"], "kb_price": ["КБ цены"]
@@ -787,21 +807,22 @@ class CatalogUpdate(QThread):
                         "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
                         "col_8": ["8 Столбец в прайсе"], "col_9": ["9 Столбец в прайсе"],
                         }
-                sheet_name = "Анкета покупателя"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'prev_dynamic_parts'
-                table_class = PrevDynamicParts
-                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], }
+                # table_name = 'prev_dynamic_parts'
                 sheet_name = "prev dynamic parts"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                table_class = PrevDynamicParts
+                ex_table_name = "prev_dynamic_parts"
+                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], }
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
-                table_name = 'price_exception'
+                # table_name = 'price_exception'
+                sheet_name = "ИсключитьизПрайса"
                 table_class = PriceException
+                ex_table_name = "ИсключитьизПрайса"
                 cols = {"price_code": ["Код прайса"], "condition": ["Условие"], "find": ["Столбец поиска"],
                         "text": ["Текст"], "deny": ["Куда запрещено"], "extra": ["Примечание"], }
-                sheet_name = "ИсключитьизПрайса"
-                update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
@@ -1046,7 +1067,7 @@ class CatalogUpdate(QThread):
                             # print(list_name, table_name)
                             sheet_names.append(list_name)
 
-                table_name = 'orders'
+                # table_name = 'orders'
                 table_class = Orders
                 cols = {"order_time": ["Заказ"], "client": ["Клиент"], "auto": ["Автомат"], "manually": ["В ручную"],
                         "for_sort": ["Для сортировки"], "key_1_ord": ["Ключ1 в заказ"],
@@ -1061,7 +1082,7 @@ class CatalogUpdate(QThread):
 
                 for sheet_name in sheet_names:
                     # self.log.add(LOG_ID, sheet_name)
-                    update_catalog(sess, settings_data["orders"], cols, table_name, table_class, sheet_name=sheet_name,
+                    update_catalog(sess, settings_data["orders"], cols, table_class, sheet_name=sheet_name,
                                    del_table=False, skiprows=3, orders_table=True)
 
                 # Предложений опт
@@ -1763,8 +1784,9 @@ def get_catalogs_time_update():
         return None
 
 
-def update_catalog(ses, path_to_file, cols, table_name, table_class, sheet_name=0, del_table=True, skiprows=0, orders_table=False):
+def update_catalog(ses, path_to_file, cols, table_class, sheet_name=0, del_table=True, skiprows=0, orders_table=False):
     '''for varchar(x), real, numeric, integer'''
+    table_name = table_class.__tablename__
     con = ses.connection()
     pk = []
     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
@@ -1836,3 +1858,19 @@ def get_work_days(dt: datetime.datetime):
         dt = dt + datetime.timedelta(days=1)
 
     return work_days
+
+
+def get_tables_skip_row_dict(path_to_file):
+    workbook = openpyxl.load_workbook(filename=path_to_file)
+    tables_skip_rows_dict = dict()
+    for ws in workbook.worksheets:
+        for t in ws.tables:
+            # print(t)
+            table = ws.tables[t]
+            # print(table)
+            # print(ws.title)
+            # print(table.ref)
+            skip_r = int(''.join(filter(str.isdigit, (str(table.ref).split(':')[0])))) - 1
+            tables_skip_rows_dict[t] = skip_r
+
+    return tables_skip_rows_dict
