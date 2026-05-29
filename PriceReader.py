@@ -164,7 +164,7 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['1BEG BERG.xlsx']
+                # new_files = ['0PAR Прайс-лист удобный XLSX ORION KRR.xlsx']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -963,11 +963,11 @@ class MainWorker(QThread):
                        "Количество поставщика": self.TmpPrice_1.count_s.__dict__['name'],
                        "Цена поставщика": self.TmpPrice_1.price_s.__dict__['name'],
                        "Валюта поставщика": self.TmpPrice_1.currency_s.__dict__['name'], }
-        change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), '^{}'],
-                        "Содержит": [lambda tb, x: tb.contains(x), '{}'],
-                        "Заканчивается на": [lambda tb, x: tb.endswith(x), '{}$'],
-                        "Равно": [lambda tb, x: tb == x, '{}$'],
-                        "Не равно": [lambda tb, x: tb != x, '{}$'],
+        change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), r'^{}'],
+                        "Содержит": [lambda tb, x: tb.contains(x), r'{}'],
+                        "Заканчивается на": [lambda tb, x: tb.endswith(x), r'{}$'],
+                        "Равно": [lambda tb, x: tb == x, r'{}$'],
+                        "Не равно": [lambda tb, x: tb != x, r'{}$'],
                         "Добавить в конце": True,
                         "Добавить в начале": True,
                         }
@@ -979,9 +979,13 @@ class MainWorker(QThread):
             change_type = change_types.get(cs.change_type, None)
             set_col_name = cols_name_set.get(cs.col_change, None)
             find_col_name = cols_name_find.get(cs.col_find, None)
-            # print(f"{change_type}|{col_name}")
+            # print(f"{change_type}|{set_col_name}|{find_col_name}")
             if change_type and set_col_name and find_col_name:  # Производитель поставщика: Цена поставщика р. (Количество поставщика шт.)
                 # print(change_type, set_col_name, find_col_name)
+                # for bad_char in ('(', ')', '_'):
+                # cs_find = str(cs.find).replace('(',r"\(").replace(')',r"\)").replace('_',r"\_")
+                # print(cs.find)
+                # print(cs_find)
                 if cs.change_type in ("Добавить в конце", "Добавить в начале"):
                     change = cs.set
                     not_null_check = "and "
@@ -1028,9 +1032,32 @@ class MainWorker(QThread):
                     ).values({set_col_name: 0 if not cs.set else int(cs.set)})
                     sess.execute(req)
                 else:
+                    # cnt = select(func.count()).select_from(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find))
+                    # r = sess.execute(cnt).scalar()
+                    # print(r)
+                    # print(change_type[1].format(cs_find))
+                    # print(change_type[1].format(cs.find))
+                    # if cs.find == '(':
+                    #     print(f'|{cs.find}|++++++++++++++')
+                    #     x = r"("
+                    #     req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
+                    #                                         ).values({set_col_name: find_col_name.regexp_replace(
+                    #         change_type[1].format(re.escape(x)), "" if not cs.set else cs.set)})
+                    #
+                    # if cs.find == '_':
+                    #     # pass
+                    #     print(f'|{cs.find}|++++++++++++++')
+                    #     # x = r"\_"
+                    #     x = r"_"
+                    #     req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
+                    #                                         ).values({set_col_name: find_col_name.regexp_replace(
+                    #         change_type[1].format(re.escape(x)), "" if not cs.set else cs.set)})
+                    # else:
+                    #     x = cs.find
                     req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
-                    ).values({set_col_name: find_col_name.
-                             regexp_replace(change_type[1].format(cs.find), "" if not cs.set else cs.set)})
+                    ).values({set_col_name: find_col_name.regexp_replace(change_type[1].format(re.escape(cs.find)), "" if not cs.set else cs.set)})
+                    # req = update(self.TmpPrice_1).where(self.TmpPrice_1.name_s.startswith('(')).values(_03name=self.TmpPrice_1.name_s.regexp_replace('^\(', ''))
+                    # print(find_col_name, change_type[1].format(cs_find))
                     sess.execute(req)
 
     def words_except(self, sess, price_code):
