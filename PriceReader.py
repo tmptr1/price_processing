@@ -984,6 +984,7 @@ class MainWorker(QThread):
                 # print(change_type, set_col_name, find_col_name)
                 # for bad_char in ('(', ')', '_'):
                 # cs_find = str(cs.find).replace('(',r"\(").replace(')',r"\)").replace('_',r"\_")
+                # cs_find = str(cs.find).replace('(',r"[(]").replace(')',r"[)]").replace('_',r"[_]")
                 # print(cs.find)
                 # print(cs_find)
                 if cs.change_type in ("Добавить в конце", "Добавить в начале"):
@@ -1054,10 +1055,12 @@ class MainWorker(QThread):
                     #         change_type[1].format(re.escape(x)), "" if not cs.set else cs.set)})
                     # else:
                     #     x = cs.find
-                    req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
+                    cs_find = str(cs.find).replace('_',r"\_")
+                    req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs_find)
                     ).values({set_col_name: find_col_name.regexp_replace(change_type[1].format(re.escape(cs.find)), "" if not cs.set else cs.set)})
                     # req = update(self.TmpPrice_1).where(self.TmpPrice_1.name_s.startswith('(')).values(_03name=self.TmpPrice_1.name_s.regexp_replace('^\(', ''))
                     # print(find_col_name, change_type[1].format(cs_find))
+                    # print(req.compile(compile_kwargs={"literal_binds": True},))
                     sess.execute(req)
 
     def words_except(self, sess, price_code):
