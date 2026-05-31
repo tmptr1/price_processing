@@ -1055,7 +1055,7 @@ class MainWorker(QThread):
                     #         change_type[1].format(re.escape(x)), "" if not cs.set else cs.set)})
                     # else:
                     #     x = cs.find
-                    cs_find = str(cs.find).replace('_',r"\_")
+                    cs_find = str(cs.find).replace("\\", "\\\\").replace('_', r"\_").replace('%', r"\%")
                     req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs_find)
                     ).values({set_col_name: find_col_name.regexp_replace(change_type[1].format(re.escape(cs.find)), "" if not cs.set else cs.set)})
                     # req = update(self.TmpPrice_1).where(self.TmpPrice_1.name_s.startswith('(')).values(_03name=self.TmpPrice_1.name_s.regexp_replace('^\(', ''))

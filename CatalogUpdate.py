@@ -1370,7 +1370,7 @@ def cols_fix(sess):
                 sess.execute(req)
             else:
                 # print(cs.price_code, cs.find, cs.change_type, cs.col_find)
-                cs_find = str(cs.find).replace('_', r"\_")
+                cs_find = str(cs.find).replace("\\", "\\\\").replace('_', r"\_").replace('%', r"\%")
                 req = update(TotalPrice_2).where(and_(change_type[0](func.upper(find_col_name), cs_find), TotalPrice_2._07supplier_code == cs.price_code)
                 ).values({set_col_name: find_col_name.regexp_replace(change_type[1].format(re.escape(cs.find)), "" if not cs.set else cs.set)})
                 sess.execute(req)
