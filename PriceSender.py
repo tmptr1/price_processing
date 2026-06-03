@@ -962,11 +962,11 @@ class Sender(QThread):
 
         ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
+        self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
         if min_rating:
             # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
             # if self.del_min_r:  # для оптимизации
             #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()
-            #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
             self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.rating < min_rating, 'Лимит строк')
             if self.del_min_r:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
