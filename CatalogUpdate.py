@@ -998,8 +998,7 @@ class CatalogUpdate(QThread):
                                                          TotalPrice_2.currency_s == None,
                                                          TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                          ColsFix.find != None)).values(
-                _05price=TotalPrice_2._05price * (
-                            1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
+                _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
                 _05price_plus=None))
 
             conditions = [(and_(TotalPrice_2._04count > 0, TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count),
