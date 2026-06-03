@@ -128,9 +128,9 @@ class Sender(QThread):
                                     pass
 
                 # Для тестов:
-                price_name_list = []
-                if self.therad_id==0:
-                    price_name_list = [8]
+                # price_name_list = []
+                # if self.therad_id==0:
+                #     price_name_list = [8]
 
 
                 self.cur_file_count = 0
@@ -962,7 +962,7 @@ class Sender(QThread):
 
         ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
-        self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
+        # self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
         self.del_min_r = 0
         if min_rating:
             # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
@@ -970,7 +970,7 @@ class Sender(QThread):
             #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()
             self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.rating < min_rating, 'Лимит строк')
             if self.del_min_r:
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
+                self.add_log(self.price_settings.buyer_price_code, f"Удалено [pre]: {self.del_min_r} (Лимит строк)")
 
             # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()  # для оптимизации
             # self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
@@ -1054,24 +1054,20 @@ class Sender(QThread):
             limit = CHUNKSIZE
             if self.price_settings.max_rows == loaded:
                 loaded_to_del = loaded
-                self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
+                # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
                 while True:
-                    # cnt_to_del = sess.execute(select(func.count(self.FinalPriceTmp.id)).order_by(self.FinalPriceTmp.rating.desc(),
-                    #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)).scalar()
-                    # self.add_log(self.price_settings.buyer_price_code, f"{cnt_to_del=}")
                     id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
                                                                        self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
                     # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
                     del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
-                    self.add_log(self.price_settings.buyer_price_code, f"{del_min_r_2=}")
                     if del_min_r_2:
                         self.del_min_r += del_min_r_2
                         loaded_to_del += del_min_r_2
                     else:
                         break
 
-                if del_min_r_2:
-                    self.add_log(self.price_settings.buyer_price_code, f"Удалено: {del_min_r_2} (Лимит строк)")
+                if self.del_min_r:
+                    self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
 
 
             shutil.copy(fr"{csv_path}/_{self.file_name}", fr"{settings_data['send_dir']}/{self.file_name}")
