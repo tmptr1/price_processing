@@ -1051,9 +1051,14 @@ class Sender(QThread):
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
                           errors='ignore')
 
+            limit = CHUNKSIZE
             if self.price_settings.max_rows == loaded:
                 loaded_to_del = loaded
+                self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
                 while True:
+                    cnt_to_del = sess.execute(select(func.count(self.FinalPriceTmp.id)).order_by(self.FinalPriceTmp.rating.desc(),
+                                                                       self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)).scalar()
+                    self.add_log(self.price_settings.buyer_price_code, f"{cnt_to_del=}")
                     id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
                                                                        self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
                     # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
