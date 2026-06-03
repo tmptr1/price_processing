@@ -1042,6 +1042,7 @@ class Sender(QThread):
 
                 df_len = len(df)
 
+                loaded += df_len
                 if not df_len:
                     break
 
@@ -1049,7 +1050,6 @@ class Sender(QThread):
                 df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
                           sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
                           errors='ignore')
-                loaded += df_len
 
             if self.price_settings.max_rows == loaded:
                 loaded_to_del = loaded
