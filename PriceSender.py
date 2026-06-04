@@ -1054,34 +1054,41 @@ class Sender(QThread):
 
             limit = CHUNKSIZE
             if self.price_settings.max_rows == loaded:
-                # loaded_to_del = loaded
-                # # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
-                # while True:
-                #     # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
-                #     #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
-                #     # # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
-                #     # del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
-                #     id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(),
-                #                                                        self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
-                #     del_min_r_2 = self.add_dels_in_history(sess, id_to_del.exists(),'Лимит строк')
-                #     if del_min_r_2:
-                #         self.del_min_r += del_min_r_2
-                #         loaded_to_del += del_min_r_2
-                #     else:
-                #         break
-                #
-                #     if del_min_r_2 < limit:
-                #         break
+                loaded_to_del = loaded
                 # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
+                while True:
+                    # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
+                    #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
+                    # # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
+                    # del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
+                    # ==========
+                    # id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(),
+                    #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
+                    # del_min_r_2 = self.add_dels_in_history(sess, id_to_del.exists(),'Лимит строк')
+                    # =============
+                    id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
+                                                                       self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
+                    result_del = list(sess.scalars(id_to_del).all())
+                    self.add_log(self.price_settings.buyer_price_code, f"LN del: {len(result_del)}")
+                    del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(result_del),'Лимит строк')
+                    if del_min_r_2:
+                        self.del_min_r += del_min_r_2
+                        loaded_to_del += del_min_r_2
+                    else:
+                        break
 
-                id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded)
-                del_min_r_2 = self.add_dels_in_history(sess, ~id_to_del.exists(),'Лимит строк')
-                self.add_log(self.price_settings.buyer_price_code, f"{del_min_r_2=}")
-                if del_min_r_2:
-                    self.del_min_r += del_min_r_2
+                    if del_min_r_2 < limit:
+                        break
+                self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
 
-                if self.del_min_r:
-                    self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
+                # id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded)
+                # del_min_r_2 = self.add_dels_in_history(sess, ~id_to_del.exists(),'Лимит строк')
+                # self.add_log(self.price_settings.buyer_price_code, f"{del_min_r_2=}")
+                # if del_min_r_2:
+                #     self.del_min_r += del_min_r_2
+                #
+                # if self.del_min_r:
+                #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
 
 
             shutil.copy(fr"{csv_path}/_{self.file_name}", fr"{settings_data['send_dir']}/{self.file_name}")
