@@ -1071,6 +1071,7 @@ class Sender(QThread):
                     result_del = list(sess.scalars(id_to_del).all())
                     self.add_log(self.price_settings.buyer_price_code, f"LN del: {len(result_del)}")
                     del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(result_del),'Лимит строк')
+                    sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(result_del)).delete()
                     if del_min_r_2:
                         self.del_min_r += del_min_r_2
                         loaded_to_del += del_min_r_2
