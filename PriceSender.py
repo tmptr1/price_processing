@@ -1059,36 +1059,36 @@ class Sender(QThread):
                 total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
                 self.add_log(self.price_settings.buyer_price_code, f"start: {loaded_to_del=}, T: {total_rows=}")
                 # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
-                while True:
-                    self.add_log(self.price_settings.buyer_price_code, f"W: {loaded_to_del=}")
-                    # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
-                    #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
-                    # # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
-                    # del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
-                    # ==========
-                    # id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(),
-                    #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
-                    # del_min_r_2 = self.add_dels_in_history(sess, id_to_del.exists(),'Лимит строк')
-                    # =============
-                    id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
-                                                                       self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
-                    result_del = list(sess.scalars(id_to_del).all())
-                    del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(result_del),'Лимит строк')
-
-                    total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
-                    self.add_log(self.price_settings.buyer_price_code, f"LN del: {len(result_del)}, {del_min_r_2=}, T: {total_rows=}")
-                    # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(result_del)).delete()
-                    if del_min_r_2:
-                        self.del_min_r += del_min_r_2
-                        loaded_to_del += del_min_r_2
-                    else:
-                        break
-
-                    if del_min_r_2 < limit:
-                        break
+                # while True:
+                self.add_log(self.price_settings.buyer_price_code, f"W: {loaded_to_del=}")
+                # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
+                #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
+                # # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
+                # del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
+                # ==========
+                # id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(),
+                #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
+                # del_min_r_2 = self.add_dels_in_history(sess, id_to_del.exists(),'Лимит строк')
+                # =============
+                id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
+                                                                   self.FinalPriceTmp.art_brand_07).offset(loaded_to_del)#.limit(limit)
+                # result_del = list(sess.scalars(id_to_del).all())
+                del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
 
                 total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
-                self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}, T: {total_rows=}")
+                self.add_log(self.price_settings.buyer_price_code, f"LN del: {del_min_r_2=}, T: {total_rows=}")
+                    # # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(result_del)).delete()
+                    # if del_min_r_2:
+                    #     self.del_min_r += del_min_r_2
+                    #     loaded_to_del += del_min_r_2
+                    # else:
+                    #     break
+                    #
+                    # if del_min_r_2 < limit:
+                    #     break
+
+                # total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
+                # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}, T: {total_rows=}")
 
                 # id_to_del = sess.query(self.FinalPriceTmp).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded)
                 # del_min_r_2 = self.add_dels_in_history(sess, ~id_to_del.exists(),'Лимит строк')
