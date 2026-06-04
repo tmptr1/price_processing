@@ -391,6 +391,7 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
             self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
             self.create_csv(sess)
+            sess.flush()
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
             self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
@@ -1055,8 +1056,10 @@ class Sender(QThread):
             limit = CHUNKSIZE
             if self.price_settings.max_rows == loaded:
                 loaded_to_del = loaded
+                self.add_log(self.price_settings.buyer_price_code, f"start: {loaded_to_del=}")
                 # self.add_log(self.price_settings.buyer_price_code, f"{loaded_to_del=}")
                 while True:
+                    self.add_log(self.price_settings.buyer_price_code, f"W: {loaded_to_del=}")
                     # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
                     #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
                     # # sess.execute(delete(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(id_to_del)))
@@ -1069,9 +1072,9 @@ class Sender(QThread):
                     id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
                                                                        self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
                     result_del = list(sess.scalars(id_to_del).all())
-                    self.add_log(self.price_settings.buyer_price_code, f"LN del: {len(result_del)}")
                     del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(result_del),'Лимит строк')
-                    sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(result_del)).delete()
+                    self.add_log(self.price_settings.buyer_price_code, f"LN del: {len(result_del)}, {del_min_r_2=}")
+                    # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.id.in_(result_del)).delete()
                     if del_min_r_2:
                         self.del_min_r += del_min_r_2
                         loaded_to_del += del_min_r_2
