@@ -87,7 +87,7 @@ class SupplierPriceSettings(Base):
     # Отсрочка real,
     delay: Mapped[real]
     # Наценка_для_ОС real,
-    markup_os: Mapped[real]
+    # markup_os: Mapped[real]
     # Процент_изменения_строк real,
     row_change_percent: Mapped[real]
     # Процент_изменения_цены real,
@@ -1556,6 +1556,8 @@ class SuppliersForm(Base):
     __tablename__ = "suppliers_form"
     id: Mapped[intpk]
     rating: Mapped[real]
+    supplier_min_lot_int: Mapped[real]
+    supplier_weekend_min_lot_int: Mapped[real]
     price_age_for_notification_hours: Mapped[real]
     price_update_notification_emails: Mapped[str_x(150)]
     setting: Mapped[str_x(20)]

@@ -6,7 +6,7 @@ import traceback
 import datetime
 import random
 import os
-from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect
+from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 import numpy as np
@@ -14,11 +14,13 @@ import pandas as pd
 # from python_calamine.pandas import pandas_monkeypatch
 # pd.set_option('future.no_silent_downcasting', True)
 import warnings
+import holidays
+import holidays_ru
 warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base2, Base2_1, Price_2, Price_2_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings,
-                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings)
+                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings, SuppliersForm)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -111,7 +113,7 @@ class CalculateClass(QThread):
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv', 'АСТФ.csv','АСТ6.csv','1BEG.csv','АСТ4.csv','АСТ0.csv','0PAR.csv','АКД1.csv',
                 #              '1LAM.csv','КОПТ.csv']
-                # new_files = ['АКД1.csv',]
+                # new_files = ['1LAM.csv',]
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -274,23 +276,18 @@ class CalculateClass(QThread):
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
                 cur_time = datetime.datetime.now()
 
-                sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
-                             .values(_06mult_new=self.TmpPrice_2._06mult))
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
-                                                        self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count))
-                             .values(_06mult_new=self.TmpPrice_2._04count))
-
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None)
-                             .values(_06mult_new=func.ceil(func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
-
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
-                             values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
+                self.set_mult(sess, price_code)
+                self.set_price(sess)
+                # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
+                #              values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
+                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
 
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
 
                 sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
+
+                self.set_lot(sess, price_code)
 
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.count < self.TmpPrice_2._06mult_new).values(mult_less='-'))
 
@@ -387,6 +384,85 @@ class CalculateClass(QThread):
 
         return dup_del
 
+
+    def set_mult(self, sess, price_code):
+        next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+        if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
+            max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
+                where(SuppliersForm.setting == price_code)).scalar()
+        else:
+            max_lot = sess.execute(select(SuppliersForm.supplier_min_lot_int).where(SuppliersForm.setting == price_code)).scalar()
+
+        mult_conds = [
+            (max_lot == 0, self.TmpPrice_2._06mult),
+            (and_(self.TmpPrice_2._06mult_new == None, max_lot > self.TmpPrice_2._05price * self.TmpPrice_2._04count),
+             self.TmpPrice_2._04count)
+        ]
+        sess.execute(update(self.TmpPrice_2).values(_06mult_new=case(*mult_conds, else_=func.ceil(
+            func.greatest(self.TmpPrice_2._06mult, max_lot / self.TmpPrice_2._05price)))))
+
+
+        # sess.execute(update(self.TmpPrice_2).where(or_(self.TmpPrice_2.markup_holidays == None, self.TmpPrice_2.markup_holidays == 0))
+        #              .values(_06mult_new=self.TmpPrice_2._06mult))
+        # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new == None,
+        #                                                 self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count))
+        #              .values(_06mult_new=self.TmpPrice_2._04count))
+        #
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new == None).values(_06mult_new=func.ceil(
+        #     func.greatest(self.TmpPrice_2._06mult, self.TmpPrice_2.markup_holidays / self.TmpPrice_2._05price))))
+
+
+
+
+    def set_price(self, sess):
+        price_plus_cond = [
+            (and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count,
+                 self.TmpPrice_2._04count > 0),
+                self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count
+             )
+        ]
+        # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count,
+        #          self.TmpPrice_2._04count > 0)).values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
+        sess.execute(update(self.TmpPrice_2).values(_05price_plus=case(*price_plus_cond, else_=self.TmpPrice_2._05price)))
+
+        # sess.execute(update(self.TmpPrice_2).values(_05price_plus=self.TmpPrice_2._05price))
+
+    def set_lot(self, sess, price_code):
+        max_lot = sess.execute(select(func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)).
+                               where(SupplierPriceSettings.price_code == price_code)).scalar()
+        # print(price_settings.supplier_lot)
+        # print(price_settings.convenient_lot)
+        # print(max_lot)
+        # max_lot =
+        # mult_cond = [
+        #     (func.ceil(max_lot / self.TmpPrice_2._05price_plus) <= self.TmpPrice_2._04count,
+        #      func.ceil(max_lot / self.TmpPrice_2._05price_plus))
+        # ]
+        # price_cond = [
+        #     (func.ceil(max_lot / self.TmpPrice_2._05price_plus) > self.TmpPrice_2._04count,
+        #      max_lot)
+        # ]
+        # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot).
+        #              values(_06mult_new=case(*mult_cond), _05price_plus=case(*price_cond)))
+
+        m_count = sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot,
+                                                        self.TmpPrice_2._05price_plus * self.TmpPrice_2._04count >= max_lot)).
+                     values(_06mult_new=func.ceil(max_lot / self.TmpPrice_2._05price_plus))).rowcount
+                                                        # func.ceil(max_lot / self.TmpPrice_2._05price_plus) <= self.TmpPrice_2._04count)).
+                     # values(_06mult_new=func.ceil(max_lot / self.TmpPrice_2._05price_plus)))
+
+        price_cond = [
+            (max_lot / self.TmpPrice_2._06mult_new >= self.TmpPrice_2._05price_plus,
+             max_lot / self.TmpPrice_2._06mult_new)
+        ]
+        p_count = sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot).
+            values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
+
+        if p_count or m_count:
+            self.add_log(self.file_size_type, price_code, f"Корректировка под лот: {m_count} (кратность), {p_count} (цена)")
+
+
     def create_csv(self, sess, price_code, start_time):
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Формирование csv ...', False)
 
@@ -400,8 +476,7 @@ class CalculateClass(QThread):
                                            "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
                                            "17КодУникальности", "18КороткоеНаименование",
                                            "20ИслючитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
-                                           "Наценка для ОС", "Наценка Р",
-                                           "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градации",
+                                           "Наценка Р", "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градации",
                                            "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
                                            "ЦенаБ", "Кол-во", "06Кратность", "Кратность меньше", "05Цена+",
                                            "Количество закупок", "% Отгрузки",
