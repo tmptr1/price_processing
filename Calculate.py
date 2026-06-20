@@ -395,7 +395,8 @@ class CalculateClass(QThread):
 
         mult_conds = [
             (max_lot == 0, self.TmpPrice_2._06mult),
-            (max_lot > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count)
+            (and_(max_lot > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count > 0),
+             self.TmpPrice_2._04count)
         ]
         sess.execute(update(self.TmpPrice_2).values(_06mult_new=case(*mult_conds, else_=func.ceil(
             func.greatest(self.TmpPrice_2._06mult, max_lot / self.TmpPrice_2._05price)))))
