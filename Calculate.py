@@ -395,8 +395,7 @@ class CalculateClass(QThread):
 
         mult_conds = [
             (max_lot == 0, self.TmpPrice_2._06mult),
-            (and_(self.TmpPrice_2._06mult_new == None, max_lot > self.TmpPrice_2._05price * self.TmpPrice_2._04count),
-             self.TmpPrice_2._04count)
+            (max_lot > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count)
         ]
         sess.execute(update(self.TmpPrice_2).values(_06mult_new=case(*mult_conds, else_=func.ceil(
             func.greatest(self.TmpPrice_2._06mult, max_lot / self.TmpPrice_2._05price)))))
@@ -446,8 +445,14 @@ class CalculateClass(QThread):
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot).
         #              values(_06mult_new=case(*mult_cond), _05price_plus=case(*price_cond)))
 
+        # mult_cond = [
+        #     (and_(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot,
+        #           self.TmpPrice_2._05price_plus * self.TmpPrice_2._04count >= max_lot),
+        #      func.ceil(max_lot / self.TmpPrice_2._05price_plus))
+        # ]
         m_count = sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._06mult_new * self.TmpPrice_2._05price_plus < max_lot,
-                                                        self.TmpPrice_2._05price_plus * self.TmpPrice_2._04count >= max_lot)).
+                                    self.TmpPrice_2._05price_plus * self.TmpPrice_2._04count >= max_lot,
+                                    func.ceil(max_lot / self.TmpPrice_2._05price_plus) >= 1)).
                      values(_06mult_new=func.ceil(max_lot / self.TmpPrice_2._05price_plus))).rowcount
                                                         # func.ceil(max_lot / self.TmpPrice_2._05price_plus) <= self.TmpPrice_2._04count)).
                      # values(_06mult_new=func.ceil(max_lot / self.TmpPrice_2._05price_plus)))
