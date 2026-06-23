@@ -339,7 +339,7 @@ class Sender(QThread):
             # del_put_away_zp = sess.query(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.put_away_zp!=None, self.FinalPriceTmp.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")))
             # del_put_away_zp
 
-            cnt = self.add_dels_in_history(sess, and_(self.FinalPriceTmp.put_away_zp!=None,
+            cnt = self.add_dels_in_history(sess, or_(self.FinalPriceTmp.put_away_zp == 'все',
                     self.FinalPriceTmp.put_away_zp.like(f"%{self.price_settings.zp_brands_setting}%")), 'УбратьЗП')
             if cnt:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {cnt} (УбратьЗП)")

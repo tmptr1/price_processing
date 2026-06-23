@@ -234,9 +234,9 @@ class CalculateClass(QThread):
                     markup_wh_goods=data7_set.markup_wholesale, grad_step=data7_set.grad_step, wh_step=data7_set.wholesale_step,
                     access_pp=data7_set.access_pp, unload_percent=data7_set.unload_percent))
                 # markup_os=data7_set.markup_os
-                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
+                sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"regexp_replace(upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
-                                                                                    f"{self.TmpPrice_2._02brand.__dict__['name']}))")))
+                                                                                    f"{self.TmpPrice_2._02brand.__dict__['name']})), ' ', '', 'g')")))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
                              values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
 

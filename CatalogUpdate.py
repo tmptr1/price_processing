@@ -73,6 +73,7 @@ class CatalogUpdate(QThread):
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
                 # self.update_DB_4()
+                # return
 
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
@@ -752,6 +753,7 @@ class CatalogUpdate(QThread):
                 ex_table_name = "_09Данные"
                 cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                sess.execute(update(Data09).where(Data09.put_away_zp.is_(None)).values(put_away_zp='все'))
 
                 # table_name = 'buy_for_os'
                 sheet_name = "Закупки для ОС"
