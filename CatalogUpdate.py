@@ -702,6 +702,7 @@ class CatalogUpdate(QThread):
                 table_class = CrossBrandTypeMarkupPct
                 cols = {"customer_brand_alias": ["customer_brand_alias"], "supplier_price_code": ["supplier_price_code"],
                         "normalized_brand": ["normalized_brand"], "customer_price_code": ["customer_price_code"],
+                        "direct_supplier_customer_markup_pct": ["direct_supplier_customer_markup_pct"],
                         "short_name": ["short_name"], "customer_brand": ["customer_brand"], "floor_markup_pct": ["floor_markup_pct"],
                         "starting_markup_pct": ["starting_markup_pct"], "grad_step_pct": ["grad_step_pct"],
                         "unique_starting_markup_pct": ["unique_starting_markup_pct"],

@@ -195,6 +195,7 @@ class Price_1(Base1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
@@ -254,6 +255,7 @@ class Price_1_1(Base1_1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
@@ -315,6 +317,7 @@ class TotalPrice_1(Base):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _12sum: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
@@ -370,6 +373,7 @@ class Price_2(Base2):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     # _07Код_поставщика varchar(150),
@@ -493,6 +497,7 @@ class Price_2_2(Base2_1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     # _07Код_поставщика varchar(150),
@@ -619,6 +624,7 @@ class TotalPrice_2(Base):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _06Кратность_ REAL,
     _06mult: Mapped[intgr]
     # _07Код_поставщика varchar(150),
@@ -997,6 +1003,7 @@ class FinalPrice(Base3):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # _06Кратность REAL,
@@ -1075,6 +1082,7 @@ class FinalPrice(Base3):
     # рейтинг
     rating: Mapped[real]
     floor_markup_pct: Mapped[real]
+    direct_supplier_customer_markup_pct: Mapped[real]
     opt_starting_markup_pct: Mapped[real]
     opt_grad_step_pct: Mapped[real]
     unique_starting_markup_pct: Mapped[real]
@@ -1126,6 +1134,7 @@ class FinalPrice_1(Base3_1):
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
     _05price: Mapped[numeric]
+    clear_price: Mapped[numeric]
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # _06Кратность REAL,
@@ -1204,6 +1213,7 @@ class FinalPrice_1(Base3_1):
     # рейтинг
     rating: Mapped[real]
     floor_markup_pct: Mapped[real]
+    direct_supplier_customer_markup_pct: Mapped[real]
     opt_starting_markup_pct: Mapped[real]
     opt_grad_step_pct: Mapped[real]
     unique_starting_markup_pct: Mapped[real]
@@ -1741,6 +1751,7 @@ class CrossBrandTypeMarkupPct(Base):
     supplier_price_code: Mapped[str_x(20)]
     normalized_brand: Mapped[str_x(256)]
     customer_price_code: Mapped[str_x(20)]
+    direct_supplier_customer_markup_pct: Mapped[real]
     short_name: Mapped[str_x(20)]
     customer_brand: Mapped[str_x(256)]
     floor_markup_pct: Mapped[real]

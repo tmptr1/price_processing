@@ -129,8 +129,8 @@ class Sender(QThread):
 
                 # Для тестов:
                 # price_name_list = []
-                # if self.therad_id==0:
-                #     price_name_list = [8]
+                # if self.therad_id == 0:
+                #     price_name_list = [9]
 
 
                 self.cur_file_count = 0
@@ -316,11 +316,11 @@ class Sender(QThread):
             cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                               TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
-                              TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2._05price_plus,
-                              TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code, TotalPrice_2.alternative_article,
-                              TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt,
-                              TotalPrice_2._17code_unique, TotalPrice_2._18short_name, TotalPrice_2.delay,
-                              TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
+                              TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2.clear_price,
+                              TotalPrice_2._05price_plus, TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code,
+                              TotalPrice_2.alternative_article, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in,
+                              TotalPrice_2._15code_optt, TotalPrice_2._17code_unique, TotalPrice_2._18short_name,
+                              TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
                               TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
                               TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
                               TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
@@ -376,6 +376,8 @@ class Sender(QThread):
             cur_time = datetime.datetime.now()
 
             self.price_check(sess)
+            self.set_direct_markup(sess)
+
             self.del_price_below_zero(sess)
 
             self.del_over_price_b(sess)
@@ -787,6 +789,7 @@ class Sender(QThread):
         sess.execute(update(self.FinalPriceTmp).where(and_(CrossBrandTypeMarkupPct.customer_price_code == self.price_settings.buyer_price_code,
                             CrossBrandTypeMarkupPct.supplier_price_code == self.FinalPriceTmp._07supplier_code,
                             CrossBrandTypeMarkupPct.normalized_brand == self.FinalPriceTmp._14brand_filled_in)).values(
+            direct_supplier_customer_markup_pct=CrossBrandTypeMarkupPct.direct_supplier_customer_markup_pct,
             floor_markup_pct=CrossBrandTypeMarkupPct.floor_markup_pct, opt_starting_markup_pct=CrossBrandTypeMarkupPct.opt_starting_markup_pct,
             opt_grad_step_pct=CrossBrandTypeMarkupPct.opt_grad_step_pct, unique_starting_markup_pct=CrossBrandTypeMarkupPct.unique_starting_markup_pct,
             unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias))
@@ -889,6 +892,10 @@ class Sender(QThread):
                                                           self.FinalPriceTmp.price, literal_column(f"now()"))
                .where(and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
 
+    def set_direct_markup(self, sess):
+        sess.execute(update(FinalPrice).where(FinalPrice.direct_supplier_customer_markup_pct!=0).
+                     values(price=FinalPrice.clear_price * (1+ FinalPrice.direct_supplier_customer_markup_pct)))
+
 
     def del_price_below_zero(self, sess):
         # self.price_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)),
@@ -981,7 +988,7 @@ class Sender(QThread):
         cols = [self.FinalPriceTmp.key1_s, self.FinalPriceTmp.article_s, self.FinalPriceTmp.brand_s, self.FinalPriceTmp.name_s, self.FinalPriceTmp.count_s,
                 self.FinalPriceTmp.price_s, self.FinalPriceTmp.currency_s, self.FinalPriceTmp.mult_s, self.FinalPriceTmp.notice_s, self.FinalPriceTmp._01article_comp,
                 self.FinalPriceTmp._01article, self.FinalPriceTmp._02brand, self.FinalPriceTmp.brand, self.FinalPriceTmp._03name_old, self.FinalPriceTmp._03name,
-                self.FinalPriceTmp._04count, self.FinalPriceTmp._05price, self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new,
+                self.FinalPriceTmp._04count, self.FinalPriceTmp._05price, self.FinalPriceTmp.clear_price, self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._06mult_new,
                 self.FinalPriceTmp._07supplier_code, self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
                 self.FinalPriceTmp._15code_optt, self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count, self.FinalPriceTmp.price,
                 self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.customer_brand_alias, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2]

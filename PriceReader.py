@@ -164,7 +164,7 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['АКД1 price_KRD1.xlsx']
+                # new_files = ['1МСК krasnodar_.xlsx']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -407,12 +407,13 @@ class MainWorker(QThread):
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 ...", False)
 
                 # 05Цена
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s))
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s,
+                                                                                                    clear_price=self.TmpPrice_1.price_s))
 
                 # для валют
                 sess.execute(update(self.TmpPrice_1).where(
                     and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
-                             .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate))
+                             .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate, clear_price=self.TmpPrice_1._05price * ExchangeRate.rate))
 
                 # 12Сумма
                 # numeric_max = 9999999999 # numeric 12,2
@@ -421,7 +422,7 @@ class MainWorker(QThread):
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.count_s * self.TmpPrice_1.price_s >= numeric_max).values(_12sum=numeric_max))
 
                 # Настройка строк: Вариант изменения цены
-                if sett.change_price_type in ("- X %", "+ X %"):
+                if sett.change_price_type in ("- X %", "+ X %", "- Х %", "+ Х %"):
                     percent = None
                     try:
                         percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
@@ -484,7 +485,7 @@ class MainWorker(QThread):
                                  "02Производитель": self.TmpPrice_1._02brand,
                                  "14Производитель заполнен": self.TmpPrice_1._14brand_filled_in,
                                  "03Наименование": self.TmpPrice_1._03name, "04Количество": self.TmpPrice_1._04count,
-                                 "05Цена": self.TmpPrice_1._05price, "06Кратность": self.TmpPrice_1._06mult,
+                                 "05Цена": self.TmpPrice_1._05price, "Чистая цена": self.TmpPrice_1.clear_price, "06Кратность": self.TmpPrice_1._06mult,
                                  "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
                                  "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
                                  "17КодУникальности": self.TmpPrice_1._17code_unique,
@@ -504,10 +505,10 @@ class MainWorker(QThread):
                                   self.TmpPrice_1.currency_s, self.TmpPrice_1.mult_s, self.TmpPrice_1.notice_s,
                                   self.TmpPrice_1._01article, self.TmpPrice_1._01article_comp, self.TmpPrice_1._02brand,
                                   self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name, self.TmpPrice_1._04count,
-                                  self.TmpPrice_1._05price, self.TmpPrice_1._06mult, self.TmpPrice_1._15code_optt,
-                                  self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude, self.TmpPrice_1._13grad,
-                                  self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name, self.TmpPrice_1.tnved,
-                                  self.TmpPrice_1.okpd2]
+                                  self.TmpPrice_1._05price, self.TmpPrice_1.clear_price, self.TmpPrice_1._06mult,
+                                  self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude,
+                                  self.TmpPrice_1._13grad, self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name,
+                                  self.TmpPrice_1.tnved, self.TmpPrice_1.okpd2]
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
@@ -937,7 +938,7 @@ class MainWorker(QThread):
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(_02brand=SupplierGoodsFix.brand))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(_03name=SupplierGoodsFix.name))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.put_away_count != 0)).values(_04count=SupplierGoodsFix.put_away_count))
-            sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(_05price=SupplierGoodsFix.price_s))
+            sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(_05price=SupplierGoodsFix.price_s, clear_price=self.TmpPrice_1.price_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.mult_s != 0)).values(_06mult=SupplierGoodsFix.mult_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(_20exclude=SupplierGoodsFix.sales_ban))
 

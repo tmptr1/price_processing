@@ -20,7 +20,7 @@ warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base2, Base2_1, Price_2, Price_2_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings,
-                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings, SuppliersForm)
+                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings, SuppliersForm, FileSettings)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -113,7 +113,7 @@ class CalculateClass(QThread):
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv', 'АСТФ.csv','АСТ6.csv','1BEG.csv','АСТ4.csv','АСТ0.csv','0PAR.csv','АКД1.csv',
                 #              '1LAM.csv','КОПТ.csv']
-                # new_files = ['1LAM.csv',]
+                # new_files = ['1МСК.csv',]
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', ]
                 files = []
@@ -196,7 +196,7 @@ class CalculateClass(QThread):
                                   TotalPrice_1.count_s, TotalPrice_1.price_s, TotalPrice_1.currency_s, TotalPrice_1.mult_s,
                                   TotalPrice_1.notice_s, TotalPrice_1._01article, TotalPrice_1._01article_comp,
                                   TotalPrice_1._02brand, TotalPrice_1._14brand_filled_in, TotalPrice_1._03name,
-                                  TotalPrice_1._04count, TotalPrice_1._05price, TotalPrice_1._06mult,
+                                  TotalPrice_1._04count, TotalPrice_1._05price, TotalPrice_1.clear_price, TotalPrice_1._06mult,
                                   TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
                                   TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name,
                                   TotalPrice_1.tnved, TotalPrice_1.okpd2]
@@ -301,7 +301,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._01article_comp, self.TmpPrice_2._02brand,
                                   self.TmpPrice_2._03name, self.TmpPrice_2._04count, self.TmpPrice_2._05price,
-                                  self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
+                                  self.TmpPrice_2.clear_price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
@@ -415,16 +415,39 @@ class CalculateClass(QThread):
 
 
     def set_price(self, sess):
+
+        # Настройка строк: Вариант изменения цены
+        # sett = sess.execute(select(FileSettings).where(FileSettings.price_code==price_code)).scalar()
+        # percent = None
+        # if sett.change_price_type in ("- X %", "+ X %", "- Х %", "+ Х %"):
+        #     try:
+        #         percent = float(f"{sett.change_price_type[0]}{sett.change_price_val}")
+        #     except:
+        #         pass
+        #
+        # if percent:
+        #     sess.execute(update(self.TmpPrice_2).values(_05price_plus=self.TmpPrice_2._05price * (1 + percent)))
+        # else:
+        #     sess.execute(update(self.TmpPrice_2).values(_05price_plus=self.TmpPrice_2._05price))
+
+        # sess.execute(update(self.TmpPrice_2).where(
+        #     and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price_plus * self.TmpPrice_2._04count,
+        #          self.TmpPrice_2._04count > 0)).values(
+        #     _05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
+
+
         price_plus_cond = [
             (and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count,
                  self.TmpPrice_2._04count > 0),
                 self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count
              )
         ]
+        sess.execute(update(self.TmpPrice_2).values(_05price_plus=case(*price_plus_cond, else_=self.TmpPrice_2._05price)))
+
+
         # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count,
         #          self.TmpPrice_2._04count > 0)).values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
-        sess.execute(update(self.TmpPrice_2).values(_05price_plus=case(*price_plus_cond, else_=self.TmpPrice_2._05price)))
 
         # sess.execute(update(self.TmpPrice_2).values(_05price_plus=self.TmpPrice_2._05price))
 
@@ -477,7 +500,7 @@ class CalculateClass(QThread):
                                            "Наименование поставщика",
                                            "Количество поставщика", "Цена поставщика", "Кратность поставщика",
                                            "Примечание поставщика", "01Артикул", "02Производитель",
-                                           "03Наименование", "05Цена", "06Кратность-", "07Код поставщика",
+                                           "03Наименование", "05Цена", "Чистая цена", "06Кратность-", "07Код поставщика",
                                            "09Код + Поставщик + Товар", "Альтернативный артикул",
                                            "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
                                            "17КодУникальности", "18КороткоеНаименование",
@@ -497,7 +520,7 @@ class CalculateClass(QThread):
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
-                                  self.TmpPrice_2._05price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
+                                  self.TmpPrice_2._05price, self.TmpPrice_2.clear_price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
