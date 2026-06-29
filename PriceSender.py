@@ -811,10 +811,9 @@ class Sender(QThread):
                                 (self.FinalPriceTmp.unique_starting_markup_pct +
                                  (self.FinalPriceTmp.unique_grad_step_pct * self.FinalPriceTmp.grad_step))))),]
 
-        # nt = datetime.datetime.now()  where(self.FinalPriceTmp.price is not None)
         sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
-            price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct)))
+            price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
 
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
@@ -894,7 +893,7 @@ class Sender(QThread):
 
     def set_direct_markup(self, sess):
         sess.execute(update(FinalPrice).where(FinalPrice.direct_supplier_customer_markup_pct!=0).
-                     values(price=FinalPrice.clear_price * (1+ FinalPrice.direct_supplier_customer_markup_pct)))
+                     values(price=FinalPrice.clear_price * (1 + FinalPrice.direct_supplier_customer_markup_pct)))
 
 
     def del_price_below_zero(self, sess):
