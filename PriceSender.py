@@ -802,7 +802,10 @@ class Sender(QThread):
         #                                                                   (self.FinalPriceTmp.opt_grad_step_pct * self.FinalPriceTmp.grad_step))))
         # ))
 
-        conditions = [(self.FinalPriceTmp.offers_wh > 1,
+        conditions = [(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt,
+                       self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)
+                       ),
+                      (self.FinalPriceTmp.offers_wh > 1,
                        self.FinalPriceTmp._05price_plus * (1 + func.greatest(self.FinalPriceTmp.floor_markup_pct, (self.FinalPriceTmp.opt_starting_markup_pct +
                                                                            (self.FinalPriceTmp.opt_grad_step_pct * self.FinalPriceTmp.grad_step))))
                       ),
@@ -812,8 +815,8 @@ class Sender(QThread):
                                  (self.FinalPriceTmp.unique_grad_step_pct * self.FinalPriceTmp.grad_step))))),]
 
         sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
-        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
-            price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+        #     price=self.FinalPriceTmp.price * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
 
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
