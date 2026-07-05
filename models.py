@@ -1089,6 +1089,8 @@ class FinalPrice(Base3):
     unique_grad_step_pct: Mapped[real]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     customer_brand_alias: Mapped[str_x(256)]
+    customer_period_markup_pct: Mapped[real]
+    customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
 
@@ -1220,6 +1222,8 @@ class FinalPrice_1(Base3_1):
     unique_grad_step_pct: Mapped[real]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     customer_brand_alias: Mapped[str_x(256)]
+    customer_period_markup_pct: Mapped[real]
+    customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
 
@@ -1754,6 +1758,8 @@ class CrossBrandTypeMarkupPct(Base):
     direct_supplier_customer_markup_pct: Mapped[real]
     short_name: Mapped[str_x(20)]
     customer_brand: Mapped[str_x(256)]
+    customer_period_markup_pct: Mapped[real]
+    customer_min_markup_pct: Mapped[real]
     floor_markup_pct: Mapped[real]
     starting_markup_pct: Mapped[real]
     grad_step_pct: Mapped[real]
@@ -1768,4 +1774,5 @@ class PrevDynamicParts(Base):
     id: Mapped[intpk]
     code_optt: Mapped[str_x(256)]
     parts_markup_pct: Mapped[real]
+    store_price_rub: Mapped[numeric]
 

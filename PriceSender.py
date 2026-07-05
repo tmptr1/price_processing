@@ -157,7 +157,7 @@ class Sender(QThread):
                                 buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
                                                                                                                func.upper(BuyersForm.included) == 'ДА'))).scalar()
                                 sess.execute(update(PriceSendTime).where(PriceSendTime.price_code==buyer_price_code).
-                                             values(info_msg='Спам', send_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                                             values(info_msg='Спам', update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))  # было send_time
                                 sess.commit()
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()
@@ -792,7 +792,9 @@ class Sender(QThread):
             direct_supplier_customer_markup_pct=CrossBrandTypeMarkupPct.direct_supplier_customer_markup_pct,
             floor_markup_pct=CrossBrandTypeMarkupPct.floor_markup_pct, opt_starting_markup_pct=CrossBrandTypeMarkupPct.opt_starting_markup_pct,
             opt_grad_step_pct=CrossBrandTypeMarkupPct.opt_grad_step_pct, unique_starting_markup_pct=CrossBrandTypeMarkupPct.unique_starting_markup_pct,
-            unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias))
+            unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias,
+            customer_period_markup_pct=CrossBrandTypeMarkupPct.customer_period_markup_pct,
+            customer_min_markup_pct=CrossBrandTypeMarkupPct.customer_min_markup_pct,))
         # print('ok', datetime.datetime.now() - nt)
 
         # and_(self.FinalPriceTmp.offers_wh > 1,
@@ -812,8 +814,11 @@ class Sender(QThread):
                                  (self.FinalPriceTmp.unique_grad_step_pct * self.FinalPriceTmp.grad_step))))),]
 
         sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+        #     price=self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
-            price=self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
+            price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct + self.FinalPriceTmp.customer_period_markup_pct),
+                                PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct))))
 
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):

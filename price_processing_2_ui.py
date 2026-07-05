@@ -15,10 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QCheckBox, QFrame,
-    QGridLayout, QGroupBox, QHBoxLayout, QHeaderView,
-    QLabel, QMainWindow, QMenuBar, QProgressBar,
-    QPushButton, QSizePolicy, QSpacerItem, QSpinBox,
+from PySide6.QtWidgets import (QAbstractScrollArea, QApplication, QCheckBox, QComboBox,
+    QFormLayout, QFrame, QGridLayout, QGroupBox,
+    QHBoxLayout, QHeaderView, QLabel, QLineEdit,
+    QMainWindow, QMenuBar, QProgressBar, QPushButton,
+    QRadioButton, QSizePolicy, QSpacerItem, QSpinBox,
     QStatusBar, QTabWidget, QTableView, QTextBrowser,
     QTimeEdit, QVBoxLayout, QWidget)
 
@@ -26,7 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1113, 927)
+        MainWindow.resize(1113, 879)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.gridLayout = QGridLayout(self.centralwidget)
@@ -888,6 +889,347 @@ class Ui_MainWindow(object):
         self.gridLayout_16.addLayout(self.verticalLayout_9, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_5, "")
+        self.tab_6 = QWidget()
+        self.tab_6.setObjectName(u"tab_6")
+        self.gridLayout_19 = QGridLayout(self.tab_6)
+        self.gridLayout_19.setObjectName(u"gridLayout_19")
+        self.verticalLayout_14 = QVBoxLayout()
+        self.verticalLayout_14.setObjectName(u"verticalLayout_14")
+        self.horizontalLayout_29 = QHBoxLayout()
+        self.horizontalLayout_29.setObjectName(u"horizontalLayout_29")
+        self.CreateButton_5 = QPushButton(self.tab_6)
+        self.CreateButton_5.setObjectName(u"CreateButton_5")
+
+        self.horizontalLayout_29.addWidget(self.CreateButton_5)
+
+        self.NeedToSend_checkBox_5 = QCheckBox(self.tab_6)
+        self.NeedToSend_checkBox_5.setObjectName(u"NeedToSend_checkBox_5")
+        font2 = QFont()
+        font2.setPointSize(10)
+        self.NeedToSend_checkBox_5.setFont(font2)
+
+        self.horizontalLayout_29.addWidget(self.NeedToSend_checkBox_5)
+
+        self.horizontalSpacer_39 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_29.addItem(self.horizontalSpacer_39)
+
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_29)
+
+        self.horizontalLayout_28 = QHBoxLayout()
+        self.horizontalLayout_28.setObjectName(u"horizontalLayout_28")
+        self.horizontalSpacer_41 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_28.addItem(self.horizontalSpacer_41)
+
+        self.verticalLayout_10 = QVBoxLayout()
+        self.verticalLayout_10.setObjectName(u"verticalLayout_10")
+        self.morning_checkBox = QCheckBox(self.tab_6)
+        self.morning_checkBox.setObjectName(u"morning_checkBox")
+        self.morning_checkBox.setFont(font2)
+
+        self.verticalLayout_10.addWidget(self.morning_checkBox)
+
+        self.evening_checkBox = QCheckBox(self.tab_6)
+        self.evening_checkBox.setObjectName(u"evening_checkBox")
+        self.evening_checkBox.setFont(font2)
+
+        self.verticalLayout_10.addWidget(self.evening_checkBox)
+
+
+        self.horizontalLayout_28.addLayout(self.verticalLayout_10)
+
+        self.horizontalSpacer_38 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_28.addItem(self.horizontalSpacer_38)
+
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_28)
+
+        self.verticalSpacer_14 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_14.addItem(self.verticalSpacer_14)
+
+        self.verticalLayout_13 = QVBoxLayout()
+        self.verticalLayout_13.setObjectName(u"verticalLayout_13")
+        self.groupBox_4 = QGroupBox(self.tab_6)
+        self.groupBox_4.setObjectName(u"groupBox_4")
+        font3 = QFont()
+        font3.setPointSize(12)
+        self.groupBox_4.setFont(font3)
+        self.gridLayout_17 = QGridLayout(self.groupBox_4)
+        self.gridLayout_17.setObjectName(u"gridLayout_17")
+        self.verticalLayout_12 = QVBoxLayout()
+        self.verticalLayout_12.setObjectName(u"verticalLayout_12")
+        self.horizontalLayout_34 = QHBoxLayout()
+        self.horizontalLayout_34.setObjectName(u"horizontalLayout_34")
+        self.GetPathChose_1_radioButton = QRadioButton(self.groupBox_4)
+        self.GetPathChose_1_radioButton.setObjectName(u"GetPathChose_1_radioButton")
+        self.GetPathChose_1_radioButton.setFont(font2)
+
+        self.horizontalLayout_34.addWidget(self.GetPathChose_1_radioButton)
+
+        self.default_get_path_lineEdit = QLineEdit(self.groupBox_4)
+        self.default_get_path_lineEdit.setObjectName(u"default_get_path_lineEdit")
+        self.default_get_path_lineEdit.setFont(font2)
+        self.default_get_path_lineEdit.setReadOnly(True)
+
+        self.horizontalLayout_34.addWidget(self.default_get_path_lineEdit)
+
+        self.OpenGetDir_pushButton_5 = QPushButton(self.groupBox_4)
+        self.OpenGetDir_pushButton_5.setObjectName(u"OpenGetDir_pushButton_5")
+        self.OpenGetDir_pushButton_5.setFont(font2)
+        self.OpenGetDir_pushButton_5.setIcon(icon1)
+
+        self.horizontalLayout_34.addWidget(self.OpenGetDir_pushButton_5)
+
+        self.horizontalSpacer_45 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_34.addItem(self.horizontalSpacer_45)
+
+        self.horizontalLayout_34.setStretch(1, 2)
+        self.horizontalLayout_34.setStretch(3, 1)
+
+        self.verticalLayout_12.addLayout(self.horizontalLayout_34)
+
+        self.horizontalLayout_37 = QHBoxLayout()
+        self.horizontalLayout_37.setObjectName(u"horizontalLayout_37")
+        self.horizontalSpacer_48 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_37.addItem(self.horizontalSpacer_48)
+
+        self.label_3 = QLabel(self.groupBox_4)
+        self.label_3.setObjectName(u"label_3")
+        self.label_3.setFont(font2)
+
+        self.horizontalLayout_37.addWidget(self.label_3)
+
+        self.default_order_table_label = QLabel(self.groupBox_4)
+        self.default_order_table_label.setObjectName(u"default_order_table_label")
+        font4 = QFont()
+        font4.setPointSize(10)
+        font4.setItalic(True)
+        self.default_order_table_label.setFont(font4)
+
+        self.horizontalLayout_37.addWidget(self.default_order_table_label)
+
+        self.horizontalSpacer_49 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_37.addItem(self.horizontalSpacer_49)
+
+
+        self.verticalLayout_12.addLayout(self.horizontalLayout_37)
+
+        self.GetPathChose_2_radioButton = QRadioButton(self.groupBox_4)
+        self.GetPathChose_2_radioButton.setObjectName(u"GetPathChose_2_radioButton")
+        self.GetPathChose_2_radioButton.setFont(font2)
+
+        self.verticalLayout_12.addWidget(self.GetPathChose_2_radioButton)
+
+        self.horizontalLayout_33 = QHBoxLayout()
+        self.horizontalLayout_33.setObjectName(u"horizontalLayout_33")
+        self.horizontalSpacer_44 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_33.addItem(self.horizontalSpacer_44)
+
+        self.formLayout = QFormLayout()
+        self.formLayout.setObjectName(u"formLayout")
+        self.get_path_label_5 = QLabel(self.groupBox_4)
+        self.get_path_label_5.setObjectName(u"get_path_label_5")
+        self.get_path_label_5.setFont(font2)
+
+        self.formLayout.setWidget(0, QFormLayout.ItemRole.LabelRole, self.get_path_label_5)
+
+        self.horizontalLayout_31 = QHBoxLayout()
+        self.horizontalLayout_31.setObjectName(u"horizontalLayout_31")
+        self.GetFilepath_lineEdit = QLineEdit(self.groupBox_4)
+        self.GetFilepath_lineEdit.setObjectName(u"GetFilepath_lineEdit")
+        self.GetFilepath_lineEdit.setFont(font2)
+        self.GetFilepath_lineEdit.setReadOnly(True)
+
+        self.horizontalLayout_31.addWidget(self.GetFilepath_lineEdit)
+
+        self.GetPathSelecter_pushButton = QPushButton(self.groupBox_4)
+        self.GetPathSelecter_pushButton.setObjectName(u"GetPathSelecter_pushButton")
+        icon6 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.FolderNew))
+        self.GetPathSelecter_pushButton.setIcon(icon6)
+
+        self.horizontalLayout_31.addWidget(self.GetPathSelecter_pushButton)
+
+        self.horizontalSpacer_43 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_31.addItem(self.horizontalSpacer_43)
+
+        self.horizontalLayout_31.setStretch(0, 2)
+        self.horizontalLayout_31.setStretch(2, 1)
+
+        self.formLayout.setLayout(0, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_31)
+
+        self.list_label_5 = QLabel(self.groupBox_4)
+        self.list_label_5.setObjectName(u"list_label_5")
+        self.list_label_5.setFont(font2)
+
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.list_label_5)
+
+        self.horizontalLayout_32 = QHBoxLayout()
+        self.horizontalLayout_32.setObjectName(u"horizontalLayout_32")
+        self.list_comboBox_5 = QComboBox(self.groupBox_4)
+        self.list_comboBox_5.setObjectName(u"list_comboBox_5")
+        self.list_comboBox_5.setFont(font2)
+
+        self.horizontalLayout_32.addWidget(self.list_comboBox_5)
+
+        self.horizontalSpacer_42 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_32.addItem(self.horizontalSpacer_42)
+
+        self.horizontalLayout_32.setStretch(0, 1)
+        self.horizontalLayout_32.setStretch(1, 1)
+
+        self.formLayout.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_32)
+
+
+        self.horizontalLayout_33.addLayout(self.formLayout)
+
+
+        self.verticalLayout_12.addLayout(self.horizontalLayout_33)
+
+
+        self.gridLayout_17.addLayout(self.verticalLayout_12, 0, 0, 1, 1)
+
+
+        self.verticalLayout_13.addWidget(self.groupBox_4)
+
+        self.groupBox_5 = QGroupBox(self.tab_6)
+        self.groupBox_5.setObjectName(u"groupBox_5")
+        font5 = QFont()
+        font5.setPointSize(12)
+        font5.setBold(False)
+        self.groupBox_5.setFont(font5)
+        self.gridLayout_18 = QGridLayout(self.groupBox_5)
+        self.gridLayout_18.setObjectName(u"gridLayout_18")
+        self.formLayout_2 = QFormLayout()
+        self.formLayout_2.setObjectName(u"formLayout_2")
+        self.SavePathChose_1_radioButton = QRadioButton(self.groupBox_5)
+        self.SavePathChose_1_radioButton.setObjectName(u"SavePathChose_1_radioButton")
+        font6 = QFont()
+        font6.setPointSize(10)
+        font6.setBold(False)
+        self.SavePathChose_1_radioButton.setFont(font6)
+
+        self.formLayout_2.setWidget(0, QFormLayout.ItemRole.LabelRole, self.SavePathChose_1_radioButton)
+
+        self.horizontalLayout_36 = QHBoxLayout()
+        self.horizontalLayout_36.setObjectName(u"horizontalLayout_36")
+        self.default_save_path_lineEdit = QLineEdit(self.groupBox_5)
+        self.default_save_path_lineEdit.setObjectName(u"default_save_path_lineEdit")
+        self.default_save_path_lineEdit.setFont(font6)
+        self.default_save_path_lineEdit.setReadOnly(True)
+
+        self.horizontalLayout_36.addWidget(self.default_save_path_lineEdit)
+
+        self.OpenSaveDir_pushButton_5 = QPushButton(self.groupBox_5)
+        self.OpenSaveDir_pushButton_5.setObjectName(u"OpenSaveDir_pushButton_5")
+        self.OpenSaveDir_pushButton_5.setFont(font6)
+        self.OpenSaveDir_pushButton_5.setIcon(icon1)
+
+        self.horizontalLayout_36.addWidget(self.OpenSaveDir_pushButton_5)
+
+        self.horizontalSpacer_46 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_36.addItem(self.horizontalSpacer_46)
+
+        self.horizontalLayout_36.setStretch(0, 2)
+        self.horizontalLayout_36.setStretch(2, 1)
+
+        self.formLayout_2.setLayout(0, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_36)
+
+        self.SavePathChose_2_radioButton = QRadioButton(self.groupBox_5)
+        self.SavePathChose_2_radioButton.setObjectName(u"SavePathChose_2_radioButton")
+        self.SavePathChose_2_radioButton.setFont(font6)
+
+        self.formLayout_2.setWidget(1, QFormLayout.ItemRole.LabelRole, self.SavePathChose_2_radioButton)
+
+        self.horizontalLayout_35 = QHBoxLayout()
+        self.horizontalLayout_35.setObjectName(u"horizontalLayout_35")
+        self.save_path_label_5 = QLabel(self.groupBox_5)
+        self.save_path_label_5.setObjectName(u"save_path_label_5")
+        self.save_path_label_5.setFont(font6)
+
+        self.horizontalLayout_35.addWidget(self.save_path_label_5)
+
+        self.SaveFilepath_lineEdit = QLineEdit(self.groupBox_5)
+        self.SaveFilepath_lineEdit.setObjectName(u"SaveFilepath_lineEdit")
+        self.SaveFilepath_lineEdit.setFont(font6)
+        self.SaveFilepath_lineEdit.setReadOnly(True)
+
+        self.horizontalLayout_35.addWidget(self.SaveFilepath_lineEdit)
+
+        self.SavePathSelecter_pushButton = QPushButton(self.groupBox_5)
+        self.SavePathSelecter_pushButton.setObjectName(u"SavePathSelecter_pushButton")
+        self.SavePathSelecter_pushButton.setIcon(icon6)
+
+        self.horizontalLayout_35.addWidget(self.SavePathSelecter_pushButton)
+
+        self.horizontalSpacer_47 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_35.addItem(self.horizontalSpacer_47)
+
+        self.horizontalLayout_35.setStretch(1, 2)
+        self.horizontalLayout_35.setStretch(3, 1)
+
+        self.formLayout_2.setLayout(1, QFormLayout.ItemRole.FieldRole, self.horizontalLayout_35)
+
+
+        self.gridLayout_18.addLayout(self.formLayout_2, 0, 0, 1, 1)
+
+
+        self.verticalLayout_13.addWidget(self.groupBox_5)
+
+
+        self.verticalLayout_14.addLayout(self.verticalLayout_13)
+
+        self.verticalSpacer_15 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_14.addItem(self.verticalSpacer_15)
+
+        self.verticalLayout_11 = QVBoxLayout()
+        self.verticalLayout_11.setObjectName(u"verticalLayout_11")
+        self.horizontalLayout_30 = QHBoxLayout()
+        self.horizontalLayout_30.setObjectName(u"horizontalLayout_30")
+        self.horizontalSpacer_40 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_30.addItem(self.horizontalSpacer_40)
+
+        self.LogButton_5 = QPushButton(self.tab_6)
+        self.LogButton_5.setObjectName(u"LogButton_5")
+        self.LogButton_5.setIcon(icon5)
+
+        self.horizontalLayout_30.addWidget(self.LogButton_5)
+
+
+        self.verticalLayout_11.addLayout(self.horizontalLayout_30)
+
+        self.ConsoleTextBrowser_5 = QTextBrowser(self.tab_6)
+        self.ConsoleTextBrowser_5.setObjectName(u"ConsoleTextBrowser_5")
+        self.ConsoleTextBrowser_5.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
+
+        self.verticalLayout_11.addWidget(self.ConsoleTextBrowser_5)
+
+
+        self.verticalLayout_14.addLayout(self.verticalLayout_11)
+
+        self.verticalLayout_14.setStretch(0, 2)
+        self.verticalLayout_14.setStretch(1, 2)
+        self.verticalLayout_14.setStretch(2, 1)
+        self.verticalLayout_14.setStretch(3, 15)
+        self.verticalLayout_14.setStretch(4, 3)
+        self.verticalLayout_14.setStretch(5, 20)
+
+        self.gridLayout_19.addLayout(self.verticalLayout_14, 0, 0, 1, 1)
+
+        self.tabWidget.addTab(self.tab_6, "")
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
         self.gridLayout_13 = QGridLayout(self.tab_3)
@@ -953,8 +1295,8 @@ class Ui_MainWindow(object):
 
         self.CatalogUpdateTimeTableUpdateButton_2 = QPushButton(self.tab_3)
         self.CatalogUpdateTimeTableUpdateButton_2.setObjectName(u"CatalogUpdateTimeTableUpdateButton_2")
-        icon6 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRestore))
-        self.CatalogUpdateTimeTableUpdateButton_2.setIcon(icon6)
+        icon7 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.ViewRestore))
+        self.CatalogUpdateTimeTableUpdateButton_2.setIcon(icon7)
 
         self.horizontalLayout_15.addWidget(self.CatalogUpdateTimeTableUpdateButton_2)
 
@@ -990,7 +1332,7 @@ class Ui_MainWindow(object):
 
         self.CurrencyTableUpdateButton_2 = QPushButton(self.tab_3)
         self.CurrencyTableUpdateButton_2.setObjectName(u"CurrencyTableUpdateButton_2")
-        self.CurrencyTableUpdateButton_2.setIcon(icon6)
+        self.CurrencyTableUpdateButton_2.setIcon(icon7)
 
         self.horizontalLayout_16.addWidget(self.CurrencyTableUpdateButton_2)
 
@@ -1064,8 +1406,6 @@ class Ui_MainWindow(object):
 
         self.BasePriceLabel_2 = QLabel(self.groupBox)
         self.BasePriceLabel_2.setObjectName(u"BasePriceLabel_2")
-        font2 = QFont()
-        font2.setPointSize(10)
         self.BasePriceLabel_2.setFont(font2)
 
         self.gridLayout_8.addWidget(self.BasePriceLabel_2, 0, 0, 1, 1)
@@ -1107,8 +1447,8 @@ class Ui_MainWindow(object):
 
         self.TimeSaveButton_2 = QPushButton(self.tab_3)
         self.TimeSaveButton_2.setObjectName(u"TimeSaveButton_2")
-        icon7 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.DocumentSave))
-        self.TimeSaveButton_2.setIcon(icon7)
+        icon8 = QIcon(QIcon.fromTheme(QIcon.ThemeIcon.DocumentSave))
+        self.TimeSaveButton_2.setIcon(icon8)
 
         self.horizontalLayout_13.addWidget(self.TimeSaveButton_2)
 
@@ -1290,7 +1630,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(4)
+        self.tabWidget.setCurrentIndex(5)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -1381,6 +1721,27 @@ class Ui_MainWindow(object):
         self.UpdateReportButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.ResetPriceReportButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c \u043e\u0442\u0447\u0451\u0442", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_5), QCoreApplication.translate("MainWindow", u"\u0420\u0430\u0441\u0441\u044b\u043b\u043a\u0430", None))
+        self.CreateButton_5.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))
+        self.NeedToSend_checkBox_5.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0444\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0431\u0435\u0437 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438", None))
+        self.morning_checkBox.setText(QCoreApplication.translate("MainWindow", u"\u0443\u0442\u0440\u043e", None))
+        self.evening_checkBox.setText(QCoreApplication.translate("MainWindow", u"evening", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0438\u0437", None))
+        self.GetPathChose_1_radioButton.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b \u043f\u043e-\u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e:", None))
+        self.OpenGetDir_pushButton_5.setText("")
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0430\u0431\u043b\u0438\u0446\u0430:", None))
+        self.default_order_table_label.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0442\u0430\u0431\u043b\u0438\u0446\u044b", None))
+        self.GetPathChose_2_radioButton.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0440\u0443\u0433\u043e\u0439 \u0444\u0430\u0439\u043b:", None))
+        self.get_path_label_5.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b:", None))
+        self.GetPathSelecter_pushButton.setText("")
+        self.list_label_5.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0430\u0431\u043b\u0438\u0446\u0430:", None))
+        self.groupBox_5.setTitle(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432", None))
+        self.SavePathChose_1_radioButton.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0443\u0442\u044c \u043f\u043e-\u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e:", None))
+        self.OpenSaveDir_pushButton_5.setText("")
+        self.SavePathChose_2_radioButton.setText(QCoreApplication.translate("MainWindow", u"\u0414\u0440\u0443\u0433\u043e\u0439 \u043f\u0443\u0442\u044c:", None))
+        self.save_path_label_5.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0443\u0442\u044c:", None))
+        self.SavePathSelecter_pushButton.setText("")
+        self.LogButton_5.setText("")
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_6), QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043a\u0430\u0437\u044b", None))
         self.StartButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u043a", None))
         self.PauseCheckBox_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
         self.ToReportDirButton_2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441\u043e \u0441\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0430\u043c\u0438 \u0438 \u043e\u0442\u0447\u0451\u0442\u0430\u043c\u0438", None))

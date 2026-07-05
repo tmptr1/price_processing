@@ -703,7 +703,9 @@ class CatalogUpdate(QThread):
                 cols = {"customer_brand_alias": ["customer_brand_alias"], "supplier_price_code": ["supplier_price_code"],
                         "normalized_brand": ["normalized_brand"], "customer_price_code": ["customer_price_code"],
                         "direct_supplier_customer_markup_pct": ["direct_supplier_customer_markup_pct"],
-                        "short_name": ["short_name"], "customer_brand": ["customer_brand"], "floor_markup_pct": ["floor_markup_pct"],
+                        "short_name": ["short_name"], "customer_brand": ["customer_brand"],
+                        "customer_period_markup_pct": ["customer_period_markup_pct"],
+                        "customer_min_markup_pct": ["customer_min_markup_pct"], "floor_markup_pct": ["floor_markup_pct"],
                         "starting_markup_pct": ["starting_markup_pct"], "grad_step_pct": ["grad_step_pct"],
                         "unique_starting_markup_pct": ["unique_starting_markup_pct"],
                         "opt_starting_markup_pct": ["opt_starting_markup_pct"], "unique_grad_step_pct": ["unique_grad_step_pct"],
@@ -817,7 +819,7 @@ class CatalogUpdate(QThread):
                 sheet_name = "prev dynamic parts"
                 table_class = PrevDynamicParts
                 ex_table_name = "prev_dynamic_parts"
-                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], }
+                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], "store_price_rub": ["store_price_rub"]}
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # table_name = 'price_exception'

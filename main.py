@@ -37,6 +37,7 @@ from Timer import MyTimer
 import CatalogUpdate
 from Calculate import CalculateClass, PriceReportUpdate_2
 from PriceSender import Sender, FinalPriceReportReset, FinalPriceReportUpdate
+from OrderSender import OrderSenderClass, GetSheets
 
 Log = Logs.LogClass()
 Log.start()
@@ -111,6 +112,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.PriceSender = Sender(0, log=Log)
         self.PriceSender2 = Sender(1, log=Log)
+
+        self.OrderSender = OrderSenderClass(log=Log)
 
         Log.AddLogToTableSignal.connect(self.add_log_to_text_browser)
 
@@ -329,6 +332,29 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.total_timers_4 = [None, None]
 
 
+        # self.OrderSender.StartSignal.connect()
+        self.NeedToSend_checkBox_5.checkStateChanged.connect(self.set_send_status_orders)
+        self.CreateButton_5.clicked.connect(self.start_order_create)
+        self.morning_checkBox.checkStateChanged.connect(self.set_morning_orders)
+        self.evening_checkBox.checkStateChanged.connect(self.set_evening_orders)
+        self.GetPathChose_1_radioButton.setChecked(True)
+        self.SavePathChose_1_radioButton.setChecked(True)
+        self.default_get_path_lineEdit.setText(fr"{os.path.dirname(settings_data['orders'])}/Копия Все Заказы Шевелько.xlsx")
+        # self.default_get_path_lineEdit.setText(settings_data['orders'])
+        self.default_save_path_lineEdit.setText(settings_data['orders_save'])
+        self.default_order_table_label.setText(settings_data['default_order_table'])
+        self.GetPathSelecter_pushButton.clicked.connect(self.select_orders_file_from)
+        self.OpenGetDir_pushButton_5.clicked.connect(lambda _: self.open_dir(os.path.dirname(settings_data["orders"])))
+        self.OpenGetDir_pushButton_5.setToolTip("Открыть папку")
+        self.OpenSaveDir_pushButton_5.clicked.connect(lambda _: self.open_dir(settings_data["orders_save"]))
+        self.OpenSaveDir_pushButton_5.setToolTip("Открыть папку")
+        self.GetPathSelecter_pushButton.setToolTip("Выбрать файл")
+        self.SavePathSelecter_pushButton.clicked.connect(self.select_orders_path_to_save)
+        self.SavePathSelecter_pushButton.setToolTip("Выбрать путь")
+        self.LogButton_5.clicked.connect(lambda _: self.open_dir(fr"logs\{Logs.log_file_names[5]}"))
+        self.LogButton_5.setToolTip("Открыть файл с логами")
+
+
         times = CatalogUpdate.get_catalogs_time_update()
         time_edits = {"base_price_update": self.BasePriceTimeEdit_2, "mass_offers_update": self.MassOffersTimeEdit_2}
         if times:
@@ -352,8 +378,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ConsoleTextBrowser_2.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_3.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.ConsoleTextBrowser_4.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
+        self.ConsoleTextBrowser_5.document().setMaximumBlockCount(MAX_LOG_ROWS_IN_TEXT_BROWSER)
         self.consoles = {0: self.ConsoleTextBrowser_0, 1: self.ConsoleTextBrowser_1, 2: self.ConsoleTextBrowser_2,
-                         3: self.ConsoleTextBrowser_3, 4: self.ConsoleTextBrowser_4}
+                         3: self.ConsoleTextBrowser_3, 4: self.ConsoleTextBrowser_4, 5: self.ConsoleTextBrowser_5}
         self.set_old_logs()
 
         self.x = 0
@@ -716,6 +743,26 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.PriceSender2.isRunning():
             self.PriceSender2.start()
 
+    def start_order_create(self):
+        if not self.OrderSender.isRunning():
+            if self.GetPathChose_1_radioButton.isChecked():
+                self.OrderSender.default_settings = True
+                self.OrderSender.file_path = self.default_get_path_lineEdit.text()
+                self.OrderSender.sheet_name = settings_data['default_order_sheet']
+                self.OrderSender.table_name = settings_data['default_order_table']
+            else:  # кастомный файл
+                self.OrderSender.default_settings = False
+                self.OrderSender.file_path = self.GetFilepath_lineEdit.text()
+                self.OrderSender.table_name = self.list_comboBox_5.currentText()
+                self.OrderSender.sheet_name = ''
+
+            if self.SavePathChose_1_radioButton.isChecked():
+                self.OrderSender.dir_path = self.default_save_path_lineEdit.text()
+            else:
+                self.OrderSender.dir_path = self.SaveFilepath_lineEdit.text()
+
+            self.OrderSender.start()
+
     def set_text_to_label(self, label, text):
         label.setText(text)
 
@@ -726,6 +773,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def setSendStatus(self, state):
         self.PriceSender.need_to_send = (state != Qt.CheckState.Checked)
         self.PriceSender2.need_to_send = (state != Qt.CheckState.Checked)
+
+    def set_send_status_orders(self, status):
+        self.OrderSender.need_to_send = status != Qt.CheckState.Checked
+        print(self.OrderSender.need_to_send)
+
+    def set_morning_orders(self, status):
+        self.OrderSender.morning = status == Qt.CheckState.Checked
+
+    def set_evening_orders(self, status):
+        self.OrderSender.evening = status == Qt.CheckState.Checked
+
+    def select_orders_file_from(self):
+        self.OrderSender.select_file()
+        self.GetFilepath_lineEdit.setText(f"{self.OrderSender.custom_file_path}")
+        self.GS = GetSheets(log=Log, custom_file_path=self.OrderSender.custom_file_path)
+        self.list_comboBox_5.clear()
+        self.list_comboBox_5.addItem('Загрузка...')
+        self.GS.start()
+        self.GS.FinishSignal.connect(self.get_tables_list_from_excel_file)
+
+    def get_tables_list_from_excel_file(self, dct:dict):
+        self.list_comboBox_5.clear()
+        self.list_comboBox_5.addItems(dct.keys())
+        self.OrderSender.tables_skip_row_dict = dct
+
+
+    def select_orders_path_to_save(self):
+        self.OrderSender.select_path_to_save()
+        self.SaveFilepath_lineEdit.setText(f"{self.OrderSender.path_to_save}")
 
     def set_enabled_start_buttons(self, enabled, btn, chb):
         btn.setEnabled(enabled)
