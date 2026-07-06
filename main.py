@@ -776,7 +776,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_send_status_orders(self, status):
         self.OrderSender.need_to_send = status != Qt.CheckState.Checked
-        print(self.OrderSender.need_to_send)
 
     def set_morning_orders(self, status):
         self.OrderSender.morning = status == Qt.CheckState.Checked

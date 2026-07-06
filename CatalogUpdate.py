@@ -974,6 +974,7 @@ class CatalogUpdate(QThread):
                          f"Обновление данных в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> ...")
             cur_time = datetime.datetime.now()
             # max_decline=Data07.max_decline,
+            cur_time_step = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
                                                 markup_holidays=Data07.markup_holidays,
                                                 markup_R=Data07.markup_R, min_markup=Data07.min_markup,
@@ -982,22 +983,31 @@ class CatalogUpdate(QThread):
                                                 grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
                                                 access_pp=Data07.access_pp,
                                                 unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
-            # markup_os=Data07.markup_os
+            self.log.add(LOG_ID, f"Data07 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+
+            cur_time_step = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
                          values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
+            self.log.add(LOG_ID, f"Data09 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            sess.commit()
+
             # вычет ШтР
+            cur_time_step = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
             sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
             sess.execute(update(TotalPrice_2).values(mult_less=None))
             sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
+            self.log.add(LOG_ID, f"ШтР - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            sess.commit()
 
-            sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
-                                                    TotalPrice_2._14brand_filled_in == Data07_14.correct))
-                         .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
+            # sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
+            #                                         TotalPrice_2._14brand_filled_in == Data07_14.correct))
+            #              .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
 
-            sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
-                buy_count=Buy_for_OS.buy_count))
+            # sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
+            #     buy_count=Buy_for_OS.buy_count))
 
+            cur_time_step = datetime.datetime.now()
             # Обновить ColsFix discount, где currency_s == None + обнулить наценку? (расчёт цены по новой)
             sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
                                                          TotalPrice_2._07supplier_code == ColsFix.price_code,
@@ -1011,10 +1021,18 @@ class CatalogUpdate(QThread):
                            TotalPrice_2.markup_holidays / TotalPrice_2._04count)]
             sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2.currency_s == None, TotalPrice_2._05price_plus == None)).
                          values(_05price_plus=case(*conditions, else_=TotalPrice_2._05price)))
+            self.log.add(LOG_ID, f"05price - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            sess.commit()
 
+            cur_time_step = datetime.datetime.now()
             words_except(sess)
-            cols_fix(sess)
+            self.log.add(LOG_ID, f"words_except - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            sess.commit()
 
+            cur_time_step = datetime.datetime.now()
+            cols_fix(sess)
+            self.log.add(LOG_ID, f"cols_fix - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            sess.commit()
 
 
             self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",

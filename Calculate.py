@@ -264,14 +264,14 @@ class CalculateClass(QThread):
                 self.add_log(self.file_size_type, price_code, 'Базовая цена, Предложений в опте', cur_time)
 
 
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07&14 ...', False)
-                cur_time = datetime.datetime.now()
-
-                sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._07supplier_code == Data07_14.setting,
-                                                        self.TmpPrice_2._14brand_filled_in == Data07_14.correct))
-                             .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
-
-                self.add_log(self.file_size_type, price_code, 'data 07&14', cur_time)
+                # self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07&14 ...', False)
+                # cur_time = datetime.datetime.now()
+                #
+                # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2._07supplier_code == Data07_14.setting,
+                #                                         self.TmpPrice_2._14brand_filled_in == Data07_14.correct))
+                #              .values(markup_pb=Data07_14.markup_pb)) # code_pb_p=Data07_14.code_pb_p
+                #
+                # self.add_log(self.file_size_type, price_code, 'data 07&14', cur_time)
 
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, '06Кратность, 05Цена плюс, data 15 ...', False)
                 cur_time = datetime.datetime.now()
@@ -282,7 +282,7 @@ class CalculateClass(QThread):
                 #              values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
                 # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))
 
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
+                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
 
                 sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))

@@ -817,8 +817,8 @@ class Sender(QThread):
         # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
         #     price=self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
-            price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct + self.FinalPriceTmp.customer_period_markup_pct),
-                                PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct))))
+            price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
+                                PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct + self.FinalPriceTmp.customer_period_markup_pct))))
 
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
