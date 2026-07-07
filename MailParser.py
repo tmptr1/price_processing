@@ -54,7 +54,8 @@ class MailParserClass(QThread):
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("112898", mail)
-                # self.get_mail("125007", mail)
+                # self.get_mail("143963", mail)
+                # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
 
@@ -115,8 +116,10 @@ class MailParserClass(QThread):
         try:
             _, res = mail.uid('fetch', id, "(RFC822)")
             raw_email = res[0][1]
-            msg = email.message_from_string(raw_email.decode("utf-8"))
-            # msg = email.message_from_bytes(raw_email)
+            try:
+                msg = email.message_from_string(raw_email.decode("utf-8"))
+            except:
+                msg = email.message_from_bytes(raw_email)
             # print(msg.__dict__)
             sender = None
             try:
