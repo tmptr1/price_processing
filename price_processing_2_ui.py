@@ -192,10 +192,10 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_2, "")
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
-        self.gridLayout_5 = QGridLayout(self.tab)
-        self.gridLayout_5.setObjectName(u"gridLayout_5")
-        self.verticalLayout_2 = QVBoxLayout()
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.gridLayout_12 = QGridLayout(self.tab)
+        self.gridLayout_12.setObjectName(u"gridLayout_12")
+        self.verticalLayout_15 = QVBoxLayout()
+        self.verticalLayout_15.setObjectName(u"verticalLayout_15")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.StartButton_1 = QPushButton(self.tab)
@@ -246,35 +246,66 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.ToFilesDirButton_1)
 
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.verticalLayout_15.addLayout(self.horizontalLayout_2)
 
         self.verticalSpacer = QSpacerItem(531, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_2.addItem(self.verticalSpacer)
+        self.verticalLayout_15.addItem(self.verticalSpacer)
 
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalSpacer = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_18 = QHBoxLayout()
+        self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
+        self.verticalLayout_9 = QVBoxLayout()
+        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
+        self.verticalSpacer_20 = QSpacerItem(20, 18, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.horizontalLayout.addItem(self.horizontalSpacer)
+        self.verticalLayout_9.addItem(self.verticalSpacer_20)
+
+        self.ThreadLabel_1_1 = QLabel(self.tab)
+        self.ThreadLabel_1_1.setObjectName(u"ThreadLabel_1_1")
+        self.ThreadLabel_1_1.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_1_1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_9.addWidget(self.ThreadLabel_1_1)
+
+        self.ThreadLabel_2_1 = QLabel(self.tab)
+        self.ThreadLabel_2_1.setObjectName(u"ThreadLabel_2_1")
+        self.ThreadLabel_2_1.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_2_1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_9.addWidget(self.ThreadLabel_2_1)
+
+        self.verticalSpacer_16 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_9.addItem(self.verticalSpacer_16)
+
+        self.verticalLayout_9.setStretch(0, 1)
+        self.verticalLayout_9.setStretch(1, 1)
+        self.verticalLayout_9.setStretch(2, 1)
+        self.verticalLayout_9.setStretch(3, 3)
+
+        self.horizontalLayout_18.addLayout(self.verticalLayout_9)
 
         self.PriceStatusTableView_1 = QTableView(self.tab)
         self.PriceStatusTableView_1.setObjectName(u"PriceStatusTableView_1")
         self.PriceStatusTableView_1.setStyleSheet(u"")
         self.PriceStatusTableView_1.setInputMethodHints(Qt.InputMethodHint.ImhNone)
 
-        self.horizontalLayout.addWidget(self.PriceStatusTableView_1)
+        self.horizontalLayout_18.addWidget(self.PriceStatusTableView_1)
 
         self.horizontalSpacer_2 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout.addItem(self.horizontalSpacer_2)
+        self.horizontalLayout_18.addItem(self.horizontalSpacer_2)
 
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.verticalLayout_15.addLayout(self.horizontalLayout_18)
 
-        self.verticalSpacer_2 = QSpacerItem(528, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(850, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_2.addItem(self.verticalSpacer_2)
+        self.verticalLayout_15.addItem(self.verticalSpacer_2)
 
         self.gridLayout_2 = QGridLayout()
         self.gridLayout_2.setObjectName(u"gridLayout_2")
@@ -420,23 +451,23 @@ class Ui_MainWindow(object):
         self.gridLayout_2.setColumnStretch(0, 7)
         self.gridLayout_2.setColumnStretch(1, 3)
 
-        self.verticalLayout_2.addLayout(self.gridLayout_2)
+        self.verticalLayout_15.addLayout(self.gridLayout_2)
 
-        self.verticalLayout_2.setStretch(0, 3)
-        self.verticalLayout_2.setStretch(1, 1)
-        self.verticalLayout_2.setStretch(2, 10)
-        self.verticalLayout_2.setStretch(3, 1)
-        self.verticalLayout_2.setStretch(4, 35)
+        self.verticalLayout_15.setStretch(0, 3)
+        self.verticalLayout_15.setStretch(1, 1)
+        self.verticalLayout_15.setStretch(2, 10)
+        self.verticalLayout_15.setStretch(3, 1)
+        self.verticalLayout_15.setStretch(4, 35)
 
-        self.gridLayout_5.addLayout(self.verticalLayout_2, 0, 0, 1, 1)
+        self.gridLayout_12.addLayout(self.verticalLayout_15, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab, "")
         self.tab_4 = QWidget()
         self.tab_4.setObjectName(u"tab_4")
-        self.gridLayout_12 = QGridLayout(self.tab_4)
-        self.gridLayout_12.setObjectName(u"gridLayout_12")
-        self.verticalLayout_4 = QVBoxLayout()
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.gridLayout_16 = QGridLayout(self.tab_4)
+        self.gridLayout_16.setObjectName(u"gridLayout_16")
+        self.verticalLayout_17 = QVBoxLayout()
+        self.verticalLayout_17.setObjectName(u"verticalLayout_17")
         self.horizontalLayout_17 = QHBoxLayout()
         self.horizontalLayout_17.setObjectName(u"horizontalLayout_17")
         self.StartButton_3 = QPushButton(self.tab_4)
@@ -487,35 +518,66 @@ class Ui_MainWindow(object):
         self.horizontalLayout_17.addWidget(self.ToFilesDirButton_3)
 
 
-        self.verticalLayout_4.addLayout(self.horizontalLayout_17)
+        self.verticalLayout_17.addLayout(self.horizontalLayout_17)
 
-        self.verticalSpacer_8 = QSpacerItem(528, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_8 = QSpacerItem(850, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_4.addItem(self.verticalSpacer_8)
+        self.verticalLayout_17.addItem(self.verticalSpacer_8)
 
-        self.horizontalLayout_18 = QHBoxLayout()
-        self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
-        self.horizontalSpacer_26 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_27 = QHBoxLayout()
+        self.horizontalLayout_27.setObjectName(u"horizontalLayout_27")
+        self.verticalLayout_16 = QVBoxLayout()
+        self.verticalLayout_16.setObjectName(u"verticalLayout_16")
+        self.verticalSpacer_21 = QSpacerItem(20, 28, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.horizontalLayout_18.addItem(self.horizontalSpacer_26)
+        self.verticalLayout_16.addItem(self.verticalSpacer_21)
+
+        self.ThreadLabel_1_3 = QLabel(self.tab_4)
+        self.ThreadLabel_1_3.setObjectName(u"ThreadLabel_1_3")
+        self.ThreadLabel_1_3.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_1_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_16.addWidget(self.ThreadLabel_1_3)
+
+        self.ThreadLabel_2_3 = QLabel(self.tab_4)
+        self.ThreadLabel_2_3.setObjectName(u"ThreadLabel_2_3")
+        self.ThreadLabel_2_3.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_2_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_16.addWidget(self.ThreadLabel_2_3)
+
+        self.verticalSpacer_17 = QSpacerItem(20, 28, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_16.addItem(self.verticalSpacer_17)
+
+        self.verticalLayout_16.setStretch(0, 1)
+        self.verticalLayout_16.setStretch(1, 1)
+        self.verticalLayout_16.setStretch(2, 1)
+        self.verticalLayout_16.setStretch(3, 3)
+
+        self.horizontalLayout_27.addLayout(self.verticalLayout_16)
 
         self.PriceStatusTableView_3 = QTableView(self.tab_4)
         self.PriceStatusTableView_3.setObjectName(u"PriceStatusTableView_3")
         self.PriceStatusTableView_3.setStyleSheet(u"")
         self.PriceStatusTableView_3.setInputMethodHints(Qt.InputMethodHint.ImhNone)
 
-        self.horizontalLayout_18.addWidget(self.PriceStatusTableView_3)
+        self.horizontalLayout_27.addWidget(self.PriceStatusTableView_3)
 
         self.horizontalSpacer_27 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_18.addItem(self.horizontalSpacer_27)
+        self.horizontalLayout_27.addItem(self.horizontalSpacer_27)
 
 
-        self.verticalLayout_4.addLayout(self.horizontalLayout_18)
+        self.verticalLayout_17.addLayout(self.horizontalLayout_27)
 
         self.verticalSpacer_9 = QSpacerItem(531, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_4.addItem(self.verticalSpacer_9)
+        self.verticalLayout_17.addItem(self.verticalSpacer_9)
 
         self.gridLayout_11 = QGridLayout()
         self.gridLayout_11.setObjectName(u"gridLayout_11")
@@ -661,24 +723,23 @@ class Ui_MainWindow(object):
         self.gridLayout_11.setColumnStretch(0, 7)
         self.gridLayout_11.setColumnStretch(1, 3)
 
-        self.verticalLayout_4.addLayout(self.gridLayout_11)
+        self.verticalLayout_17.addLayout(self.gridLayout_11)
 
-        self.verticalLayout_4.setStretch(0, 3)
-        self.verticalLayout_4.setStretch(1, 1)
-        self.verticalLayout_4.setStretch(2, 10)
-        self.verticalLayout_4.setStretch(3, 1)
-        self.verticalLayout_4.setStretch(4, 35)
+        self.verticalLayout_17.setStretch(0, 3)
+        self.verticalLayout_17.setStretch(1, 1)
+        self.verticalLayout_17.setStretch(2, 10)
+        self.verticalLayout_17.setStretch(3, 1)
+        self.verticalLayout_17.setStretch(4, 35)
 
-        self.gridLayout_12.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
+        self.gridLayout_16.addLayout(self.verticalLayout_17, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_4, "")
         self.tab_5 = QWidget()
         self.tab_5.setObjectName(u"tab_5")
-        self.gridLayout_16 = QGridLayout(self.tab_5)
-        self.gridLayout_16.setObjectName(u"gridLayout_16")
-        self.verticalLayout_9 = QVBoxLayout()
-        self.verticalLayout_9.setSpacing(6)
-        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
+        self.gridLayout_5 = QGridLayout(self.tab_5)
+        self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.verticalLayout_4 = QVBoxLayout()
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.horizontalLayout_25 = QHBoxLayout()
         self.horizontalLayout_25.setObjectName(u"horizontalLayout_25")
         self.StartButton_4 = QPushButton(self.tab_5)
@@ -712,33 +773,64 @@ class Ui_MainWindow(object):
         self.horizontalLayout_25.addWidget(self.ToFilesDirButton_4)
 
 
-        self.verticalLayout_9.addLayout(self.horizontalLayout_25)
+        self.verticalLayout_4.addLayout(self.horizontalLayout_25)
 
-        self.verticalSpacer_13 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_13 = QSpacerItem(730, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_9.addItem(self.verticalSpacer_13)
+        self.verticalLayout_4.addItem(self.verticalSpacer_13)
 
-        self.horizontalLayout_27 = QHBoxLayout()
-        self.horizontalLayout_27.setObjectName(u"horizontalLayout_27")
-        self.horizontalSpacer_35 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalSpacer_19 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.horizontalLayout_27.addItem(self.horizontalSpacer_35)
+        self.verticalLayout_2.addItem(self.verticalSpacer_19)
+
+        self.ThreadLabel_1_4 = QLabel(self.tab_5)
+        self.ThreadLabel_1_4.setObjectName(u"ThreadLabel_1_4")
+        self.ThreadLabel_1_4.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_1_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_2.addWidget(self.ThreadLabel_1_4)
+
+        self.ThreadLabel_2_4 = QLabel(self.tab_5)
+        self.ThreadLabel_2_4.setObjectName(u"ThreadLabel_2_4")
+        self.ThreadLabel_2_4.setStyleSheet(u"background-color: red;\n"
+"border-radius: 9px;\n"
+"color: white;")
+        self.ThreadLabel_2_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.verticalLayout_2.addWidget(self.ThreadLabel_2_4)
+
+        self.verticalSpacer_18 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_2.addItem(self.verticalSpacer_18)
+
+        self.verticalLayout_2.setStretch(0, 1)
+        self.verticalLayout_2.setStretch(1, 1)
+        self.verticalLayout_2.setStretch(2, 1)
+        self.verticalLayout_2.setStretch(3, 3)
+
+        self.horizontalLayout.addLayout(self.verticalLayout_2)
 
         self.PriceStatusTableView_4 = QTableView(self.tab_5)
         self.PriceStatusTableView_4.setObjectName(u"PriceStatusTableView_4")
 
-        self.horizontalLayout_27.addWidget(self.PriceStatusTableView_4)
+        self.horizontalLayout.addWidget(self.PriceStatusTableView_4)
 
         self.horizontalSpacer_36 = QSpacerItem(50, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_27.addItem(self.horizontalSpacer_36)
+        self.horizontalLayout.addItem(self.horizontalSpacer_36)
 
 
-        self.verticalLayout_9.addLayout(self.horizontalLayout_27)
+        self.verticalLayout_4.addLayout(self.horizontalLayout)
 
-        self.verticalSpacer_12 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_12 = QSpacerItem(730, 13, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_9.addItem(self.verticalSpacer_12)
+        self.verticalLayout_4.addItem(self.verticalSpacer_12)
 
         self.gridLayout_15 = QGridLayout()
         self.gridLayout_15.setObjectName(u"gridLayout_15")
@@ -878,15 +970,15 @@ class Ui_MainWindow(object):
         self.gridLayout_15.setColumnStretch(0, 7)
         self.gridLayout_15.setColumnStretch(1, 3)
 
-        self.verticalLayout_9.addLayout(self.gridLayout_15)
+        self.verticalLayout_4.addLayout(self.gridLayout_15)
 
-        self.verticalLayout_9.setStretch(0, 3)
-        self.verticalLayout_9.setStretch(1, 1)
-        self.verticalLayout_9.setStretch(2, 10)
-        self.verticalLayout_9.setStretch(3, 1)
-        self.verticalLayout_9.setStretch(4, 35)
+        self.verticalLayout_4.setStretch(0, 3)
+        self.verticalLayout_4.setStretch(1, 1)
+        self.verticalLayout_4.setStretch(2, 10)
+        self.verticalLayout_4.setStretch(3, 1)
+        self.verticalLayout_4.setStretch(4, 35)
 
-        self.gridLayout_16.addLayout(self.verticalLayout_9, 0, 0, 1, 1)
+        self.gridLayout_5.addLayout(self.verticalLayout_4, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_5, "")
         self.tab_6 = QWidget()
@@ -1668,6 +1760,8 @@ class Ui_MainWindow(object):
         self.label.setText(QCoreApplication.translate("MainWindow", u"\u041c\u0438\u043d. \u0440\u0430\u0437\u043c\u0435\u0440 \u0444\u0430\u0439\u043b\u0430 \u0434\u043b\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0435 \u0432 \u0434\u043e\u043f. \u043f\u043e\u0442\u043e\u043a\u0435 (\u041c\u0411):", None))
         self.MB_SaveButton_1.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
         self.ToFilesDirButton_1.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
+        self.ThreadLabel_1_1.setText(QCoreApplication.translate("MainWindow", u"1", None))
+        self.ThreadLabel_2_1.setText(QCoreApplication.translate("MainWindow", u"2", None))
         self.LogButton_1.setText("")
         self.NotMatchedLabel_1.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u043f\u0440\u0430\u0439\u0441\u043e\u0432:", None))
         self.Label_1.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043e\u0442\u0447\u0451\u0442\u0430:", None))
@@ -1688,6 +1782,8 @@ class Ui_MainWindow(object):
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"\u041c\u0438\u043d. \u0440\u0430\u0437\u043c\u0435\u0440 \u0444\u0430\u0439\u043b\u0430 \u0434\u043b\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0435 \u0432 \u0434\u043e\u043f. \u043f\u043e\u0442\u043e\u043a\u0435 (\u041c\u0411):", None))
         self.MB_SaveButton_2.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c", None))
         self.ToFilesDirButton_3.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
+        self.ThreadLabel_1_3.setText(QCoreApplication.translate("MainWindow", u"1", None))
+        self.ThreadLabel_2_3.setText(QCoreApplication.translate("MainWindow", u"2", None))
         self.LogButton_3.setText("")
         self.Label_3.setText(QCoreApplication.translate("MainWindow", u"\u0412\u0440\u0435\u043c\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043e\u0442\u0447\u0451\u0442\u0430:", None))
         self.TimeOfLastReportUpdatelabel_3.setText(QCoreApplication.translate("MainWindow", u"-", None))
@@ -1707,6 +1803,8 @@ class Ui_MainWindow(object):
         self.PauseCheckBox_4.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
         self.SendCheckBox_4.setText(QCoreApplication.translate("MainWindow", u"\u0424\u043e\u0440\u043c\u0438\u0440\u043e\u0432\u0430\u0442\u044c, \u043d\u043e \u043d\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0442\u044c", None))
         self.ToFilesDirButton_4.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043f\u0430\u043f\u043a\u0443 \u0441 \u043f\u0440\u0430\u0439\u0441\u0430\u043c\u0438", None))
+        self.ThreadLabel_1_4.setText(QCoreApplication.translate("MainWindow", u"1", None))
+        self.ThreadLabel_2_4.setText(QCoreApplication.translate("MainWindow", u"2", None))
         self.LogButton_4.setText("")
         self.NotMatchedLabel_4.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441 \u043f\u0440\u0430\u0439\u0441\u043e\u0432:", None))
         self.progressBar_4.setFormat(QCoreApplication.translate("MainWindow", u"%p%", None))

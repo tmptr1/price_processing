@@ -82,6 +82,8 @@ class CatalogUpdate(QThread):
                 # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
+                #     words_except(sess)
+                # return
                 #     expired_prices = sess.execute(select(PriceReport.price_code).where(and_(SupplierPriceSettings.price_code == PriceReport.price_code,
                 #             PriceReport.updated_at_2_step != None, SupplierPriceSettings.update_time > 0))).scalars().all()
                 #     print(expired_prices)
@@ -819,7 +821,8 @@ class CatalogUpdate(QThread):
                 sheet_name = "prev dynamic parts"
                 table_class = PrevDynamicParts
                 ex_table_name = "prev_dynamic_parts"
-                cols = {"code_optt": ["code_optt"], "parts_markup_pct": ["parts_markup_pct"], "store_price_rub": ["store_price_rub"]}
+                # "parts_markup_pct": ["parts_markup_pct"],
+                cols = {"code_optt": ["code_optt"], "store_price_rub": ["store_price_rub"]}
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # table_name = 'price_exception'
@@ -1025,8 +1028,8 @@ class CatalogUpdate(QThread):
             sess.commit()
 
             cur_time_step = datetime.datetime.now()
-            words_except(sess)
-            self.log.add(LOG_ID, f"words_except - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            updated_rows = words_except(sess)
+            self.log.add(LOG_ID, f"words_except - done ({updated_rows}) [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
             sess.commit()
 
             cur_time_step = datetime.datetime.now()
@@ -1252,7 +1255,7 @@ class CatalogUpdate(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_mass_offers Error", ex_text)
 
-def words_except(sess):
+def old_words_except(sess):
     cols_dict = {"Ключ1 поставщика": TotalPrice_2.key1_s, "Артикул поставщика": TotalPrice_2.article_s,
                  "Производитель поставщика": TotalPrice_2.brand_s,
                  "Наименование поставщика": TotalPrice_2.name_s, "Валюта поставщика": TotalPrice_2.currency_s,
@@ -1302,6 +1305,90 @@ def words_except(sess):
             # print(cond)
             sess.execute(update(TotalPrice_2).where(and_(not_(or_(*cond)), TotalPrice_2._20exclude == None,
                                                          TotalPrice_2._07supplier_code == not_like[i][1])).values(_20exclude=values[:50]))
+
+
+
+def words_except(sess):
+    updated_rows = 0
+
+    cols_dict = {"Ключ1 поставщика": TotalPrice_2.key1_s, "Артикул поставщика": TotalPrice_2.article_s,
+                 "Производитель поставщика": TotalPrice_2.brand_s,
+                 "Наименование поставщика": TotalPrice_2.name_s, "Валюта поставщика": TotalPrice_2.currency_s,
+                 "Примечание поставщика": TotalPrice_2.notice_s,
+                 "Ключ1П": TotalPrice_2.key1_s, "АртикулП": TotalPrice_2.article_s, "ПроизводительП": TotalPrice_2.brand_s,
+                 "НаименованиеП": TotalPrice_2.name_s, " ВалютаП": TotalPrice_2.currency_s, "ПримечаниеП": TotalPrice_2.notice_s,
+                 "15КодТутОптТорг": TotalPrice_2._15code_optt,
+                 }
+    check_types = {"Начинается с": lambda col, x: col.ilike(f"{x}%"),  # '^{}'], startswith
+                   "Содержит": lambda col, x: col.ilike(f"%{x}%"),  # '{}'],
+                   "Не содержит": lambda col, x: not_(col.contains(x)),  # '{}'],
+                   "Заканчивается на": lambda col, x: col.ilike(f"%{x}"),  # '{}$'], endswith
+                   "Равно": lambda col, x: func.upper(col) == x,
+                   "Не равно": lambda col, x: func.upper(col) != x,
+                   }
+    rules = sess.execute(select(ColsFix.price_code, ColsFix.col_find, ColsFix.change_type, ColsFix.col_change, ColsFix.set)
+        .where(and_(ColsFix.col_change == '20ИсключитьИзПрайса', ColsFix.change_type != 'Не содержит'))
+        .group_by(ColsFix.price_code, ColsFix.col_find, ColsFix.change_type, ColsFix.col_change, ColsFix.set)).all()
+    # print(rules)
+    for price_code, col_f, ch_type, col_c, set_val in rules:
+        # print(price_code, col_f, ch_type, col_c, set_val)
+        find_values = sess.execute(select(ColsFix.find).where(and_(ColsFix.price_code==price_code, ColsFix.col_find==col_f,
+                ColsFix.change_type==ch_type, ColsFix.col_change==col_c, ColsFix.set==set_val))).scalars().all()
+        # print(find_values)  # АСТФ 15КодТутОптТорг Равно 20ИсключитьИзПрайса Розливное
+
+        check = check_types.get(f"{ch_type}", None)
+        col = cols_dict.get(col_f, None)
+        if not check or not col:
+            continue
+
+        conditions = []
+        for fv in find_values:
+            conditions.append(check(col, fv))
+        # print(conditions)
+        updated_rows += sess.execute(update(TotalPrice_2).where(and_(*conditions, TotalPrice_2._20exclude==None,
+                                     TotalPrice_2._07supplier_code==price_code)).values(_20exclude=str(set_val)[:50])).rowcount
+        # print(rc)
+        # print('---')
+    # print(f'1 step ({updated_rows})')
+    # return
+
+    # Не содержит
+    words = sess.execute(select(ColsFix).where(and_(ColsFix.col_change == '20ИсключитьИзПрайса', ColsFix.change_type == 'Не содержит'))).scalars().all()
+    not_like = dict()  # key: find, price_code
+    for w in words:
+        # print(f"{w.col_find}|{w.change_type}|{w.set}")
+        check = check_types.get(f"{w.change_type}", None)
+        col = cols_dict.get(w.col_find, None)
+        # print(check, col)
+        if check and col:
+            # if w.change_type == 'Не содержит':
+                # not_like.append([col, w.find])
+            if not_like.get(w.col_find, None):
+                not_like[w.col_find].append([w.find, w.price_code])
+            else:
+                not_like[w.col_find] = [w.find, w.price_code]
+            continue
+            # sess.execute(update(TotalPrice_2).where(and_(check(col, w.find), TotalPrice_2._20exclude==None,
+            #                                              TotalPrice_2._07supplier_code==w.price_code)).values(_20exclude=str(w.set)[:50]))
+
+    if not_like:
+        # print(not_like)
+        for i in not_like:
+            cond = []
+            values = ''
+            not_like_cols = set(not_like[i][0])
+            for c in not_like_cols:
+                # print(c)
+                values += f"{c}, "
+                # cond.append(cols_dict[i].contains(c))
+                cond.append(cols_dict[i].ilike(f"%{c}%"))
+            values = values[:-2]
+            # print(cond)
+            updated_rows += sess.execute(update(TotalPrice_2).where(and_(not_(or_(*cond)), TotalPrice_2._20exclude == None,
+                                                         TotalPrice_2._07supplier_code == not_like[i][1])).values(_20exclude=values[:50])).rowcount
+
+    # print(f'2 step ({updated_rows})')
+    return updated_rows
 
 
 def cols_fix(sess):

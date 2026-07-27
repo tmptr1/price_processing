@@ -1773,6 +1773,6 @@ class PrevDynamicParts(Base):
     __table_args__ = (Index("prev_dynamic_parts_code_optt_index", "code_optt"),)
     id: Mapped[intpk]
     code_optt: Mapped[str_x(256)]
-    parts_markup_pct: Mapped[real]
+    # parts_markup_pct: Mapped[real]
     store_price_rub: Mapped[numeric]
 

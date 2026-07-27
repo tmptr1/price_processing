@@ -44,7 +44,7 @@ class MainWorker(QThread):
     SetProgressBarValue = Signal(int, int)
     SetTotalTome = Signal(bool)
 
-    SetButtonEnabledSignal = Signal(bool)
+    SetLabelColorSignal = Signal(str)
     UpdateReportSignal = Signal(bool)
     isPause = None
     total_file_count = 0
@@ -65,7 +65,7 @@ class MainWorker(QThread):
     def run(self):
         global session, engine
         wait_sec = 15
-        self.SetButtonEnabledSignal.emit(False)
+        self.SetLabelColorSignal.emit('green')
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
@@ -213,7 +213,7 @@ class MainWorker(QThread):
                     time.sleep(1)
         else:
             self.log.add(LOG_ID, f"Пауза [{self.file_size_type+1}]", f"<span style='color:{colors.orange_log_color};'>Пауза [{self.file_size_type+1}]</span>  ")
-            self.SetButtonEnabledSignal.emit(True)
+            self.SetLabelColorSignal.emit('red')
 
     def check_file_condition(self, file_name):
         MB = os.path.getsize(f"{settings_data['mail_files_dir']}/{file_name}") / 1024 / 1024
@@ -963,7 +963,8 @@ class MainWorker(QThread):
                        "Наименование поставщика": self.TmpPrice_1.name_s.__dict__['name'],
                        "Количество поставщика": self.TmpPrice_1.count_s.__dict__['name'],
                        "Цена поставщика": self.TmpPrice_1.price_s.__dict__['name'],
-                       "Валюта поставщика": self.TmpPrice_1.currency_s.__dict__['name'], }
+                       "Валюта поставщика": self.TmpPrice_1.currency_s.__dict__['name'],
+                       }
         change_types = {"Начинается с": [lambda tb, x: tb.startswith(x), r'^{}'],
                         "Содержит": [lambda tb, x: tb.contains(x), r'{}'],
                         "Заканчивается на": [lambda tb, x: tb.endswith(x), r'{}$'],

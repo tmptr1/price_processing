@@ -53,7 +53,7 @@ class Sender(QThread):
     UpdatePriceStatusTableSignal = Signal(int, str, str, bool)
     ResetPriceStatusTableSignal = Signal(int)
     UpdateReportSignal = Signal(bool)
-    SetButtonEnabledSignal = Signal(bool)
+    SetLabelColorSignal = Signal(str)
     StartCreationSignal = Signal(int, bool)
     SetProgressBarValue = Signal(int, int)
     isPause = None
@@ -69,7 +69,7 @@ class Sender(QThread):
         global session, engine
         # self.UpdatePriceStatusTableSignal.emit(self.therad_id, 'ABS-0', 'Загрузка ...', True)
         # return
-        self.SetButtonEnabledSignal.emit(False)
+        self.SetLabelColorSignal.emit('green')
         wait_sec = 15
 
         while not self.isPause:
@@ -197,7 +197,7 @@ class Sender(QThread):
                     time.sleep(1)
         else:
             self.log.add(LOG_ID, f"Пауза [{self.therad_id}]", f"<span style='color:{colors.orange_log_color};'>Пауза [{self.therad_id}]</span>  ")
-            self.SetButtonEnabledSignal.emit(True)
+            self.SetLabelColorSignal.emit('red')
 
 
     def send_tg_msg(self):

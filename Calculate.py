@@ -34,7 +34,8 @@ TABLES = [Price_2, Price_2_2]
 BASE = [Base2, Base2_1]
 
 class CalculateClass(QThread):
-    SetButtonEnabledSignal = Signal(bool)
+    # SetButtonEnabledSignal = Signal(bool)
+    SetLabelColorSignal = Signal(str)
     UpdatePriceStatusTableSignal = Signal(int, str, str, bool)
     ResetPriceStatusTableSignal = Signal(int)
     SetTotalTome = Signal(bool)
@@ -61,7 +62,7 @@ class CalculateClass(QThread):
         global session, engine
         # print('Поток', self.file_size_type)
         wait_sec = 15
-        self.SetButtonEnabledSignal.emit(False)
+        self.SetLabelColorSignal.emit('green')
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             try:
@@ -159,7 +160,7 @@ class CalculateClass(QThread):
                     time.sleep(1)
         else:
             self.log.add(LOG_ID, f"Пауза [{self.file_size_type+1}]", f"<span style='color:{colors.orange_log_color};'>Пауза [{self.file_size_type+1}]</span>  ")
-            self.SetButtonEnabledSignal.emit(True)
+            self.SetLabelColorSignal.emit('red')
 
     def check_file_condition(self, file_name):
         MB = os.path.getsize(f"{settings_data['exit_1_dir']}/{file_name}") / 1024 / 1024

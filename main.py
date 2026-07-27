@@ -70,6 +70,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             except Exception as get_tg_n_time_ex:
                 pass
 
+        # self.BasePriceLabel_2.setStyleSheet("background-color: red; border: 1px solid black; border-radius: 11px;")
+
         self.MW = MainWorker(file_size_limit=f">{self.FileSizeLimit_spinBox_1.value()}", log=Log)  #, sender=self.sender)
         self.MW2 = MainWorker(file_size_limit=f"<{self.FileSizeLimit_spinBox_1.value()}", log=Log)
 
@@ -175,6 +177,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                                                                                        self.progressBar_1_1))
         self.MW.SetTotalTome.connect(lambda x: self.set_total_time_1(x, 0))
         self.MW2.SetTotalTome.connect(lambda x: self.set_total_time_1(x, 1))
+        self.MW.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_2_1, clr))
+        self.MW2.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_1_1, clr))
 
         self.model_1 = QStandardItemModel()
         self.model_1.setHorizontalHeaderLabels(['Code', 'Status', 'Time', 'Total Time'])
@@ -275,6 +279,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                                                                                        self.progressBar_3))
         self.Calculate2.SetProgressBarValue.connect(lambda cur, total: self.set_value_in_prigress_bar(cur, total, self.ProgressLabel_3_1,
                                                                                                        self.progressBar_3_1))
+        # calculate_thread_label = [self.ThreadLabel_1_3, self.ThreadLabel_2_3]
+        self.Calculate.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_2_3, clr))
+        self.Calculate2.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_1_3, clr))
         self.timer_3 = [None, None]
         self.total__table_timer_3 = [None, None]
         self.total_timers_3 = [None, None]
@@ -315,6 +322,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceSender2.ResetPriceStatusTableSignal.connect(self.reset_model_4_1)
         self.PriceSender.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
         self.PriceSender2.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
+        self.PriceSender.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_2_4, clr))
+        self.PriceSender2.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_1_4, clr))
 
         self.ToFilesDirButton_4.clicked.connect(lambda _: self.open_dir(settings_data['send_dir']))
         self.FinalPriceReportReset = FinalPriceReportReset(log=Log)
@@ -831,6 +840,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.total__table_timer_4[row_id] = MyTimer(row_id, 3)
             self.model_4_1.setData(self.model_4_1.index(row_id, 3), self.total__table_timer_4[row_id])
             self.total__table_timer_4[row_id].SetTimeInTableSignal.connect(self.set_time_4)
+
+    def setLabelBGColor(self, lb, clr):
+        lb.setStyleSheet(f"background-color: {clr}; border-radius: 9px; color: white;")
 
 
 def main():
