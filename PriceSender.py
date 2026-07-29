@@ -1051,7 +1051,7 @@ class Sender(QThread):
                     limit = self.price_settings.max_rows - loaded
                 req = select(*headers.values()).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
-                df = df.sort_values(self.FinalPriceTmp.price.__dict__['name'])
+                df = df.sort_values(self.FinalPriceTmp.price.__dict__['name'], ascending=False)
 
                 df_len = len(df)
 

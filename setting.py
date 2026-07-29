@@ -3,8 +3,9 @@ import os
 import time
 
 properties = ["ip:", "user:", "password:", "db_name:", "chunk_size:", "mail_login:", "mail_imap_password:",
-              "mail_files_dir:", "catalogs_dir:", "3_cond_dir:", "server_logs_dir:", "exit_1_dir:",
-              "exit_2_dir:", "send_dir:", "orders:", "orders_save:", "default_order_sheet:", "default_order_table:"]
+              "mail_files_dir:", "mail_orders_login:", "mail_orders_imap_password:", "catalogs_dir:", "3_cond_dir:",
+              "server_logs_dir:", "exit_1_dir:", "exit_2_dir:", "send_dir:", "orders:", "orders_save:",
+              "default_order_sheet:", "default_order_table:"]
 
 def check_settings_file():
     if not 'Settings.txt' in os.listdir():

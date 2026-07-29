@@ -24,6 +24,8 @@ if not engine:
 session = sessionmaker(engine)
 # mp.freeze_support()
 
+# pyside6-uic .\price_processing_2.ui -o .\price_processing_2_ui.py
+
 from models import Base, AppSettings, CatalogUpdateTime
 # Base.metadata.create_all(engine)
 
@@ -348,7 +350,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.evening_checkBox.checkStateChanged.connect(self.set_evening_orders)
         self.GetPathChose_1_radioButton.setChecked(True)
         self.SavePathChose_1_radioButton.setChecked(True)
-        self.default_get_path_lineEdit.setText(fr"{os.path.dirname(settings_data['orders'])}/Копия Все Заказы Шевелько.xlsx")
+        self.default_get_path_lineEdit.setText(fr"{os.path.dirname(settings_data['orders'])}/Все Заказы Шевелько.xlsx")
         # self.default_get_path_lineEdit.setText(settings_data['orders'])
         self.default_save_path_lineEdit.setText(settings_data['orders_save'])
         self.default_order_table_label.setText(settings_data['default_order_table'])

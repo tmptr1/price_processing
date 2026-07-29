@@ -5,10 +5,9 @@ import traceback
 import os
 import datetime
 from sqlalchemy import func
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import FileSettings, MailReport, MailReportUnloaded, CatalogUpdateTime
-from sqlalchemy import select, delete, insert, and_
+# from sqlalchemy.orm import sessionmaker
+# from sqlalchemy.exc import OperationalError, UnboundExecutionError
+# from sqlalchemy import select, delete, insert, and_
 import pandas as pd
 import colors
 import openpyxl
@@ -22,8 +21,8 @@ from email import encoders
 # from CatalogUpdate import get_tables_skip_row_dict
 
 import setting
-engine = setting.get_engine()
-session = sessionmaker(engine)
+# engine = setting.get_engine()
+# session = sessionmaker(engine)
 settings_data = setting.get_vars()
 
 LOG_ID = 5
@@ -49,7 +48,7 @@ class OrderSenderClass(QThread):
 
 
     def run(self):
-        global session, engine
+        # global session, engine
         self.errors = 0
 
         try:
@@ -83,8 +82,9 @@ class OrderSenderClass(QThread):
 
             df = pd.read_excel(self.file_path, sheet_name=self.sheet_name, skiprows=skip_rows)
             cols = {"Заказ", "Поставщик", "Ключ1 в заказ", "Артикул в заказ", "Производитель в заказ", "Наименование в заказ",
-                    "Количество", "Цена в заказ", "Сумма", "Кратность в заказ", "Примечание в заказ", "Изменение количества. Новое, если отличается",
+                    "Количество", "Цена в заказ", "Сумма", "Изменение количества. Новое, если отличается",
                     "Новая цена", "Адрес"}
+            # "Кратность в заказ", "Примечание в заказ"
             if not cols.issubset(set(df.columns.tolist())):
                 self.log.add(LOG_ID, f"Нет необходимых столбцов", f"<span style='color:{colors.orange_log_color};'>Нет необходимых столбцов</span>  ")
                 return
@@ -99,25 +99,25 @@ class OrderSenderClass(QThread):
             self.log.add(LOG_ID, f"----------------")
 
             cols_for_csv = ["Ключ1 в заказ", "Артикул в заказ", "Производитель в заказ", "Наименование в заказ",
-                    "Количество", "Цена в заказ", "Сумма", "Кратность в заказ", "Примечание в заказ", "Изменение количества. Новое, если отличается",
-                    "Новая цена"]
+                    "Количество", "Цена в заказ", "Сумма", "Изменение количества. Новое, если отличается", "Новая цена"]
             self.now_date = datetime.datetime.now().date().strftime('%d.%m.%y')
             for day_part in type_list:
                 suppliers = df[df['Заказ']==day_part]['Поставщик'].unique()
                 for supplier in suppliers:
-                    new_csv = df[df['Поставщик']==supplier]
-                    self.file_name = fr"{supplier} {self.now_date} {day_part}.csv"
-                    self.send_to = new_csv.iloc[0]['Адрес']
-                    new_csv = new_csv[cols_for_csv]
-                    new_csv.to_csv(fr"{self.dir_path}/{self.file_name}", sep=';', decimal=',', encoding="windows-1251", index=False, errors='ignore')
+                    new_df = df[df['Поставщик']==supplier]
+                    self.file_name = fr"{supplier} {self.now_date} {day_part}.xlsx"  # csv
+                    self.send_to = new_df.iloc[0]['Адрес']
+                    new_df = new_df[cols_for_csv]
+                    # new_df.to_csv(fr"{self.dir_path}/{self.file_name}", sep=';', decimal=',', encoding="windows-1251", index=False, errors='ignore')
+                    new_df.to_excel(fr"{self.dir_path}/{self.file_name}", index=False)
                     self.log.add(LOG_ID, f"{self.file_name} сформирован", f"{self.file_name} <span style='color:{colors.green_log_color};'>сформирован</span>  ")
                     if '@' in f"{self.send_to}" and self.need_to_send:
                         if not self.send_email(day_part):
                             self.errors += 1
                         break
                     else:
-                        self.log.add(LOG_ID, f"Не указана почта для отправки",
-                                     f"<span style='color:{colors.orange_log_color};'>Не указана почта для отправки</span>  ")
+                        self.log.add(LOG_ID, f"Не указана почта для отправки / Не указана отправка",
+                                     f"<span style='color:{colors.orange_log_color};'>Не указана почта для отправки / Не указана отправка</span>  ")
 
                     self.log.add(LOG_ID, f"")
 
@@ -126,14 +126,14 @@ class OrderSenderClass(QThread):
                 self.log.add(LOG_ID, f"Не отправлено файлов: {self.errors}",
                              f"<span style='color:{colors.orange_log_color};'>Не отправлено файлов:</span> {self.errors}  ")
 
-        except (OperationalError, UnboundExecutionError) as db_ex:
-            self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
-                                                                f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
-            try:
-                engine = setting.get_engine()
-                session = sessionmaker(engine)
-            except:
-                pass
+        # except (OperationalError, UnboundExecutionError) as db_ex:
+        #     self.log.add(LOG_ID, f"Повторное подключение к БД ...", f"<span style='color:{colors.orange_log_color};"
+        #                                                         f"font-weight:bold;'>Повторное подключение к БД ...</span>  ")
+            # try:
+            #     engine = setting.get_engine()
+            #     session = sessionmaker(engine)
+            # except:
+            #     pass
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "ERROR", ex_text)
@@ -145,12 +145,12 @@ class OrderSenderClass(QThread):
             for send_to_ in [self.send_to, 'ytopttorg@mail.ru']:
                 msg = MIMEMultipart()
                 msg["Subject"] = Header(f"Заказ от ИП Шевелько ({self.now_date} {day_part})")
-                msg["From"] = settings_data['mail_login']
+                msg["From"] = settings_data['mail_orders_login']
                 msg["To"] = send_to_
 
                 s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
                 s.starttls()
-                s.login(settings_data['mail_login'], settings_data['mail_imap_password'])
+                s.login(settings_data['mail_orders_login'], settings_data['mail_orders_imap_password'])
 
                 file_path = fr"{self.dir_path}/{self.file_name}"
                 with open(file_path, 'rb') as f:
