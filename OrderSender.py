@@ -102,10 +102,11 @@ class OrderSenderClass(QThread):
                     "Количество", "Цена в заказ", "Сумма", "Изменение количества. Новое, если отличается", "Новая цена"]
             self.now_date = datetime.datetime.now().date().strftime('%d.%m.%y')
             for day_part in type_list:
-                suppliers = df[df['Заказ']==day_part]['Поставщик'].unique()
+                suppliers = df[(df['Заказ']==day_part) & (df['Поставщик'].notna())]['Поставщик'].unique()
                 for supplier in suppliers:
                     new_df = df[df['Поставщик']==supplier]
                     self.file_name = fr"{supplier} {self.now_date} {day_part}.xlsx"  # csv
+                    self.log.add(LOG_ID, f"{self.file_name} - формирование...")
                     self.send_to = new_df.iloc[0]['Адрес']
                     new_df = new_df[cols_for_csv]
                     # new_df.to_csv(fr"{self.dir_path}/{self.file_name}", sep=';', decimal=',', encoding="windows-1251", index=False, errors='ignore')
