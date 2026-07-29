@@ -149,20 +149,21 @@ class OrderSenderClass(QThread):
                 msg["From"] = settings_data['mail_orders_login']
                 msg["To"] = send_to_
 
-                s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
-                s.starttls()
-                s.login(settings_data['mail_orders_login'], settings_data['mail_orders_imap_password'])
+                # s = smtplib.SMTP("smtp.yandex.ru", 587, timeout=100)
+                with smtplib.SMTP_SSL("smtp.mail.ru", 465, timeout=100) as s:
+                    # s.starttls()
+                    s.login(settings_data['mail_orders_login'], settings_data['mail_orders_imap_password'])
 
-                file_path = fr"{self.dir_path}/{self.file_name}"
-                with open(file_path, 'rb') as f:
-                    file = MIMEBase('application', 'vnd.ms-excel')
-                    file.set_payload(f.read())
+                    file_path = fr"{self.dir_path}/{self.file_name}"
+                    with open(file_path, 'rb') as f:
+                        file = MIMEBase('application', 'vnd.ms-excel')
+                        file.set_payload(f.read())
 
-                encoders.encode_base64(file)
-                file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-                msg.attach(file)
+                    encoders.encode_base64(file)
+                    file.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                    msg.attach(file)
 
-                s.sendmail(msg["From"], send_to_, msg.as_string())
+                    s.sendmail(msg["From"], send_to_, msg.as_string())
 
 
             self.log.add(LOG_ID, f"Отправлено на {self.send_to}",

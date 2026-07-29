@@ -31,7 +31,8 @@ def get_vars():
         # {settings.readline().split(':')[0]:settings.readline().lstrip(properties[i]) for i in range(len(properties))}
         for i in range(len(properties)):
             line = settings.readline()
-            data[line.strip().split(':')[0]] = line.lstrip(properties[i]).strip() or None
+            key_v = line.strip().split(':')[0]
+            data[key_v] = line[len(key_v)+1:].strip() or None
 
         # print(f"{data=}")
         return data
