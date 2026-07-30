@@ -487,7 +487,7 @@ class CatalogUpdate(QThread):
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
-                        "is_base_price": ["Цену считать базовой"], "costs": ["Издержки"], "update_time_str": ["Срок обновление не более"],
+                        "is_base_price": ["Цену считать базовой"], "update_time_str": ["Срок обновление не более"],
                         "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
                         "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
                         "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],
@@ -497,7 +497,7 @@ class CatalogUpdate(QThread):
                         "price_change_percent": ["Допустимый процент изменения цены"],
                         "supplier_rating": ["Рейтинг поставщика"],
                         }
-                # "markup_os": ["Наценка для ОС"],
+                # "markup_os": ["Наценка для ОС"], "costs": ["Издержки"],
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
                 sess.execute(update(SupplierPriceSettings).values(update_time=cast(func.regexp_substr(SupplierPriceSettings.update_time_str, r'\d+'), REAL)))

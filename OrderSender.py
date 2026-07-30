@@ -4,7 +4,7 @@ import time
 import traceback
 import os
 import datetime
-from sqlalchemy import func
+# from sqlalchemy import func
 # from sqlalchemy.orm import sessionmaker
 # from sqlalchemy.exc import OperationalError, UnboundExecutionError
 # from sqlalchemy import select, delete, insert, and_

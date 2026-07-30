@@ -36,7 +36,7 @@ class SupplierPriceSettings(Base):
     __tablename__ = "supplier_price_settings"
     id: Mapped[intpk]
     # Издержки real,
-    costs: Mapped[real]
+    # costs: Mapped[real]
     # Код_поставщика varchar(10),
     supplier_code: Mapped[str_x(10)]
     # Можем_купить varchar(20),
