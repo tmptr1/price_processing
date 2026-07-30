@@ -885,7 +885,7 @@ class BuyersForm(Base):
     # Доп наценка
     markup: Mapped[real]
     # Издержки
-    costs: Mapped[real]
+    # costs: Mapped[real]
     # Итоговая наценка
     # final_markup: Mapped[real]
     # Наценка покупателя опт
