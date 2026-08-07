@@ -825,8 +825,8 @@ class Sender(QThread):
         #     price=self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
             price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
-                                PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct + self.FinalPriceTmp.customer_period_markup_pct))))
-
+                                PrevDynamicParts.store_price_rub)))
+        # PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct + self.FinalPriceTmp.customer_period_markup_pct)
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
             sess.execute(update(self.FinalPriceTmp).where(and_(SuppliersForm.supplier_weekend_markup_pct > 0,
@@ -973,6 +973,7 @@ class Sender(QThread):
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_compare_del} (Сравнение цены с осн. прайсом)")
 
     def set_rating(self, sess):
+        self.del_min_r = 0
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._07supplier_code == SuppliersForm.setting).
                      values(rating=SuppliersForm.rating))
         sess.execute(update(self.FinalPriceTmp).values(rating=self.FinalPriceTmp.rating * self.FinalPriceTmp.price))
@@ -983,7 +984,7 @@ class Sender(QThread):
         ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
         min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
         # self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
-        self.del_min_r = 0
+
         if min_rating:
             # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
             # if self.del_min_r:  # для оптимизации
