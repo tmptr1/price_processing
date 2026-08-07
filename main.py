@@ -324,8 +324,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.PriceSender2.ResetPriceStatusTableSignal.connect(self.reset_model_4_1)
         self.PriceSender.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
         self.PriceSender2.UpdatePriceStatusTableSignal.connect(self.update_status_table_4_1)
-        self.PriceSender.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_2_4, clr))
-        self.PriceSender2.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_1_4, clr))
+        self.PriceSender.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_1_4, clr))
+        self.PriceSender2.SetLabelColorSignal.connect(lambda clr: self.setLabelBGColor(self.ThreadLabel_2_4, clr))
 
         self.ToFilesDirButton_4.clicked.connect(lambda _: self.open_dir(settings_data['send_dir']))
         self.FinalPriceReportReset = FinalPriceReportReset(log=Log)

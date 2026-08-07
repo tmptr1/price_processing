@@ -904,8 +904,8 @@ class Sender(QThread):
                .where(and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
 
     def set_direct_markup(self, sess):
-        sess.execute(update(FinalPrice).where(FinalPrice.direct_supplier_customer_markup_pct!=0).
-                     values(price=FinalPrice.clear_price * (1 + FinalPrice.direct_supplier_customer_markup_pct)))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.direct_supplier_customer_markup_pct!=0).
+                     values(price=self.FinalPriceTmp.clear_price * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct)))
 
 
     def del_price_below_zero(self, sess):
