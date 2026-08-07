@@ -150,14 +150,21 @@ class Sender(QThread):
                             self.create_price(id)
 
                         except smtplib.SMTPDataError as smtp_ex:
+                            er_msg = smtplib.SMTPDataError.smtp_error.decode("utf-8", errors='ignore')
+                            if 'message file too big' in er_msg:
+                                e_reason = 'Файл слишком большой'
+                                info_msg = 'Файл слишком большой'
+                            else:
+                                e_reason = 'Подозрение на спам'
+                                info_msg = 'Спам'
                             # print(smtp_ex.smtp_code)
                             ex_text = traceback.format_exc()
-                            self.log.error(LOG_ID, f"Подозрение на спам ({smtp_ex.smtp_code}) ERROR:", ex_text)
+                            self.log.error(LOG_ID, f"{e_reason} ({smtp_ex.smtp_code}) ERROR:", ex_text)
                             with session() as sess:
                                 buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
                                                                                                                func.upper(BuyersForm.included) == 'ДА'))).scalar()
                                 sess.execute(update(PriceSendTime).where(PriceSendTime.price_code==buyer_price_code).
-                                             values(info_msg='Спам', update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))  # было send_time
+                                             values(info_msg=info_msg, update_time=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))  # было send_time
                                 sess.commit()
                         except Exception as create_ex:
                             ex_text = traceback.format_exc()

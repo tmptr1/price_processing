@@ -82,7 +82,8 @@ class CatalogUpdate(QThread):
                 # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
-                #     words_except(sess)
+                #     updated_rows = words_except(sess)
+                #     print(f"{updated_rows=}")
                 # return
                 #     expired_prices = sess.execute(select(PriceReport.price_code).where(and_(SupplierPriceSettings.price_code == PriceReport.price_code,
                 #             PriceReport.updated_at_2_step != None, SupplierPriceSettings.update_time > 0))).scalars().all()
@@ -292,6 +293,13 @@ class CatalogUpdate(QThread):
                     spam = ', '.join(spam)
                     # html_text += f"📧 Попало в спам: {spam}\n\n"
                     html_text += f'<tr style="background-color: #FFC169;"><td>Попало в спам</td><td>{spam}</td></tr>'
+
+                file_too_big = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Файл слишком большой').
+                                                      order_by(PriceSendTime.price_code)).scalars().all()
+                if file_too_big:
+                    file_too_big = ', '.join(file_too_big)
+                    # html_text += f"📧 Попало в спам: {spam}\n\n"
+                    html_text += f'<tr style="background-color: #FFC169;"><td>Файл слишком большой</td><td>{file_too_big}</td></tr>'
 
                 not_loaded = sess.execute(select(distinct(PriceSendTime.price_code)).where(PriceSendTime.info_msg=='Не удалось загрузить на сайт').
                                                       order_by(PriceSendTime.price_code)).scalars().all()
@@ -1325,8 +1333,9 @@ def words_except(sess):
                    "Равно": lambda col, x: func.upper(col) == x,
                    "Не равно": lambda col, x: func.upper(col) != x,
                    }
+    price_codes = sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all()
     rules = sess.execute(select(ColsFix.price_code, ColsFix.col_find, ColsFix.change_type, ColsFix.col_change, ColsFix.set)
-        .where(and_(ColsFix.col_change == '20ИсключитьИзПрайса', ColsFix.change_type != 'Не содержит'))
+        .where(and_(ColsFix.col_change == '20ИсключитьИзПрайса', ColsFix.change_type != 'Не содержит', ColsFix.price_code.in_(price_codes)))
         .group_by(ColsFix.price_code, ColsFix.col_find, ColsFix.change_type, ColsFix.col_change, ColsFix.set)).all()
     # print(rules)
     for price_code, col_f, ch_type, col_c, set_val in rules:
