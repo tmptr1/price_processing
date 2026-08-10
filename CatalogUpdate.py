@@ -776,11 +776,11 @@ class CatalogUpdate(QThread):
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # table_name = 'reserve'
-                sheet_name = "Резерв_да"
-                table_class = Reserve
-                ex_table_name = "Резерв_да"
-                cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                # sheet_name = "Резерв_да"
+                # table_class = Reserve
+                # ex_table_name = "Резерв_да"
+                # cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
+                # update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # table_name = 'suppliers_form'
                 sheet_name = "Анкета поставщика"

@@ -804,17 +804,17 @@ class Buy_for_OS(Base):
     # АртикулПроизводитель varchar(300)
     article_producer: Mapped[str_x(300)]
 #
-class Reserve(Base):
-    __tablename__ = "reserve"
-    __table_args__ = (Index("reserve_code_09_index", "code_09"),)
-
-    id: Mapped[intpk]
-    # _09 varchar(300)
-    code_09: Mapped[str_x(300)]
-    # ШтР REAL DEFAULT NULL,
-    reserve_count: Mapped[intgr]
-    # _07 (price_code) varchar(20)
-    code_07: Mapped[str_x(20)]
+# class Reserve(Base):
+#     __tablename__ = "reserve"
+#     __table_args__ = (Index("reserve_code_09_index", "code_09"),)
+#
+#     id: Mapped[intpk]
+#     # _09 varchar(300)
+#     code_09: Mapped[str_x(300)]
+#     # ШтР REAL DEFAULT NULL,
+#     reserve_count: Mapped[intgr]
+#     # _07 (price_code) varchar(20)
+#     code_07: Mapped[str_x(20)]
 
 # class SaleDK(Base):
 #     __tablename__ = "sale_dk"
