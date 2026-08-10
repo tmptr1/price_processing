@@ -239,7 +239,7 @@ class CalculateClass(QThread):
                                                                                     f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._02brand.__dict__['name']})), ' ', '', 'g')")))
                 sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
-                             values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
+                             values(reserve_count=Data09.reserve_count))  #put_away_zp=Data09.put_away_zp,
 
                 sess.execute(update(self.TmpPrice_2).values(alternative_article=text(f"concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
                                                                                      f"{self.TmpPrice_2.key1_s.__dict__['name']}, "
@@ -296,7 +296,7 @@ class CalculateClass(QThread):
 
                 cur_time = datetime.datetime.now()
                 # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
-                # self.TmpPrice_2.max_decline,
+                # self.TmpPrice_2.max_decline, self.TmpPrice_2.put_away_zp
                 cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s,
                                   self.TmpPrice_2.name_s, self.TmpPrice_2.count_s, self.TmpPrice_2.price_s,
                                   self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
@@ -310,7 +310,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step, self.TmpPrice_2.access_pp,
-                                  self.TmpPrice_2.unload_percent, self.TmpPrice_2.put_away_zp, self.TmpPrice_2.offers_wh,
+                                  self.TmpPrice_2.unload_percent, self.TmpPrice_2.offers_wh,
                                   self.TmpPrice_2.price_b, self.TmpPrice_2.count, self.TmpPrice_2.markup_pb,
                                   self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
                                   self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count, self.TmpPrice_2.min_price,
@@ -507,17 +507,17 @@ class CalculateClass(QThread):
                                            "17КодУникальности", "18КороткоеНаименование",
                                            "20ИслючитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
                                            "Наценка Р", "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градации",
-                                           "Шаг опт", "Разрешения ПП", "УбратьЗП", "Предложений опт",
+                                           "Шаг опт", "Разрешения ПП", "Предложений опт",
                                            "ЦенаБ", "Кол-во", "06Кратность", "Кратность меньше", "05Цена+",
                                            "Количество закупок", "% Отгрузки",
-                                           "Мин. Цена", "Мин. Поставщик"])
+                                           "Мин. Цена", "Мин. Поставщик"])  # "УбратьЗП"
             df.to_csv(fr"{settings_data['exit_2_dir']}/{price_code}.csv", sep=';', decimal=',',
                       encoding="windows-1251", index=False, errors='ignore')
 
             limit = CHUNKSIZE
             loaded = 0
             while True:
-                # self.TmpPrice_2.markup_os
+                # self.TmpPrice_2.markup_os, self.TmpPrice_2.put_away_zp,
                 req = select(self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s, self.TmpPrice_2.name_s,
                                   self.TmpPrice_2.count_s, self.TmpPrice_2.price_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
                                   self.TmpPrice_2._01article, self.TmpPrice_2._02brand, self.TmpPrice_2._03name,
@@ -527,7 +527,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
                                   self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_R,
                                   self.TmpPrice_2.markup_pb, self.TmpPrice_2.min_markup, self.TmpPrice_2.markup_wh_goods,
-                                  self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step,  self.TmpPrice_2.access_pp, self.TmpPrice_2.put_away_zp,
+                                  self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step,  self.TmpPrice_2.access_pp,
                                   self.TmpPrice_2.offers_wh, self.TmpPrice_2.price_b, self.TmpPrice_2.count,
                                   self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
                                   self.TmpPrice_2.buy_count, self.TmpPrice_2.unload_percent, self.TmpPrice_2.min_price, self.TmpPrice_2.min_supplier)\

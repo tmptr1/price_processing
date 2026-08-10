@@ -429,7 +429,7 @@ class Price_2(Base2):
     # Процент_Отгрузки REAL,
     unload_percent: Mapped[real]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
     offers_wh: Mapped[intgr] = mapped_column(Integer, default=0)
     # ЦенаБ NUMERIC(12,2),
@@ -553,7 +553,7 @@ class Price_2_2(Base2_1):
     # Процент_Отгрузки REAL,
     unload_percent: Mapped[real]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
     offers_wh: Mapped[intgr] = mapped_column(Integer, default=0)
     # ЦенаБ NUMERIC(12,2),
@@ -680,7 +680,7 @@ class TotalPrice_2(Base):
     # Процент_Отгрузки REAL,
     unload_percent: Mapped[real]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
     offers_wh: Mapped[intgr]
     # ЦенаБ NUMERIC(12,2),
@@ -787,11 +787,12 @@ class Data09(Base):
 
     id: Mapped[intpk]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # ШтР REAL DEFAULT NULL,
     reserve_count: Mapped[intgr]
     # _09 varchar(300)
     code_09: Mapped[str_x(300)]
+    # reason: Mapped[str_x(50)]
 #
 class Buy_for_OS(Base):
     __tablename__ = "buy_for_os"
@@ -1045,7 +1046,7 @@ class FinalPrice(Base3):
     # Разрешения_ПП varchar(3000),
     access_pp: Mapped[str_x(500)]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
     offers_wh: Mapped[intgr]
     # ЦенаБ NUMERIC(12,2),
@@ -1178,7 +1179,7 @@ class FinalPrice_1(Base3_1):
     # Разрешения_ПП varchar(3000),
     access_pp: Mapped[str_x(500)]
     # УбратьЗП varchar(3000),
-    put_away_zp: Mapped[str_x(500)]
+    # put_away_zp: Mapped[str_x(500)]
     # Предложений_опт REAL,
     offers_wh: Mapped[intgr]
     # ЦенаБ NUMERIC(12,2),

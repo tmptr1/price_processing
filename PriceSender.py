@@ -319,7 +319,7 @@ class Sender(QThread):
 
             self.now_dt = datetime.datetime.now().strftime('%Y.%m.%d %H:%M:%S')
             allow_prices = self.get_allow_prises(sess)
-            # TotalPrice_2.code_pb_p, TotalPrice_2.markup_os
+            # TotalPrice_2.code_pb_p, TotalPrice_2.markup_os, TotalPrice_2.put_away_zp
             cols_for_price = [TotalPrice_2.key1_s, TotalPrice_2.article_s, TotalPrice_2.brand_s, TotalPrice_2.name_s,
                               TotalPrice_2.count_s, TotalPrice_2.price_s, TotalPrice_2.currency_s, TotalPrice_2.mult_s,
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
@@ -329,7 +329,7 @@ class Sender(QThread):
                               TotalPrice_2._15code_optt, TotalPrice_2._17code_unique, TotalPrice_2._18short_name,
                               TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
                               TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
-                              TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.put_away_zp,
+                              TotalPrice_2.wh_step, TotalPrice_2.access_pp,
                               TotalPrice_2.offers_wh, TotalPrice_2.price_b, TotalPrice_2.count,
                               TotalPrice_2.mult_less, TotalPrice_2.buy_count, TotalPrice_2.unload_percent,
                               TotalPrice_2.min_price, TotalPrice_2.to_price, TotalPrice_2.tnved, TotalPrice_2.okpd2]
@@ -554,11 +554,11 @@ class Sender(QThread):
                                 self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2]
         raw_name_cols_for_del_history = [c.__dict__['name'] for c in cols_for_del_history]
 
-        del_put_away_zp = delete(self.FinalPriceTmp).where(condition).returning(*cols_for_del_history).cte()
+        del_positions = delete(self.FinalPriceTmp).where(condition).returning(*cols_for_del_history).cte()
 
         selected_rows = select(literal_column(f"'{reason}'"),
                                literal_column(f"'{self.price_settings.buyer_price_code}'"),
-                               literal_column(f"'{self.now_dt}'"), del_put_away_zp)
+                               literal_column(f"'{self.now_dt}'"), del_positions)
         cnt = sess.execute(insert(FinalPriceHistoryDel).from_select(
             ['reason', 'price_code', 'send_time', *raw_name_cols_for_del_history],
             selected_rows)).rowcount

@@ -764,9 +764,9 @@ class CatalogUpdate(QThread):
                 sheet_name = "09Данные"
                 table_class = Data09
                 ex_table_name = "_09Данные"
-                cols = {"put_away_zp": ["УбратьЗП"], "reserve_count": ["ШтР"], "code_09": ["09"]}
+                cols = {"reserve_count": ["ШтР"], "code_09": ["09"], "reason": ["Причина"]}  # "put_away_zp": ["УбратьЗП"]
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
-                sess.execute(update(Data09).where(Data09.put_away_zp.is_(None)).values(put_away_zp='все'))
+                # sess.execute(update(Data09).where(Data09.put_away_zp.is_(None)).values(put_away_zp='все'))
 
                 # table_name = 'buy_for_os'
                 sheet_name = "Закупки для ОС"
@@ -997,7 +997,7 @@ class CatalogUpdate(QThread):
 
             cur_time_step = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
-                         values(put_away_zp=Data09.put_away_zp, reserve_count=Data09.reserve_count))
+                         values(reserve_count=Data09.reserve_count))  # put_away_zp=Data09.put_away_zp
             self.log.add(LOG_ID, f"Data09 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
             sess.commit()
 
