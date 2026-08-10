@@ -764,7 +764,7 @@ class CatalogUpdate(QThread):
                 sheet_name = "09Данные"
                 table_class = Data09
                 ex_table_name = "_09Данные"
-                cols = {"reserve_count": ["ШтР"], "code_09": ["09"], "reason": ["Причина"]}  # "put_away_zp": ["УбратьЗП"]
+                cols = {"reserve_count": ["ШтР"], "code_09": ["09"], }  # "put_away_zp": ["УбратьЗП"]
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 # sess.execute(update(Data09).where(Data09.put_away_zp.is_(None)).values(put_away_zp='все'))
 
