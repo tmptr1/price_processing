@@ -1603,7 +1603,7 @@ class SupplierGoodsFix(Base):
     key1: Mapped[str_x(256)]
     article_s: Mapped[str_x(256)]
     brand_s: Mapped[str_x(256)]
-    name: Mapped[str_x(500)]
+    name: Mapped[str_x(256)]
     brand: Mapped[str_x(256)]
     article: Mapped[str_x(256)]
     price_s: Mapped[numeric]
