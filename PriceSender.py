@@ -630,13 +630,12 @@ class Sender(QThread):
         self.count_mult_del = 0
         # расчёт кол-ва
         if self.price_settings.us_above is not None:
-            sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent != 1,
-                                                       self.FinalPriceTmp.unload_percent < self.price_settings.us_above)).
-                         values(count=func.floor(self.FinalPriceTmp.count * self.price_settings.us_above)))
-            # self.count_mult_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count)), 'Кол-во или кратность')
-            # if self.count_mult_del:
-            #     sess.query(self.FinalPriceTmp).where(or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count)).delete()
-            #     self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.count_mult_del} (Кол-во или кратность)")
+            # sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent != 1,
+            #                                            self.FinalPriceTmp.unload_percent < self.price_settings.us_above)).
+            #              values(count=func.floor(self.FinalPriceTmp.count * self.price_settings.us_above)))
+
+            sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent < self.price_settings.us_above, self.FinalPriceTmp.unload_percent != 1)).
+                         values(count=func.floor(self.FinalPriceTmp.count * (1 - (self.price_settings.us_above - self.FinalPriceTmp.unload_percent)))))
 
             self.count_mult_del = self.add_dels_in_history(sess, or_(self.FinalPriceTmp.count < 1, self.FinalPriceTmp._06mult_new > self.FinalPriceTmp.count), 'Кол-во или кратность')
             if self.count_mult_del:
