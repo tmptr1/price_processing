@@ -164,11 +164,11 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['1МСК krasnodar_.xlsx']
+                # new_files = ['1МСК krasnodar_.xlsx', '1FRA Прайс ФорвардАвто Краснодар.xlsx', '1ГУД Крд прайс PQ.xls']
                 # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
-                #              '2ETP Прайс ЕТП.csv', ]
+                #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -919,11 +919,11 @@ class MainWorker(QThread):
 
 
     def suppliers_goods_compare(self, price_code, sett, sess):
-        key_conditions = and_(SupplierGoodsFix.import_setting == price_code, self.TmpPrice_1.key1_s == SupplierGoodsFix.key1)
-        article_brand_conditions = and_(SupplierGoodsFix.import_setting == price_code, self.TmpPrice_1.article_s == SupplierGoodsFix.article_s,
-                                        self.TmpPrice_1.brand_s == SupplierGoodsFix.brand_s)
-        article_name_conditions = and_(SupplierGoodsFix.import_setting == price_code, self.TmpPrice_1.article_s == SupplierGoodsFix.article_s,
-                                       self.TmpPrice_1.name_s == SupplierGoodsFix.name_s)
+        key_conditions = and_(SupplierGoodsFix.import_setting == price_code, func.lower(self.TmpPrice_1.key1_s) == func.lower(SupplierGoodsFix.key1))
+        article_brand_conditions = and_(SupplierGoodsFix.import_setting == price_code, func.lower(self.TmpPrice_1.article_s) == func.lower(SupplierGoodsFix.article_s),
+                                        func.lower(self.TmpPrice_1.brand_s) == func.lower(SupplierGoodsFix.brand_s))
+        article_name_conditions = and_(SupplierGoodsFix.import_setting == price_code, func.lower(self.TmpPrice_1.article_s) == func.lower(SupplierGoodsFix.article_s),
+                                       func.lower(self.TmpPrice_1.name_s) == func.lower(SupplierGoodsFix.name_s))
         compare_vars = {"Ключ": key_conditions, "Артикул + Бренд": article_brand_conditions,
                         "Артикул + НаименованиеП": article_name_conditions}
 

@@ -82,6 +82,7 @@ class CatalogUpdate(QThread):
                 # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
+                #     self.suppliers_goods_update(sess)
                 #     updated_rows = words_except(sess)
                 #     print(f"{updated_rows=}")
                 # return
@@ -1017,33 +1018,7 @@ class CatalogUpdate(QThread):
             # sess.execute(update(TotalPrice_2).where(TotalPrice_2._15code_optt == Buy_for_OS.article_producer).values(
             #     buy_count=Buy_for_OS.buy_count))
 
-            cur_time_step = datetime.datetime.now()
-            # Обновить ColsFix discount, где currency_s == None + обнулить наценку? (расчёт цены по новой)
-            sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
-                                                         TotalPrice_2._07supplier_code == ColsFix.price_code,
-                                                         TotalPrice_2.currency_s == None,
-                                                         TotalPrice_2._14brand_filled_in == ColsFix.find,
-                                                         ColsFix.find != None)).values(
-                _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
-                _05price_plus=None))
-
-            conditions = [(and_(TotalPrice_2._04count > 0, TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count),
-                           TotalPrice_2.markup_holidays / TotalPrice_2._04count)]
-            sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2.currency_s == None, TotalPrice_2._05price_plus == None)).
-                         values(_05price_plus=case(*conditions, else_=TotalPrice_2._05price)))
-            self.log.add(LOG_ID, f"05price - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
-            sess.commit()
-
-            cur_time_step = datetime.datetime.now()
-            updated_rows = words_except(sess)
-            self.log.add(LOG_ID, f"words_except - done ({updated_rows}) [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
-            sess.commit()
-
-            cur_time_step = datetime.datetime.now()
-            cols_fix(sess)
-            self.log.add(LOG_ID, f"cols_fix - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
-            sess.commit()
-
+            self.update_suppliers_settings_4(sess, last_DB_4_update)
 
             self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
                       f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
@@ -1054,6 +1029,93 @@ class CatalogUpdate(QThread):
 
             sess.commit()
             return True
+
+
+    def update_suppliers_settings_4(self, sess, last_DB_4_update):
+        last_4_condition_2_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
+            CatalogUpdateTime.catalog_name == '4.0 Настройка прайсов поставщиков.xlsx"')).scalar()
+        if last_4_condition_2_update and last_4_condition_2_update <= last_DB_4_update:
+            return
+
+        self.suppliers_goods_update(sess)
+
+        cur_time_step = datetime.datetime.now()
+        # Обновить ColsFix discount, где currency_s == None + обнулить наценку? (расчёт цены по новой)
+        sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена',
+                                                     TotalPrice_2._07supplier_code == ColsFix.price_code,
+                                                     TotalPrice_2.currency_s == None,
+                                                     TotalPrice_2._14brand_filled_in == ColsFix.find,
+                                                     ColsFix.find != None)).values(
+            _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
+            _05price_plus=None))
+
+        conditions = [(and_(TotalPrice_2._04count > 0,
+                            TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count),
+                       TotalPrice_2.markup_holidays / TotalPrice_2._04count)]
+        sess.execute(
+            update(TotalPrice_2).where(and_(TotalPrice_2.currency_s == None, TotalPrice_2._05price_plus == None)).
+            values(_05price_plus=case(*conditions, else_=TotalPrice_2._05price)))
+        self.log.add(LOG_ID, f"05price - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+        sess.commit()
+
+        cur_time_step = datetime.datetime.now()
+        updated_rows = words_except(sess)
+        self.log.add(LOG_ID, f"words_except - done ({updated_rows}) [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+        sess.commit()
+
+        cur_time_step = datetime.datetime.now()
+        cols_fix(sess)
+        self.log.add(LOG_ID, f"cols_fix - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+
+        sess.commit()
+
+
+    def suppliers_goods_update(self, sess):
+        self.log.add(LOG_ID, f"Исправление товаров поставщиков...")
+        cur_time = datetime.datetime.now()
+
+        settings = sess.execute(select(FileSettings).where(FileSettings.price_code.in_(select(distinct(TotalPrice_2._07supplier_code))))).scalars().all()
+
+        for sett in settings:
+            key_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                  func.lower(TotalPrice_2.key1_s) == func.lower(SupplierGoodsFix.key1))
+            article_brand_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                            func.lower(TotalPrice_2.article_s) == func.lower(SupplierGoodsFix.article_s),
+                                            func.lower(TotalPrice_2.brand_s) == func.lower(SupplierGoodsFix.brand_s))
+            article_name_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                           func.lower(TotalPrice_2.article_s) == func.lower(SupplierGoodsFix.article_s),
+                                           func.lower(TotalPrice_2.name_s) == func.lower(SupplierGoodsFix.name_s))
+            compare_vars = {"Ключ": key_conditions, "Артикул + Бренд": article_brand_conditions,
+                            "Артикул + НаименованиеП": article_name_conditions}
+
+            if sett.compare in compare_vars.keys():
+                # print(sett.price_code, sett.compare)
+                sess.execute(update(TotalPrice_2).where(
+                    and_(compare_vars[sett.compare], SupplierGoodsFix.article != None)).values(
+                    _01article=SupplierGoodsFix.article))
+                sess.execute(
+                    update(TotalPrice_2).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(
+                        _02brand=SupplierGoodsFix.brand))
+                sess.execute(
+                    update(TotalPrice_2).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(
+                        _03name=SupplierGoodsFix.name))
+                sess.execute(update(TotalPrice_2).where(
+                    and_(compare_vars[sett.compare], SupplierGoodsFix.put_away_count != 0)).values(
+                    _04count=SupplierGoodsFix.put_away_count))
+                sess.execute(
+                    update(TotalPrice_2).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(
+                        _05price=SupplierGoodsFix.price_s))  # clear_price=self.TmpPrice_1.price_s
+                sess.execute(
+                    update(TotalPrice_2).where(and_(compare_vars[sett.compare], SupplierGoodsFix.mult_s != 0)).values(
+                        _06mult=SupplierGoodsFix.mult_s))
+                sess.execute(update(TotalPrice_2).where(
+                    and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(
+                    _20exclude=SupplierGoodsFix.sales_ban))
+
+        sess.commit()
+        self.log.add(LOG_ID, f"Исправление товаров поставщиков - Done [{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+
 
     def vacuum_analyze(self):
         try:
