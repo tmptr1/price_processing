@@ -150,7 +150,7 @@ class Sender(QThread):
                             self.create_price(id)
 
                         except smtplib.SMTPDataError as smtp_ex:
-                            er_msg = smtplib.SMTPDataError.smtp_error.decode("utf-8", errors='ignore')
+                            er_msg = smtplib.SMTPDataError.strerror  #.decode("utf-8", errors='ignore')
                             if 'message file too big' in er_msg:
                                 e_reason = 'Файл слишком большой'
                                 info_msg = 'Файл слишком большой'

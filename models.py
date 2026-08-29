@@ -1567,6 +1567,16 @@ class ColsFix(Base):
     col_change: Mapped[str_x(50)]
     set: Mapped[str_x(500)]
 
+class LastColsFix(Base):
+    __tablename__ = "last_cols_fix"
+    id: Mapped[intpk]
+    price_code: Mapped[str_x(20)]
+    col_find: Mapped[str_x(50)]
+    find: Mapped[str_x(500)]
+    change_type: Mapped[str_x(50)]
+    col_change: Mapped[str_x(50)]
+    set: Mapped[str_x(500)]
+
 class SuppliersForm(Base):
     __tablename__ = "suppliers_form"
     id: Mapped[intpk]
