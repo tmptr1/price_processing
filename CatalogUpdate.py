@@ -1377,6 +1377,8 @@ class CatalogUpdate(QThread):
 
         new_settings = sess.execute(except_(select(ColsFix), select(LastColsFix))).scalars().all()
 
+        actual_price_codes = sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all()
+
         rules = sess.execute(
             select(ColsFix.price_code, ColsFix.col_find, ColsFix.change_type, ColsFix.col_change, ColsFix.set)
             .where(and_(ColsFix.col_change == '20ИсключитьИзПрайса', ColsFix.change_type != 'Не содержит',
