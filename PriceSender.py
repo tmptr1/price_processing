@@ -150,15 +150,23 @@ class Sender(QThread):
                             self.create_price(id)
 
                         except smtplib.SMTPDataError as smtp_ex:
-                            er_msg = smtplib.SMTPDataError.strerror  #.decode("utf-8", errors='ignore')
-                            if 'message file too big' in er_msg:
-                                e_reason = 'Файл слишком большой'
-                                info_msg = 'Файл слишком большой'
-                            else:
-                                e_reason = 'Подозрение на спам'
-                                info_msg = 'Спам'
+                            # try:
+                            #     er_msg = smtplib.SMTPDataError.strerror  #.decode("utf-8", errors='ignore')
+                            # except:
+                            #     er_msg = smtplib.SMTPDataError.smtp_error.decode("utf-8", errors='ignore')
+
                             # print(smtp_ex.smtp_code)
                             ex_text = traceback.format_exc()
+
+                            e_reason = 'Ошибка'
+                            info_msg = 'Ошибка'
+                            if 'message file too big' in str(ex_text):
+                                e_reason = 'Файл слишком большой'
+                                info_msg = 'Файл слишком большой'
+                            elif 'suspicion of SPAM' in str(ex_text):
+                                e_reason = 'Подозрение на спам'
+                                info_msg = 'Спам'
+
                             self.log.error(LOG_ID, f"{e_reason} ({smtp_ex.smtp_code}) ERROR:", ex_text)
                             with session() as sess:
                                 buyer_price_code = sess.execute(select(BuyersForm.buyer_price_code).where(and_(BuyersForm.id == id,
