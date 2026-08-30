@@ -1261,7 +1261,7 @@ class FinalPriceHistory(Base):
     _02brand: Mapped[str_x(256)]
     brand: Mapped[str_x(256)]
     # _03Наименование varchar(500),
-    _03name: Mapped[str_x(256)]
+    _03name: Mapped[str_x(786)]
     _03name_old: Mapped[str_x(256)]
     # _04Количество REAL,
     _04count: Mapped[intgr]
@@ -1322,7 +1322,7 @@ class FinalPriceHistoryDel(Base):
     _02brand: Mapped[str_x(256)]
     brand: Mapped[str_x(256)]
     # _03Наименование varchar(500),
-    _03name: Mapped[str_x(256)]
+    _03name: Mapped[str_x(786)]
     _03name_old: Mapped[str_x(256)]
     # _04Количество REAL,
     _04count: Mapped[intgr]

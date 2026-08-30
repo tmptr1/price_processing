@@ -415,7 +415,7 @@ class Sender(QThread):
             self.send_time = sess.execute(select(PriceSendTime.send_time).where(PriceSendTime.price_code==self.price_settings.buyer_price_code)).scalar()
             recent_send = False
             if self.send_time:
-                if (datetime.datetime.now()-self.send_time) < datetime.timedelta(minutes=15):
+                if (datetime.datetime.now()-self.send_time) < datetime.timedelta(minutes=25):
                     recent_send = True
 
             self.new_info_msg = None
