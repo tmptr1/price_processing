@@ -481,6 +481,7 @@ class CatalogUpdate(QThread):
                         "rc_currency_s": ["R/C Валюта"], "name_currency_s": ["Название Валюта"],
                         "change_price_type": ["Вариант изменения цены"], "change_price_val": ["Значение исправления цены"],
                         "rc_tnved": ["R/C ТНВЭД"], "name_tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "name_okpd2": ["ОКПД2"],
+                        "rc_ref": ["R/C Ссылка на запись в реестре сертификатов"], "name_ref": ["Название Ссылка на запись в реестре сертификатов"]
                         }
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(FileSettings).values(email=FileSettings.email.regexp_replace(' ', '', 'g')))
@@ -496,6 +497,7 @@ class CatalogUpdate(QThread):
                            ['r_currency_s', 'c_currency_s', 'rc_currency_s'],
                            ['r_tnved', 'c_tnved', 'rc_tnved'],
                            ['r_okpd2', 'c_okpd2', 'rc_okpd2'],
+                           ['r_ref', 'c_ref', 'rc_ref'],
                            ]
                 req = ''
                 for r, c, rc in rc_cols:
@@ -837,7 +839,7 @@ class CatalogUpdate(QThread):
                         "time5": ["Время 5"], "time6": ["Время 6"], "for_send": ["Рассылка"], "col_1": ["1 Столбец в прайсе"],
                         "col_2": ["2 Столбец в прайсе"], "col_3": ["3 Столбец в прайсе"], "col_4": ["4 Столбец в прайсе"],
                         "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
-                        "col_8": ["8 Столбец в прайсе"], "col_9": ["9 Столбец в прайсе"],
+                        "col_8": ["8 Столбец в прайсе"], "col_9": ["9 Столбец в прайсе"], "col_10": ["10 Столбец в прайсе"],
                         }
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 

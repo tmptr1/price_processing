@@ -212,6 +212,7 @@ class Price_1(Base1):
     _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class Price_1_1(Base1_1):
     __tablename__ = "price_1_1"
@@ -272,6 +273,7 @@ class Price_1_1(Base1_1):
     _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class TotalPrice_1(Base):
     __tablename__ = "total_price_1"
@@ -334,6 +336,7 @@ class TotalPrice_1(Base):
     _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class Price_2(Base2):
     __tablename__ = "price_2"
@@ -458,6 +461,7 @@ class Price_2(Base2):
     min_supplier: Mapped[str_x(20)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class Price_2_2(Base2_1):
     __tablename__ = "price_2_2"
@@ -582,6 +586,7 @@ class Price_2_2(Base2_1):
     min_supplier: Mapped[str_x(20)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class TotalPrice_2(Base):
     __tablename__ = "total_price_2"
@@ -709,6 +714,7 @@ class TotalPrice_2(Base):
     min_supplier: Mapped[str_x(20)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class Data07(Base):
     __tablename__ = "data07"
@@ -948,6 +954,7 @@ class BuyersForm(Base):
     col_7: Mapped[str_x(50)]
     col_8: Mapped[str_x(50)]
     col_9: Mapped[str_x(50)]
+    col_10: Mapped[str_x(50)]
 
 
 class PriceException(Base):
@@ -1094,6 +1101,7 @@ class FinalPrice(Base3):
     customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 class FinalPrice_1(Base3_1):
     __tablename__ = "final_price_1"
@@ -1227,6 +1235,7 @@ class FinalPrice_1(Base3_1):
     customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
 
 
 class FinalPriceHistory(Base):
@@ -1287,6 +1296,7 @@ class FinalPriceHistory(Base):
     price: Mapped[numeric]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
@@ -1349,6 +1359,7 @@ class FinalPriceHistoryDel(Base):
     price: Mapped[numeric]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
+    ref: Mapped[str_x(256)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
@@ -1556,6 +1567,10 @@ class FileSettings(Base):
     r_okpd2: Mapped[intgr]
     c_okpd2: Mapped[intgr]
     name_okpd2: Mapped[str_x(150)]
+    rc_ref: Mapped[str_x(50)]
+    r_ref: Mapped[intgr]
+    c_ref: Mapped[intgr]
+    name_ref: Mapped[str_x(256)]
 
 class ColsFix(Base):
     __tablename__ = "cols_fix"

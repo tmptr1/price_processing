@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['1МСК krasnodar_.xlsx', '1FRA Прайс ФорвардАвто Краснодар.xlsx', '1ГУД Крд прайс PQ.xls']
-                # new_files = ['1FRA Прайс ФорвардАвто Краснодар.xlsx']
+                # new_files = ['2TCK Автономия Москва.csv']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -488,8 +488,9 @@ class MainWorker(QThread):
                                  "05Цена": self.TmpPrice_1._05price, "Чистая цена": self.TmpPrice_1.clear_price, "06Кратность": self.TmpPrice_1._06mult,
                                  "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
                                  "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
-                                 "17КодУникальности": self.TmpPrice_1._17code_unique,
-                                 "18КороткоеНаименование": self.TmpPrice_1._18short_name,
+                                 "17КодУникальности": self.TmpPrice_1._17code_unique, "18КороткоеНаименование": self.TmpPrice_1._18short_name,
+                                 "ТНВЭД": self.TmpPrice_1.tnved, "ОКПД2": self.TmpPrice_1.okpd2,
+                                 "Ссылка на запись в реестре сертификатов": self.TmpPrice_1.ref,
                                  }
                 # sess.commit()
                 self.cur_file_count += 1
@@ -508,7 +509,7 @@ class MainWorker(QThread):
                                   self.TmpPrice_1._05price, self.TmpPrice_1.clear_price, self.TmpPrice_1._06mult,
                                   self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude,
                                   self.TmpPrice_1._13grad, self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name,
-                                  self.TmpPrice_1.tnved, self.TmpPrice_1.okpd2]
+                                  self.TmpPrice_1.tnved, self.TmpPrice_1.okpd2, self.TmpPrice_1.ref]
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
@@ -604,6 +605,7 @@ class MainWorker(QThread):
                        "currency_s": [sett.r_currency_s, sett.c_currency_s, sett.name_currency_s],
                        "tnved": [sett.r_tnved, sett.c_tnved, sett.name_tnved],
                        "okpd2": [sett.r_okpd2, sett.c_okpd2, sett.name_okpd2],
+                       "ref": [sett.r_ref, sett.c_ref, sett.name_ref],
                        }
 
             cols = []

@@ -114,7 +114,7 @@ class CalculateClass(QThread):
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv', 'АСТФ.csv','АСТ6.csv','1BEG.csv','АСТ4.csv','АСТ0.csv','0PAR.csv','АКД1.csv',
                 #              '1LAM.csv','КОПТ.csv']
-                # new_files = ['1FRA.csv',]
+                # new_files = ['2TCK.csv',]
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1МСК.csv', '1FRA.csv', '1ГУД.csv', '8ГУД.csv', '9ГУД.csv', ]
                 files = []
@@ -200,7 +200,7 @@ class CalculateClass(QThread):
                                   TotalPrice_1._04count, TotalPrice_1._05price, TotalPrice_1.clear_price, TotalPrice_1._06mult,
                                   TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
                                   TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name,
-                                  TotalPrice_1.tnved, TotalPrice_1.okpd2]
+                                  TotalPrice_1.tnved, TotalPrice_1.okpd2, TotalPrice_1.ref]
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
                 sess.execute(insert(self.TmpPrice_2).from_select(cols_for_price.values(), price))
@@ -314,7 +314,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.price_b, self.TmpPrice_2.count, self.TmpPrice_2.markup_pb,
                                   self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
                                   self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count, self.TmpPrice_2.min_price,
-                                  self.TmpPrice_2.min_supplier, self.TmpPrice_2.tnved, self.TmpPrice_2.okpd2,
+                                  self.TmpPrice_2.min_supplier, self.TmpPrice_2.tnved, self.TmpPrice_2.okpd2, self.TmpPrice_2.ref
                                   ]
 
                 # формирование csv
