@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['1МСК krasnodar_.xlsx', '1FRA Прайс ФорвардАвто Краснодар.xlsx', '1ГУД Крд прайс PQ.xls']
-                # new_files = ['2TCK Автономия Москва.csv']
+                # new_files = ['MI02 mikado_price_shaxt.csv']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -786,8 +786,12 @@ class MainWorker(QThread):
                                               na_filter=False, engine='calamine')
                 elif frmt == 'csv':
                     try:
-                        table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251',
-                                            usecols=[*cols], nrows=r_limit, skiprows=loaded_rows, encoding_errors='ignore', na_filter=False)
+                        try:
+                            table = pd.read_csv(path_to_price, header=None, sep=';', encoding='UTF8', usecols=[*cols],
+                                                nrows=r_limit, skiprows=loaded_rows, na_filter=False)
+                        except Exception as read_csv_utf_ex:
+                            table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251',
+                                                usecols=[*cols], nrows=r_limit, skiprows=loaded_rows, encoding_errors='ignore', na_filter=False)
                     except pd.errors.EmptyDataError:
                         break
 
