@@ -165,7 +165,7 @@ class MainWorker(QThread):
                 # return
 
                 # new_files = ['1МСК krasnodar_.xlsx', '1FRA Прайс ФорвардАвто Краснодар.xlsx', '1ГУД Крд прайс PQ.xls']
-                # new_files = ['MI02 mikado_price_shaxt.csv']
+                # new_files = ['TKTZ Печать.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -842,7 +842,7 @@ class MainWorker(QThread):
                     empty_cols_dict.pop(i)
                 # print(f"{empty_cols_dict=}")
                 # print(f"{table['article_s']=}")
-                table = self.get_correct_df(table, empty_cols_dict, sess.connection())
+                table = self.get_correct_df(table, empty_cols_dict, sess.connection(), price_code)
                 for i in dup_cols:
                     table[i] = table[new_cols_name[dup_cols[i]]]
                 # print(f"2 {table=}")
@@ -873,7 +873,7 @@ class MainWorker(QThread):
             df['_07supplier_code'] = [price_code] * len(df)
 
             empty_cols_dict = {k: 1 for k in rc_dict}
-            df = self.get_correct_df(df, empty_cols_dict, sess.connection())
+            df = self.get_correct_df(df, empty_cols_dict, sess.connection(), price_code)
 
             df.to_sql(name=self.TmpPrice_1.__tablename__, con=sess.connection(), if_exists='append', index=False)
             # print(df)
@@ -882,7 +882,7 @@ class MainWorker(QThread):
         except KeyError:
             return False
 
-    def get_correct_df(self, df, cols, con):
+    def get_correct_df(self, df, cols, con, price_code):
         '''for varchar(x), real, numeric, integer'''
         pk = []
         # берутся столбцы из таблицы: название столбца, максимальная длина его поля
@@ -906,7 +906,10 @@ class MainWorker(QThread):
         for c in cols:
             char_limit = cols[c]
             if char_limit:  # str
-                df[c] = df[c].apply(lambda x: str(x)[:char_limit] or None)
+                if price_code == 'TKTZ':
+                    df[c] = df[c].apply(lambda x: str(x)[:char_limit].encode('latin1').decode('windows-1251') or None)
+                else:
+                    df[c] = df[c].apply(lambda x: str(x)[:char_limit] or None)
             elif c in ('count_s', 'mult_s'):  # float/int
                 df[c] = df[c].apply(to_int)
             elif c == 'price_s':
