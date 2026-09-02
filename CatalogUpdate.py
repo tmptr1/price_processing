@@ -1096,11 +1096,14 @@ class CatalogUpdate(QThread):
 
         for sett in settings:
             key_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                  SupplierGoodsFix.import_setting == TotalPrice_2._07supplier_code,
                                   func.lower(TotalPrice_2.key1_s) == func.lower(SupplierGoodsFix.key1))
             article_brand_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                            SupplierGoodsFix.import_setting == TotalPrice_2._07supplier_code,
                                             func.lower(TotalPrice_2.article_s) == func.lower(SupplierGoodsFix.article_s),
                                             func.lower(TotalPrice_2.brand_s) == func.lower(SupplierGoodsFix.brand_s))
             article_name_conditions = and_(SupplierGoodsFix.import_setting == sett.price_code,
+                                           SupplierGoodsFix.import_setting == TotalPrice_2._07supplier_code,
                                            func.lower(TotalPrice_2.article_s) == func.lower(SupplierGoodsFix.article_s),
                                            func.lower(TotalPrice_2.name_s) == func.lower(SupplierGoodsFix.name_s))
             compare_vars = {"Ключ": key_conditions, "Артикул + Бренд": article_brand_conditions,
