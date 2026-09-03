@@ -716,55 +716,6 @@ class Sender(QThread):
 
 
 
-    # def update_price(self, sess):
-    #     sess.execute(update(self.FinalPriceTmp).where(and_(SaleDK.agr == self.price_settings.buyer_code,
-    #                                                SaleDK.price_code == self.FinalPriceTmp._07supplier_code,
-    #                                                SaleDK.val is not None)).
-    #                  values(price=self.FinalPriceTmp._05price_plus * cast(SaleDK.val, REAL)))
-    #     if str(self.price_settings.sell_for_kos).upper() == 'ДА':
-    #         sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
-    #                                                    self.FinalPriceTmp.sell_for_OS == 'ДА',
-    #                                                    self.FinalPriceTmp.buy_count == None,
-    #                                                    self.FinalPriceTmp.delay > self.price_settings.delay,
-    #                                                    self.FinalPriceTmp.offers_wh != None)).
-    #                      values(price=self.FinalPriceTmp._05price_plus * (self.FinalPriceTmp.min_markup - (self.FinalPriceTmp.markup_os *
-    #                                     (self.FinalPriceTmp.delay - self.price_settings.delay))) * (self.price_settings.kos_markup + 1)))
-    #
-    #     # БазоваяНаценка, МножительПокупателя
-    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
-    #                                                self.FinalPriceTmp.offers_wh == None)).
-    #                  values(base_markup=self.FinalPriceTmp.min_markup + (self.FinalPriceTmp.grad_step * self.FinalPriceTmp._13grad),
-    #                         buyer_mult=self.price_settings.final_markup + 1))
-    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None,
-    #                                                self.FinalPriceTmp.base_markup == None)).
-    #                  values(base_markup=self.FinalPriceTmp.min_wholesale_markup + (self.FinalPriceTmp.wh_step * self.FinalPriceTmp._13grad),
-    #                         buyer_mult=self.price_settings.markup_buyer_wh + 1))
-    #
-    #     # ЦенаСНаценкой
-    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
-    #                  values(
-    #         price_with_markup=self.FinalPriceTmp._05price_plus * self.FinalPriceTmp.base_markup * self.FinalPriceTmp.buyer_mult))
-    #
-    #     # ЦенаР
-    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
-    #                  values(price_r=self.FinalPriceTmp._05price_plus + self.FinalPriceTmp.markup_R))
-    #
-    #     # ОбычнаяЦена
-    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).
-    #                  values(
-    #         default_price=func.greatest(self.FinalPriceTmp.price_r, self.FinalPriceTmp.price_with_markup) * (self.FinalPriceTmp.markup_pb + 1)))
-    #
-    #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.price == None, self.FinalPriceTmp.min_price != None)).
-    #                  values(price=func.least(self.FinalPriceTmp.default_price,
-    #                                          func.greatest(self.FinalPriceTmp.price_r, self.FinalPriceTmp.price_with_markup,
-    #                                                        self.FinalPriceTmp.min_price))))
-    #
-    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.price == None).values(price=self.FinalPriceTmp.default_price))
-    #
-    #     self.price_del = self.add_dels_in_history(sess, (or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)), 'Цена меньше/равна 0')
-    #     if self.price_del:
-    #         sess.query(self.FinalPriceTmp).where(or_(self.FinalPriceTmp.price <= 0, self.FinalPriceTmp.price == None)).delete()
-    #         self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_del} (Цена меньше/равна 0)")
 
     def update_price_2(self, sess):
         # БЕЗ ОТБОРА ПО БРЕНДАМ?? САМО ОТБЕРЁТСЯ ПО ЦЕНЕ = 0
@@ -827,9 +778,7 @@ class Sender(QThread):
         sess.execute(update(self.FinalPriceTmp).values(price=case(*conditions)))
         # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
         #     price=self.FinalPriceTmp._05price_plus * (1 + PrevDynamicParts.parts_markup_pct + self.FinalPriceTmp.floor_markup_pct)))
-        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
-            price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
-                                PrevDynamicParts.store_price_rub)))
+
         # PrevDynamicParts.store_price_rub * (1 + self.FinalPriceTmp.customer_min_markup_pct + self.FinalPriceTmp.customer_period_markup_pct)
         next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
@@ -908,8 +857,15 @@ class Sender(QThread):
                .where(and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0))))
 
     def set_direct_markup(self, sess):
+        # direct прямая
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.direct_supplier_customer_markup_pct!=0).
-                     values(price=self.FinalPriceTmp.clear_price * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct)))
+                     values(price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct),
+                                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price)))
+
+        # prev dynamic parts (в приоритете, перекрывает всё)
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+            price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
+                                PrevDynamicParts.store_price_rub)))
 
 
     def del_price_below_zero(self, sess):
