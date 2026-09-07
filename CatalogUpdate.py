@@ -21,7 +21,8 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     ColsFix, Brands, SupplierGoodsFix, AppSettings, ExchangeRate, Data07, BuyersForm, PriceException,
                     Data07_14, Data15, Data09, Buy_for_OS, TotalPrice_1, TotalPrice_2, PriceReport,
                     SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
-                    MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice, LastColsFix)
+                    MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice, LastColsFix, RuDictionary,
+                    CommonWordExclusions)
 from telebot import TeleBot
 from telebot import apihelper
 import holidays
@@ -859,6 +860,14 @@ class CatalogUpdate(QThread):
                         "text": ["Текст"], "deny": ["Куда запрещено"], "extra": ["Примечание"], }
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
+                # table_name = 'common_word_exclusions'
+                sheet_name = "Исключить массовые наименования"
+                table_class = CommonWordExclusions
+                ex_table_name = "common_word_exclusions"
+                cols = {"name": ["word"], }
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                sess.execute(update(CommonWordExclusions).values(name=func.lower(CommonWordExclusions.name)))
+
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
@@ -890,6 +899,15 @@ class CatalogUpdate(QThread):
             compare_time = datetime.datetime.strptime(f"{str(last_DB_4_update)[:10]} {h}:{m}:00", "%Y-%m-%d %H:%M:%S")
             if (cur_time - compare_time).days < 1:
                 return
+
+            # удаление старых наименований в ru_dictionary
+            cur_time = datetime.datetime.now()
+            ru_dict_dels = sess.query(RuDictionary).where(RuDictionary.updated_at < cur_time - datetime.timedelta(days=30)).delete()
+            if ru_dict_dels:
+                self.log.add(LOG_ID,
+                             f"Удалено строк из справочника наименований: {ru_dict_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>справочника наименований</span>: "
+                             f"{ru_dict_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             # удалить позиции старше 14 дней + неактуальные прайсы
             if self.del_history_day != cur_time.day:

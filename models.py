@@ -1817,3 +1817,8 @@ class RuDictionary(Base):
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
 
 
+class CommonWordExclusions(Base):
+    __tablename__ = "common_word_exclusions"
+    id: Mapped[intpk]
+    name: Mapped[str_x(256)]
+

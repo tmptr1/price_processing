@@ -25,7 +25,7 @@ warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
-                    ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary)
+                    ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary, CommonWordExclusions)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -947,22 +947,26 @@ class MainWorker(QThread):
         #     where=RuDictionary.ru_chars_len > func.length(smtp1.excluded.name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')),
         # )
         # sess.execute(smtp)
-        updated_names = sess.execute(update(self.TmpPrice_1).where(and_(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < 3,
-                                                    self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper),
-                                                   self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-                                                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len
-                                                   ).values(_03name=RuDictionary.name)).rowcount
+        updated_names = sess.execute(update(self.TmpPrice_1).where(or_(
+                    and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
+                        self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
+                        self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
+                        func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
+                func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
+                                                   )).values(_03name=RuDictionary.name)).rowcount
         if updated_names:
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
             # self.log.add(LOG_ID, f"Изменено {updated_names} названий в прайсе")
 
-        updated_dict_names = sess.execute(update(RuDictionary).where(and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper),
-                                                   self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-                                                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > RuDictionary.ru_chars_len
-                                                   ).values(name=self.TmpPrice_1._03name,
-                                                            ru_chars_len=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer),
-                                                            price_code=self.TmpPrice_1._07supplier_code,
-                                                            updated_at=now_dt)).rowcount
+        updated_dict_names = sess.execute(update(RuDictionary).where(
+            and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
+                 self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
+                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > RuDictionary.ru_chars_len,
+                 func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).notin_(select(CommonWordExclusions.name))
+                   )).values(name=self.TmpPrice_1._03name,
+                            ru_chars_len=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer),
+                            price_code=self.TmpPrice_1._07supplier_code,
+                            updated_at=now_dt)).rowcount
         if updated_dict_names:
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
             # self.log.add(LOG_ID, f"Изменено {updated_dict_names} названий в справочнике")
@@ -982,7 +986,8 @@ class MainWorker(QThread):
         #                   ))
         rn = func.row_number().over(partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
                                     order_by=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
-        subq = select(self.TmpPrice_1, rn).where(and_(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > 0,
+        subq = select(self.TmpPrice_1, rn).where(and_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}'),
+                                                      func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '','g')).notin_(select(CommonWordExclusions.name)),
                                                       self.TmpPrice_1._01article_comp!=None, self.TmpPrice_1._01article_comp!='',
                                                       self.TmpPrice_1.brand_s != None, self.TmpPrice_1.brand_s != '',
                                                       self.TmpPrice_1._14brand_filled_in!=None, self.TmpPrice_1._14brand_filled_in!='')).subquery()
