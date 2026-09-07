@@ -158,6 +158,7 @@ class Price_1(Base1):
                       Index("price_1_07_index", "_07supplier_code"),
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_article_name_index", "article_s", "name_s"),
+                      Index("price_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
                       {"prefixes": ['UNLOGGED'],},
                       )
     #                   )
@@ -222,6 +223,7 @@ class Price_1_1(Base1_1):
                       Index("price_1_1_07_index", "_07supplier_code"),
                       Index("price_1_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_1_article_name_index", "article_s", "name_s"),
+                      Index("price_1_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
                       {"prefixes": ['UNLOGGED'], },
                       )
 
@@ -1801,4 +1803,17 @@ class PrevDynamicParts(Base):
     code_optt: Mapped[str_x(256)]
     # parts_markup_pct: Mapped[real]
     store_price_rub: Mapped[numeric]
+
+
+class RuDictionary(Base):
+    __tablename__ = "ru_dictionary"
+    # __table_args__ = (Index("ru_dictionary_art_brnd_index", "article_comp", "brand_low"),)
+    article_comp: Mapped[str] = mapped_column(String(256), primary_key=True)
+    brand_upper: Mapped[str] = mapped_column(String(256), primary_key=True)
+    name: Mapped[str_x(256)]
+    # ru_name: Mapped[str_x(256)]
+    ru_chars_len: Mapped[intgr]
+    price_code: Mapped[str_x(20)]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True)
+
 

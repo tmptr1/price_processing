@@ -9,7 +9,9 @@ import math
 import os
 import holidays
 import holidays_ru
-from sqlalchemy import text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect
+from sqlalchemy import (text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect,
+                        case, Integer, literal_column, except_)
+# from sqlalchemy.dialects.postgresql import insert as p_insert
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
 import numpy as np
@@ -23,7 +25,7 @@ warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
-                    ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings)
+                    ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -164,7 +166,8 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['1МСК krasnodar_.xlsx', '1FRA Прайс ФорвардАвто Краснодар.xlsx', '1ГУД Крд прайс PQ.xls']
+                # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
+                #              'MI07 mikado_price_srt.csv']
                 # new_files = ['TKTZ Печать.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -348,7 +351,7 @@ class MainWorker(QThread):
 
                 cur_time = datetime.datetime.now()
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 ...", False)
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 14 ...", False)
 
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
@@ -356,9 +359,7 @@ class MainWorker(QThread):
                     sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s==None).values(_02brand=sett.replace_brand_s))
                 # print(f"замена пустых бренд {datetime.datetime.now() - n_dt}")
 
-                # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
-                self.suppliers_goods_compare(price_code, sett, sess)
-                # print(f"исправление товаров поставщиков {datetime.datetime.now() - n_dt}")
+                # self.suppliers_goods_compare
 
                 # замена ; на ,
                 text_cols = [self.TmpPrice_1.key1_s, self.TmpPrice_1.article_s, self.TmpPrice_1.brand_s, self.TmpPrice_1.name_s,
@@ -370,15 +371,15 @@ class MainWorker(QThread):
                 self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
 
                 # 01Артикул
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
+                sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1.article_s)))  # .where(self.TmpPrice_1._01article == None)
                 sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
                                                      .regexp_replace('^ | $', '', 'g'))))
                 sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W|_', '', 'g'))))
 
                 # 02Производитель
                 sess.execute(update(self.TmpPrice_1).values(brand_s_low=func.lower(self.TmpPrice_1.brand_s.regexp_replace(r'\W|_', '', 'g'))))
-                sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1.brand_s_low == Brands.brand_low,
-                                                        self.TmpPrice_1._02brand == None)).values(_02brand=Brands.correct_brand))
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s_low == Brands.brand_low).values(_02brand=Brands.correct_brand))
+                # and (self.TmpPrice_1._02brand == None
 
                 # 14Производитель заполнен
                 sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
@@ -390,30 +391,40 @@ class MainWorker(QThread):
                 # apply_discount(sess, price_code, 'Цена поставщика')
 
                 # 03Наименование
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
+                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1.name_s))  # .where(self.TmpPrice_1._03name == None)
                 sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
                                                             regexp_replace(' +', ' ', 'g').
                                                             regexp_replace('^ | $', '', 'g')))
-                # print(f"03Наименование {datetime.datetime.now() - n_dt}")
 
-                # 04Количество
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s-self.TmpPrice_1._04count))
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
+                self.check_ru_name(sess, price_code)
 
                 # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 4, 14 завершена", cur_time)
+                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 14 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 5, 6, 12, 15, 17, 18, 20 ...", False)
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 5, 6, 12, 15, 17, 18, 20 ...", False)
 
                 # 05Цена
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._05price == None).values(_05price=self.TmpPrice_1.price_s,
-                                                                                                    clear_price=self.TmpPrice_1.price_s))
+                sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1.price_s, clear_price=self.TmpPrice_1.price_s))
+                # .where(self.TmpPrice_1._05price == None)
 
                 # для валют
                 sess.execute(update(self.TmpPrice_1).where(
                     and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
                              .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate, clear_price=self.TmpPrice_1._05price * ExchangeRate.rate))
+
+                # 06Кратность
+                sess.execute(update(self.TmpPrice_1).values(_06mult=self.TmpPrice_1.mult_s))  # .where(self.TmpPrice_1._06mult == None)
+                sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
+
+                # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
+                self.suppliers_goods_compare(price_code, sett, sess)
+
+                # 04Количество
+                sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
+                                                                          else_=self.TmpPrice_1.count_s)))
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s - self.TmpPrice_1._04count))
+                # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
 
                 # 12Сумма
                 # numeric_max = 9999999999 # numeric 12,2
@@ -435,10 +446,6 @@ class MainWorker(QThread):
                 self.apply_discount(sess, price_code)
                 # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
 
-                # 06Кратность
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._06mult == None).values(_06mult=self.TmpPrice_1.mult_s))
-                sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
-                # print(f"06Кратность {datetime.datetime.now() - n_dt}")
 
                 # 15КодТутОптТорг
                 sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
@@ -455,7 +462,7 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
                 # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 5, 6, 15, 17, 18, 20 завершена", cur_time)
+                self.add_log(self.file_size_type, price_code, "Обработка 4, 5, 6, 15, 17, 18, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
@@ -925,7 +932,77 @@ class MainWorker(QThread):
         # df.to_sql(name=table_name, con=con, if_exists='append', index=False, index_label=False, chunksize=CHUNKSIZE)
 
 
+    def check_ru_name(self, sess, price_code):
+        now_dt = datetime.datetime.now()
+        # names_smtp = select(self.TmpPrice_1._01article_comp, func.lower(self.TmpPrice_1._14brand_filled_in), self.TmpPrice_1._03name).where(
+        #     and_(self.TmpPrice_1._01article_comp != None, func.lowerself.TmpPrice_1._14brand_filled_in != None))
+        # smtp1 = p_insert(RuDictionary).from_select([RuDictionary.article_comp, RuDictionary.brand_low, RuDictionary.name], names_smtp)
+        # smtp = smtp1.on_conflict_do_update(
+        #     index_elements=[RuDictionary.article_comp, RuDictionary.brand_low],
+        #     set_={
+        #         RuDictionary.name: smtp1.excluded.name,
+        #         RuDictionary.ru_chars_len: func.length(smtp1.excluded.name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')),
+        #         RuDictionary.updated_at: now_dt,
+        #     },
+        #     where=RuDictionary.ru_chars_len > func.length(smtp1.excluded.name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')),
+        # )
+        # sess.execute(smtp)
+        updated_names = sess.execute(update(self.TmpPrice_1).where(and_(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < 3,
+                                                    self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper),
+                                                   self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
+                                                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len
+                                                   ).values(_03name=RuDictionary.name)).rowcount
+        if updated_names:
+            self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
+            # self.log.add(LOG_ID, f"Изменено {updated_names} названий в прайсе")
 
+        updated_dict_names = sess.execute(update(RuDictionary).where(and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper),
+                                                   self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
+                                                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > RuDictionary.ru_chars_len
+                                                   ).values(name=self.TmpPrice_1._03name,
+                                                            ru_chars_len=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer),
+                                                            price_code=self.TmpPrice_1._07supplier_code,
+                                                            updated_at=now_dt)).rowcount
+        if updated_dict_names:
+            self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
+            # self.log.add(LOG_ID, f"Изменено {updated_dict_names} названий в справочнике")
+
+        # new_rows = select(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name, self.TmpPrice_1._07supplier_code,
+        #                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer), literal_column(f"now()")
+        #                   ).where(and_(self.TmpPrice_1._14brand_filled_in!=RuDictionary.brand_upper),
+        #                                            self.TmpPrice_1._01article_comp!=RuDictionary.article_comp)
+        # cols_to_ru_dict = [RuDictionary.article_comp, RuDictionary.brand_upper, RuDictionary.name, RuDictionary.price_code,
+        #                    RuDictionary.ru_chars_len, RuDictionary.updated_at]
+        # cols_to_ru_dict = [cl.__dict__['name'] for cl in cols_to_ru_dict]
+        # sess.execute(insert(RuDictionary).from_select(cols_to_ru_dict, new_rows))
+
+        # cur_rows = select(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in, func.row_number().over(
+        #         partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
+        #                   order_by=(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
+        #                   ))
+        rn = func.row_number().over(partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
+                                    order_by=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
+        subq = select(self.TmpPrice_1, rn).where(and_(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > 0,
+                                                      self.TmpPrice_1._01article_comp!=None, self.TmpPrice_1._01article_comp!='',
+                                                      self.TmpPrice_1.brand_s != None, self.TmpPrice_1.brand_s != '',
+                                                      self.TmpPrice_1._14brand_filled_in!=None, self.TmpPrice_1._14brand_filled_in!='')).subquery()
+        cur_rows = select(subq.c._01article_comp, subq.c._14brand_filled_in, subq.c._03name, subq.c._07supplier_code,).where(subq.c.rn==1)
+
+        # total_dict_rows = select(RuDictionary.article_comp, RuDictionary.brand_upper)
+        # new_rows = except_(cur_rows, total_dict_rows)
+        new_rows = select(cur_rows.c._01article_comp, cur_rows.c._14brand_filled_in, cur_rows.c._03name, cur_rows.c._07supplier_code,
+                          func.length(cur_rows.c._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer), literal_column(f"now()")).where(~select(1).where(and_(
+            cur_rows.c._01article_comp == RuDictionary.article_comp, cur_rows.c._14brand_filled_in == RuDictionary.brand_upper
+        )).exists())
+
+        cols_to_ru_dict = [RuDictionary.article_comp, RuDictionary.brand_upper, RuDictionary.name, RuDictionary.price_code,
+                           RuDictionary.ru_chars_len, RuDictionary.updated_at]
+        cols_to_ru_dict = [cl.__dict__['name'] for cl in cols_to_ru_dict]
+
+        inserted_rows = sess.execute(insert(RuDictionary).from_select(cols_to_ru_dict, new_rows)).rowcount
+        if inserted_rows:
+            self.add_log(self.file_size_type, price_code, f"Добавлено {inserted_rows} названий")
+            # self.log.add(LOG_ID, f"Добавлено {inserted_rows} названий")
 
     def suppliers_goods_compare(self, price_code, sett, sess):
         key_conditions = and_(SupplierGoodsFix.import_setting == price_code, func.lower(self.TmpPrice_1.key1_s) == func.lower(SupplierGoodsFix.key1))
