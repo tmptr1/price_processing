@@ -159,7 +159,7 @@ class Price_1(Base1):
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_article_name_index", "article_s", "name_s"),
                       Index("price_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
-                      Index("price_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
+                      # Index("price_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
                       {"prefixes": ['UNLOGGED'],},
                       )
     #                   )
@@ -225,7 +225,7 @@ class Price_1_1(Base1_1):
                       Index("price_1_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_1_article_name_index", "article_s", "name_s"),
                       Index("price_1_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
-                      Index("price_1_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
+                      # Index("price_1_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
                       {"prefixes": ['UNLOGGED'], },
                       )
 

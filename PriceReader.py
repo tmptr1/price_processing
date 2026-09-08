@@ -10,7 +10,7 @@ import os
 import holidays
 import holidays_ru
 from sqlalchemy import (text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect,
-                        case, Integer, literal_column, except_)
+                        case, Integer, literal_column, except_, exists)
 # from sqlalchemy.dialects.postgresql import insert as p_insert
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
@@ -954,17 +954,38 @@ class MainWorker(QThread):
         #                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
         #         func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
         #                                            )).values(_03name=RuDictionary.name)).rowcount
-        updated_names_1 = sess.execute(update(self.TmpPrice_1).where(
-            and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
-                        self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
-                        self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-                        func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len)
-                    ).values(_03name=RuDictionary.name)).rowcount
-        updated_names_2 = sess.execute(update(self.TmpPrice_1).where(
-            func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
-                                                   ).values(_03name=RuDictionary.name)).rowcount
 
-        updated_names = updated_names_1 + updated_names_2
+        updated_names = sess.execute(update(self.TmpPrice_1).where(and_(
+                        and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
+                                self.TmpPrice_1._01article_comp==RuDictionary.article_comp),
+                        or_(
+                            and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
+                                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
+
+                            func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name)))
+                        )).values(_03name=RuDictionary.name)).rowcount
+
+
+            # or_(
+            #         and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
+            #             func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
+            #     func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
+            #                                        )).values(_03name=RuDictionary.name)).rowcount
+
+        # updated_names_1 = sess.execute(update(self.TmpPrice_1).where(
+        #     and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
+        #                 self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
+        #                 self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
+        #                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len)
+        #             ).values(_03name=RuDictionary.name)).rowcount
+        # updated_names_2 = sess.execute(update(self.TmpPrice_1).where(
+        #     func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
+        #                                            ).values(_03name=RuDictionary.name)).rowcount
+
+        # clear_name = func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g'))
+        # updated_names_2 = sess.execute(update(self.TmpPrice_1).where(exists(select(1).where(CommonWordExclusions.name==clear_name)))).rowcount
+
+        # updated_names = updated_names_1 + updated_names_2
         if updated_names:
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
             # self.log.add(LOG_ID, f"Изменено {updated_names} названий в прайсе")
