@@ -24,8 +24,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import colors
-from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands, SupplierGoodsFix,
-                    ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary, CommonWordExclusions)
+from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands,
+                    SupplierGoodsFix, ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary,
+                    CommonWordExclusions, SuppliersForm)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -969,80 +970,53 @@ class MainWorker(QThread):
                         )).values(_03name=RuDictionary.name)).rowcount
 
 
-            # or_(
-            #         and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
-            #             func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
-            #     func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
-            #                                        )).values(_03name=RuDictionary.name)).rowcount
-
-        # updated_names_1 = sess.execute(update(self.TmpPrice_1).where(
-        #     and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
-        #                 self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
-        #                 self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-        #                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len)
-        #             ).values(_03name=RuDictionary.name)).rowcount
-        # updated_names_2 = sess.execute(update(self.TmpPrice_1).where(
-        #     func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name))
-        #                                            ).values(_03name=RuDictionary.name)).rowcount
-
-        # clear_name = func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g'))
-        # updated_names_2 = sess.execute(update(self.TmpPrice_1).where(exists(select(1).where(CommonWordExclusions.name==clear_name)))).rowcount
-
-        # updated_names = updated_names_1 + updated_names_2
         if updated_names:
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
-            # self.log.add(LOG_ID, f"Изменено {updated_names} названий в прайсе")
 
-        updated_dict_names = sess.execute(update(RuDictionary).where(
-            and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
-                 self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-                 func.length(self.TmpPrice_1.ru_chars).cast(Integer) > RuDictionary.ru_chars_len,
-                 func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name))
-                   )).values(name=self.TmpPrice_1._03name,
-                            ru_chars_len=func.length(self.TmpPrice_1.ru_chars).cast(Integer),
-                            price_code=self.TmpPrice_1._07supplier_code,
-                            updated_at=now_dt)).rowcount
-        if updated_dict_names:
-            self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
-            # self.log.add(LOG_ID, f"Изменено {updated_dict_names} названий в справочнике")
 
-        # new_rows = select(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name, self.TmpPrice_1._07supplier_code,
-        #                   func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer), literal_column(f"now()")
-        #                   ).where(and_(self.TmpPrice_1._14brand_filled_in!=RuDictionary.brand_upper),
-        #                                            self.TmpPrice_1._01article_comp!=RuDictionary.article_comp)
-        # cols_to_ru_dict = [RuDictionary.article_comp, RuDictionary.brand_upper, RuDictionary.name, RuDictionary.price_code,
-        #                    RuDictionary.ru_chars_len, RuDictionary.updated_at]
-        # cols_to_ru_dict = [cl.__dict__['name'] for cl in cols_to_ru_dict]
-        # sess.execute(insert(RuDictionary).from_select(cols_to_ru_dict, new_rows))
+        cur_name_set_priority = sess.execute(select(SuppliersForm.use_ru_dictionary).where(SuppliersForm.setting==price_code)).scalar()
 
-        # cur_rows = select(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in, func.row_number().over(
-        #         partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
-        #                   order_by=(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
-        #                   ))
-        rn = func.row_number().over(partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
-                                    order_by=func.length(self.TmpPrice_1.ru_chars).cast(Integer).desc()).label('rn')
-        subq = select(self.TmpPrice_1, rn).where(and_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}'),
-                                                      func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name)),
-                                                      self.TmpPrice_1._01article_comp!=None, self.TmpPrice_1._01article_comp!='',
-                                                      self.TmpPrice_1.brand_s != None, self.TmpPrice_1.brand_s != '',
-                                                      self.TmpPrice_1._14brand_filled_in!=None, self.TmpPrice_1._14brand_filled_in!='')).subquery()
-        cur_rows = select(subq.c._01article_comp, subq.c._14brand_filled_in, subq.c._03name, subq.c._07supplier_code, subq.c.ru_chars).where(subq.c.rn==1)
+        if str(cur_name_set_priority).lower() == 'да':
+            priority_name_set_prices = select(SuppliersForm.setting).where(
+                func.lower(SuppliersForm.use_ru_dictionary) == 'да')
+            # func.length(self.TmpPrice_1.ru_chars).cast(Integer) > RuDictionary.ru_chars_len,
+            updated_dict_names = sess.execute(update(RuDictionary).where(
+                and_(self.TmpPrice_1._14brand_filled_in == RuDictionary.brand_upper,
+                     self.TmpPrice_1._01article_comp == RuDictionary.article_comp,
+                     RuDictionary.price_code.notin_(priority_name_set_prices),
+                     func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name))
+                     )).values(name=self.TmpPrice_1._03name,
+                               ru_chars_len=func.length(self.TmpPrice_1.ru_chars).cast(Integer),
+                               price_code=self.TmpPrice_1._07supplier_code,
+                               updated_at=now_dt)).rowcount
+            if updated_dict_names:
+                self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
 
-        # total_dict_rows = select(RuDictionary.article_comp, RuDictionary.brand_upper)
-        # new_rows = except_(cur_rows, total_dict_rows)
-        new_rows = select(cur_rows.c._01article_comp, cur_rows.c._14brand_filled_in, cur_rows.c._03name, cur_rows.c._07supplier_code,
-                          func.length(cur_rows.c.ru_chars).cast(Integer), literal_column(f"now()")).where(~select(1).where(and_(
-            cur_rows.c._01article_comp == RuDictionary.article_comp, cur_rows.c._14brand_filled_in == RuDictionary.brand_upper
-        )).exists())
 
-        cols_to_ru_dict = [RuDictionary.article_comp, RuDictionary.brand_upper, RuDictionary.name, RuDictionary.price_code,
-                           RuDictionary.ru_chars_len, RuDictionary.updated_at]
-        cols_to_ru_dict = [cl.__dict__['name'] for cl in cols_to_ru_dict]
+        if str(cur_name_set_priority).lower() != 'нет':
+            rn = func.row_number().over(partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
+                                        order_by=func.length(self.TmpPrice_1.ru_chars).cast(Integer).desc()).label('rn')
+            subq = select(self.TmpPrice_1, rn).where(and_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}'),
+                                                          func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name)),
+                                                          self.TmpPrice_1._01article_comp!=None, self.TmpPrice_1._01article_comp!='',
+                                                          self.TmpPrice_1.brand_s != None, self.TmpPrice_1.brand_s != '',
+                                                          self.TmpPrice_1._14brand_filled_in!=None, self.TmpPrice_1._14brand_filled_in!='')).subquery()
+            cur_rows = select(subq.c._01article_comp, subq.c._14brand_filled_in, subq.c._03name, subq.c._07supplier_code, subq.c.ru_chars).where(subq.c.rn==1)
 
-        inserted_rows = sess.execute(insert(RuDictionary).from_select(cols_to_ru_dict, new_rows)).rowcount
-        if inserted_rows:
-            self.add_log(self.file_size_type, price_code, f"Добавлено {inserted_rows} названий")
-            # self.log.add(LOG_ID, f"Добавлено {inserted_rows} названий")
+            # total_dict_rows = select(RuDictionary.article_comp, RuDictionary.brand_upper)
+            # new_rows = except_(cur_rows, total_dict_rows)
+            new_rows = select(cur_rows.c._01article_comp, cur_rows.c._14brand_filled_in, cur_rows.c._03name, cur_rows.c._07supplier_code,
+                              func.length(cur_rows.c.ru_chars).cast(Integer), literal_column(f"now()")).where(~select(1).where(and_(
+                cur_rows.c._01article_comp == RuDictionary.article_comp, cur_rows.c._14brand_filled_in == RuDictionary.brand_upper
+            )).exists())
+
+            cols_to_ru_dict = [RuDictionary.article_comp, RuDictionary.brand_upper, RuDictionary.name, RuDictionary.price_code,
+                               RuDictionary.ru_chars_len, RuDictionary.updated_at]
+            cols_to_ru_dict = [cl.__dict__['name'] for cl in cols_to_ru_dict]
+
+            inserted_rows = sess.execute(insert(RuDictionary).from_select(cols_to_ru_dict, new_rows)).rowcount
+            if inserted_rows:
+                self.add_log(self.file_size_type, price_code, f"Добавлено {inserted_rows} названий")
 
     def suppliers_goods_compare(self, price_code, sett, sess):
         key_conditions = and_(SupplierGoodsFix.import_setting == price_code, func.lower(self.TmpPrice_1.key1_s) == func.lower(SupplierGoodsFix.key1))

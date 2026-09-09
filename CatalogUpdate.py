@@ -807,7 +807,8 @@ class CatalogUpdate(QThread):
                 sheet_name = "Анкета поставщика"
                 table_class = SuppliersForm
                 ex_table_name = "Анкета_поставщика"
-                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "supplier_min_lot_int": ["supplier_min_lot_int"],
+                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "use_ru_dictionary": ["use_ru_dictionary"],
+                        "supplier_min_lot_int": ["supplier_min_lot_int"],
                         "supplier_weekend_min_lot_int": ["supplier_weekend_min_lot_int"], "days": ["Дни трансляции"],
                         "supplier_weekend_markup_pct": ["supplier_weekend_markup_pct"],
                         "price_age_for_notification_hours": ["price_age_for_notification_hours"],
