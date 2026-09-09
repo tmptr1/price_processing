@@ -977,13 +977,26 @@ class MainWorker(QThread):
         cur_name_set_priority = sess.execute(select(SuppliersForm.use_ru_dictionary).where(SuppliersForm.setting==price_code)).scalar()
 
         if str(cur_name_set_priority).lower() == 'да':
-            priority_name_set_prices = select(SuppliersForm.setting).where(
-                func.lower(SuppliersForm.use_ru_dictionary) == 'да')
-            # func.length(self.TmpPrice_1.ru_chars).cast(Integer) > RuDictionary.ru_chars_len,
+            priority_name_set_prices = select(SuppliersForm.setting).where(func.lower(SuppliersForm.use_ru_dictionary) == 'да')
             updated_dict_names = sess.execute(update(RuDictionary).where(
                 and_(self.TmpPrice_1._14brand_filled_in == RuDictionary.brand_upper,
                      self.TmpPrice_1._01article_comp == RuDictionary.article_comp,
                      RuDictionary.price_code.notin_(priority_name_set_prices),
+                     func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name))
+                     )).values(name=self.TmpPrice_1._03name,
+                               ru_chars_len=func.length(self.TmpPrice_1.ru_chars).cast(Integer),
+                               price_code=self.TmpPrice_1._07supplier_code,
+                               updated_at=now_dt)).rowcount
+            if updated_dict_names:
+                self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
+
+        elif not cur_name_set_priority or str(cur_name_set_priority).replace(' ', '') == '':
+            priority_name_set_prices = select(SuppliersForm.setting).where(func.lower(SuppliersForm.use_ru_dictionary) == 'да')
+            updated_dict_names = sess.execute(update(RuDictionary).where(
+                and_(self.TmpPrice_1._14brand_filled_in == RuDictionary.brand_upper,
+                     self.TmpPrice_1._01article_comp == RuDictionary.article_comp,
+                     RuDictionary.price_code.notin_(priority_name_set_prices),
+                     func.length(self.TmpPrice_1.ru_chars).cast(Integer) > RuDictionary.ru_chars_len,
                      func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name))
                      )).values(name=self.TmpPrice_1._03name,
                                ru_chars_len=func.length(self.TmpPrice_1.ru_chars).cast(Integer),
