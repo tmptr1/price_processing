@@ -193,6 +193,7 @@ class Price_1(Base1):
     _14brand_filled_in: Mapped[str_x(256)]
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
+    ru_chars: Mapped[str_x(256)]
     # _04Количество REAL,
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
@@ -256,6 +257,7 @@ class Price_1_1(Base1_1):
     _14brand_filled_in: Mapped[str_x(256)]
     # _03Наименование varchar(500),
     _03name: Mapped[str_x(256)]
+    ru_chars: Mapped[str_x(256)]
     # _04Количество REAL,
     _04count: Mapped[intgr]
     # _05Цена NUMERIC(12,2),
@@ -456,7 +458,7 @@ class Price_2(Base2):
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # ШтР integer DEFAULT 0,
-    reserve_count: Mapped[intgr]
+    # reserve_count: Mapped[intgr]
     # Количество_закупок REAL,
     buy_count: Mapped[real]
     #   ЦенаМин numeric(12,2),
@@ -581,7 +583,7 @@ class Price_2_2(Base2_1):
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # ШтР integer DEFAULT 0,
-    reserve_count: Mapped[intgr]
+    # reserve_count: Mapped[intgr]
     # Количество_закупок REAL,
     buy_count: Mapped[real]
     #   ЦенаМин numeric(12,2),
@@ -709,7 +711,7 @@ class TotalPrice_2(Base):
     # _05Цена_плюс NUMERIC(12,2),
     _05price_plus: Mapped[numeric]
     # ШтР integer DEFAULT 0,
-    reserve_count: Mapped[intgr]
+    # reserve_count: Mapped[intgr]
     # Количество_закупок REAL,
     buy_count: Mapped[real]
     #   ЦенаМин numeric(12,2),
@@ -1023,6 +1025,7 @@ class FinalPrice(Base3):
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
+    _09code_supl_goods: Mapped[str_x(256)]
     alternative_article: Mapped[str_x(256)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
@@ -1092,7 +1095,7 @@ class FinalPrice(Base3):
     # Превышение базовой цены
     over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
     # рейтинг
-    rating: Mapped[real]
+    # rating: Mapped[real]
     floor_markup_pct: Mapped[real]
     direct_supplier_customer_markup_pct: Mapped[real]
     opt_starting_markup_pct: Mapped[real]
@@ -1102,6 +1105,7 @@ class FinalPrice(Base3):
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     customer_brand_alias: Mapped[str_x(256)]
     customer_period_markup_pct: Mapped[real]
+    supplier_customer_sales_share_pct: Mapped[real]
     customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
@@ -1157,6 +1161,7 @@ class FinalPrice_1(Base3_1):
     _06mult_new: Mapped[intgr]
     # _07Код_поставщика varchar(150),
     _07supplier_code: Mapped[str_x(20)]
+    _09code_supl_goods: Mapped[str_x(256)]
     alternative_article: Mapped[str_x(256)]
     # _13Градация REAL,
     _13grad: Mapped[intgr]
@@ -1226,7 +1231,7 @@ class FinalPrice_1(Base3_1):
     # Превышение базовой цены
     over_base_price: Mapped[bool] = mapped_column(Boolean, default=False)
     # рейтинг
-    rating: Mapped[real]
+    # rating: Mapped[real]
     floor_markup_pct: Mapped[real]
     direct_supplier_customer_markup_pct: Mapped[real]
     opt_starting_markup_pct: Mapped[real]
@@ -1236,6 +1241,7 @@ class FinalPrice_1(Base3_1):
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     customer_brand_alias: Mapped[str_x(256)]
     customer_period_markup_pct: Mapped[real]
+    supplier_customer_sales_share_pct: Mapped[real]
     customer_min_markup_pct: Mapped[real]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
@@ -1795,6 +1801,7 @@ class CrossBrandTypeMarkupPct(Base):
     grad_step_pct: Mapped[real]
     unique_starting_markup_pct: Mapped[real]
     opt_starting_markup_pct: Mapped[real]
+    supplier_customer_sales_share_pct: Mapped[real]
     unique_grad_step_pct: Mapped[real]
     opt_grad_step_pct: Mapped[real]
 

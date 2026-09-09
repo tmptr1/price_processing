@@ -738,8 +738,9 @@ class CatalogUpdate(QThread):
                         "customer_min_markup_pct": ["customer_min_markup_pct"], "floor_markup_pct": ["floor_markup_pct"],
                         "starting_markup_pct": ["starting_markup_pct"], "grad_step_pct": ["grad_step_pct"],
                         "unique_starting_markup_pct": ["unique_starting_markup_pct"],
-                        "opt_starting_markup_pct": ["opt_starting_markup_pct"], "unique_grad_step_pct": ["unique_grad_step_pct"],
-                        "opt_grad_step_pct": ["opt_grad_step_pct"], }
+                        "opt_starting_markup_pct": ["opt_starting_markup_pct"],
+                        "supplier_customer_sales_share_pct": ["supplier_customer_sales_share_pct"],
+                        "unique_grad_step_pct": ["unique_grad_step_pct"], "opt_grad_step_pct": ["opt_grad_step_pct"], }
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 # sheet_names = []
@@ -1032,20 +1033,20 @@ class CatalogUpdate(QThread):
                                                 unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
             self.log.add(LOG_ID, f"Data07 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
 
-            cur_time_step = datetime.datetime.now()
-            sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
-                         values(reserve_count=Data09.reserve_count))  # put_away_zp=Data09.put_away_zp
-            self.log.add(LOG_ID, f"Data09 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
-            sess.commit()
+            # cur_time_step = datetime.datetime.now()
+            # sess.execute(update(TotalPrice_2).where(TotalPrice_2._09code_supl_goods == Data09.code_09).
+            #              values(reserve_count=Data09.reserve_count))  # put_away_zp=Data09.put_away_zp
+            # self.log.add(LOG_ID, f"Data09 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            # sess.commit()
 
             # вычет ШтР
-            cur_time_step = datetime.datetime.now()
-            sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
-            sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
-            sess.execute(update(TotalPrice_2).values(mult_less=None))
-            sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
-            self.log.add(LOG_ID, f"ШтР - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
-            sess.commit()
+            # cur_time_step = datetime.datetime.now()
+            # sess.execute(update(TotalPrice_2).values(count=TotalPrice_2._04count))
+            # sess.execute(update(TotalPrice_2).where(TotalPrice_2.reserve_count > 0).values(count=TotalPrice_2._04count - TotalPrice_2.reserve_count))
+            # sess.execute(update(TotalPrice_2).values(mult_less=None))
+            # sess.execute(update(TotalPrice_2).where(TotalPrice_2.count < TotalPrice_2._06mult_new).values(mult_less='-'))
+            # self.log.add(LOG_ID, f"ШтР - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+            # sess.commit()
 
             # sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._07supplier_code == Data07_14.setting,
             #                                         TotalPrice_2._14brand_filled_in == Data07_14.correct))

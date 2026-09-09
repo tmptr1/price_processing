@@ -168,6 +168,7 @@ class MainWorker(QThread):
 
                 # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
                 #              'MI07 mikado_price_srt.csv']
+                # new_files = ['MI07 mikado_price_srt.csv']
                 # new_files = ['TKTZ Печать.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -934,6 +935,8 @@ class MainWorker(QThread):
 
     def check_ru_name(self, sess, price_code):
         now_dt = datetime.datetime.now()
+
+        sess.execute(update(self.TmpPrice_1).values(ru_chars=self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')))
         # names_smtp = select(self.TmpPrice_1._01article_comp, func.lower(self.TmpPrice_1._14brand_filled_in), self.TmpPrice_1._03name).where(
         #     and_(self.TmpPrice_1._01article_comp != None, func.lowerself.TmpPrice_1._14brand_filled_in != None))
         # smtp1 = p_insert(RuDictionary).from_select([RuDictionary.article_comp, RuDictionary.brand_low, RuDictionary.name], names_smtp)
@@ -960,9 +963,9 @@ class MainWorker(QThread):
                                 self.TmpPrice_1._01article_comp==RuDictionary.article_comp),
                         or_(
                             and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
-                                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) < RuDictionary.ru_chars_len),
+                                 func.length(self.TmpPrice_1.ru_chars).cast(Integer) < RuDictionary.ru_chars_len),
 
-                            func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).in_(select(CommonWordExclusions.name)))
+                            func.lower(self.TmpPrice_1.ru_chars).in_(select(CommonWordExclusions.name)))
                         )).values(_03name=RuDictionary.name)).rowcount
 
 
@@ -993,10 +996,10 @@ class MainWorker(QThread):
         updated_dict_names = sess.execute(update(RuDictionary).where(
             and_(self.TmpPrice_1._14brand_filled_in==RuDictionary.brand_upper,
                  self.TmpPrice_1._01article_comp==RuDictionary.article_comp,
-                 func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer) > RuDictionary.ru_chars_len,
-                 func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).notin_(select(CommonWordExclusions.name))
+                 func.length(self.TmpPrice_1.ru_chars).cast(Integer) > RuDictionary.ru_chars_len,
+                 func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name))
                    )).values(name=self.TmpPrice_1._03name,
-                            ru_chars_len=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer),
+                            ru_chars_len=func.length(self.TmpPrice_1.ru_chars).cast(Integer),
                             price_code=self.TmpPrice_1._07supplier_code,
                             updated_at=now_dt)).rowcount
         if updated_dict_names:
@@ -1017,18 +1020,18 @@ class MainWorker(QThread):
         #                   order_by=(func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
         #                   ))
         rn = func.row_number().over(partition_by=(self.TmpPrice_1._01article_comp, self.TmpPrice_1._14brand_filled_in),
-                                    order_by=func.length(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer).desc()).label('rn')
+                                    order_by=func.length(self.TmpPrice_1.ru_chars).cast(Integer).desc()).label('rn')
         subq = select(self.TmpPrice_1, rn).where(and_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}'),
-                                                      func.lower(self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '','g')).notin_(select(CommonWordExclusions.name)),
+                                                      func.lower(self.TmpPrice_1.ru_chars).notin_(select(CommonWordExclusions.name)),
                                                       self.TmpPrice_1._01article_comp!=None, self.TmpPrice_1._01article_comp!='',
                                                       self.TmpPrice_1.brand_s != None, self.TmpPrice_1.brand_s != '',
                                                       self.TmpPrice_1._14brand_filled_in!=None, self.TmpPrice_1._14brand_filled_in!='')).subquery()
-        cur_rows = select(subq.c._01article_comp, subq.c._14brand_filled_in, subq.c._03name, subq.c._07supplier_code,).where(subq.c.rn==1)
+        cur_rows = select(subq.c._01article_comp, subq.c._14brand_filled_in, subq.c._03name, subq.c._07supplier_code, subq.c.ru_chars).where(subq.c.rn==1)
 
         # total_dict_rows = select(RuDictionary.article_comp, RuDictionary.brand_upper)
         # new_rows = except_(cur_rows, total_dict_rows)
         new_rows = select(cur_rows.c._01article_comp, cur_rows.c._14brand_filled_in, cur_rows.c._03name, cur_rows.c._07supplier_code,
-                          func.length(cur_rows.c._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')).cast(Integer), literal_column(f"now()")).where(~select(1).where(and_(
+                          func.length(cur_rows.c.ru_chars).cast(Integer), literal_column(f"now()")).where(~select(1).where(and_(
             cur_rows.c._01article_comp == RuDictionary.article_comp, cur_rows.c._14brand_filled_in == RuDictionary.brand_upper
         )).exists())
 

@@ -3,9 +3,10 @@ from PySide6.QtCore import QThread, Signal
 from sqlalchemy import text, select, delete, insert, update, and_, not_, func, cast, distinct, or_, inspect, REAL, literal_column, case
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import (TotalPrice_2, FinalPrice, FinalPrice_1, FinalComparePrice, FinalComparePrice_1, Base3, Base3_1, BuyersForm, Data07, PriceException,
-                    SuppliersForm, PriceSendTime, FinalPriceHistory, AppSettings, PriceReport, PriceSendTimeHistory,
-                    FinalPriceHistoryDel, SupplierPriceSettings, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
+from models import (TotalPrice_2, FinalPrice, FinalPrice_1, FinalComparePrice, FinalComparePrice_1, Base3, Base3_1,
+                    BuyersForm, Data07, Data09, PriceException, SuppliersForm, PriceSendTime, FinalPriceHistory,
+                    AppSettings, PriceReport, PriceSendTimeHistory, FinalPriceHistoryDel, SupplierPriceSettings,
+                    CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
 from ftplib import FTP
 import smtplib
 from email.mime.text import MIMEText
@@ -333,14 +334,14 @@ class Sender(QThread):
                               TotalPrice_2.notice_s, TotalPrice_2._01article_comp, TotalPrice_2._01article, TotalPrice_2._02brand,
                               TotalPrice_2._03name,TotalPrice_2._04count, TotalPrice_2._05price, TotalPrice_2.clear_price,
                               TotalPrice_2._05price_plus, TotalPrice_2._06mult_new, TotalPrice_2._07supplier_code,
-                              TotalPrice_2.alternative_article, TotalPrice_2._13grad, TotalPrice_2._14brand_filled_in,
-                              TotalPrice_2._15code_optt, TotalPrice_2._17code_unique, TotalPrice_2._18short_name,
-                              TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R, TotalPrice_2.markup_pb,
-                              TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup, TotalPrice_2.grad_step,
-                              TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.offers_wh, TotalPrice_2.price_b,
-                              TotalPrice_2.count, TotalPrice_2.mult_less, TotalPrice_2.buy_count, TotalPrice_2.unload_percent,
-                              TotalPrice_2.min_price, TotalPrice_2.to_price, TotalPrice_2.tnved, TotalPrice_2.okpd2,
-                              TotalPrice_2.ref]
+                              TotalPrice_2._09code_supl_goods, TotalPrice_2.alternative_article, TotalPrice_2._13grad,
+                              TotalPrice_2._14brand_filled_in, TotalPrice_2._15code_optt, TotalPrice_2._17code_unique,
+                              TotalPrice_2._18short_name, TotalPrice_2.delay, TotalPrice_2.sell_for_OS, TotalPrice_2.markup_R,
+                              TotalPrice_2.markup_pb, TotalPrice_2.min_markup, TotalPrice_2.min_wholesale_markup,
+                              TotalPrice_2.grad_step, TotalPrice_2.wh_step, TotalPrice_2.access_pp, TotalPrice_2.offers_wh,
+                              TotalPrice_2.price_b, TotalPrice_2.count, TotalPrice_2.mult_less, TotalPrice_2.buy_count,
+                              TotalPrice_2.unload_percent, TotalPrice_2.min_price, TotalPrice_2.to_price, TotalPrice_2.tnved,
+                              TotalPrice_2.okpd2, TotalPrice_2.ref]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
             price = select(TotalPrice_2._03name, TotalPrice_2.count, *cols_for_price.keys()).where(TotalPrice_2._07supplier_code.in_(allow_prices))
             sess.execute(insert(self.FinalPriceTmp).from_select(['_03name_old', 'count_old', *cols_for_price.values()], price))
@@ -384,7 +385,7 @@ class Sender(QThread):
             self.del_duples(sess)
             self.add_log(self.price_settings.buyer_price_code, f"Удаление дублей", cur_time)
             self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
-                                                   'Расчёт рейтинга, удаление ЦенаБ, макс. снижение цены ...', False)
+                                                   'Удаление ЦенаБ, макс. снижение цены ...', False)
 
             cur_time = datetime.datetime.now()
 
@@ -397,9 +398,9 @@ class Sender(QThread):
 
             self.del_over_price(sess)
 
-            self.set_rating(sess)
+            # self.set_rating(sess)
             self.create_dupls(sess)
-            self.add_log(self.price_settings.buyer_price_code, f"Расчёт рейтинга, удаление ЦенаБ, макс. снижение цены", cur_time)
+            self.add_log(self.price_settings.buyer_price_code, f"Удаление ЦенаБ, макс. снижение цены", cur_time)
             self.UpdatePriceStatusTableSignal.emit(self.therad_id, f'{self.price_settings.buyer_price_code}',
                                                    'Создание csv ...', False)
 
@@ -637,9 +638,11 @@ class Sender(QThread):
         self.count_mult_del = 0
         # расчёт кол-ва
         if self.price_settings.us_above is not None:
-            # sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent != 1,
-            #                                            self.FinalPriceTmp.unload_percent < self.price_settings.us_above)).
-            #              values(count=func.floor(self.FinalPriceTmp.count * self.price_settings.us_above)))
+            # ШтР
+            sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._09code_supl_goods==Data09.code_09,
+                                                               Data09.reserve_count > 0)
+                                                          ).values(count=self.FinalPriceTmp.count - Data09.reserve_count))
+
 
             sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp.unload_percent < self.price_settings.us_above, self.FinalPriceTmp.unload_percent != 1)).
                          values(count=func.floor(self.FinalPriceTmp.count * (1 - (self.price_settings.us_above - self.FinalPriceTmp.unload_percent)))))
@@ -756,6 +759,7 @@ class Sender(QThread):
             opt_grad_step_pct=CrossBrandTypeMarkupPct.opt_grad_step_pct, unique_starting_markup_pct=CrossBrandTypeMarkupPct.unique_starting_markup_pct,
             unique_grad_step_pct=CrossBrandTypeMarkupPct.unique_grad_step_pct, customer_brand_alias=CrossBrandTypeMarkupPct.customer_brand_alias,
             customer_period_markup_pct=CrossBrandTypeMarkupPct.customer_period_markup_pct,
+            supplier_customer_sales_share_pct=CrossBrandTypeMarkupPct.supplier_customer_sales_share_pct,
             customer_min_markup_pct=CrossBrandTypeMarkupPct.customer_min_markup_pct,))
         # print('ok', datetime.datetime.now() - nt)
 
@@ -932,26 +936,26 @@ class Sender(QThread):
             if self.price_compare_del:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_compare_del} (Сравнение цены с осн. прайсом)")
 
-    def set_rating(self, sess):
-        self.del_min_r = 0
-        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._07supplier_code == SuppliersForm.setting).
-                     values(rating=SuppliersForm.rating))
-        sess.execute(update(self.FinalPriceTmp).values(rating=self.FinalPriceTmp.rating * self.FinalPriceTmp.price))
-
-        if sess.execute(select(func.count(self.FinalPriceTmp.id))).scalar() < self.price_settings.max_rows:
-            return
-
-        ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
-        min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
-        # self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
-
-        if min_rating:
-            # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
-            # if self.del_min_r:  # для оптимизации
-            #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()
-            self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.rating < min_rating, 'Лимит строк')
-            if self.del_min_r:
-                self.add_log(self.price_settings.buyer_price_code, f"Удалено [pre]: {self.del_min_r} (Лимит строк)")
+    # def set_rating(self, sess):
+    #     self.del_min_r = 0
+    #     sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._07supplier_code == SuppliersForm.setting).
+    #                  values(rating=SuppliersForm.rating))
+    #     sess.execute(update(self.FinalPriceTmp).values(rating=self.FinalPriceTmp.rating * self.FinalPriceTmp.price))
+    #
+    #     if sess.execute(select(func.count(self.FinalPriceTmp.id))).scalar() < self.price_settings.max_rows:
+    #         return
+    #
+    #     ratings = select(self.FinalPriceTmp.rating).order_by(self.FinalPriceTmp.rating.desc()).limit(self.price_settings.max_rows)
+    #     min_rating = sess.execute(select(func.min(ratings.c.rating))).scalar()
+    #     # self.add_log(self.price_settings.buyer_price_code, f"Мин. рейтинг: {min_rating}")
+    #
+    #     if min_rating:
+    #         # self.del_min_r = self.add_dels_in_history(sess, (self.FinalPriceTmp.rating < min_rating), 'Лимит строк')
+    #         # if self.del_min_r:  # для оптимизации
+    #         #     sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()
+    #         self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.rating < min_rating, 'Лимит строк')
+    #         if self.del_min_r:
+    #             self.add_log(self.price_settings.buyer_price_code, f"Удалено [pre]: {self.del_min_r} (Лимит строк)")
 
             # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.rating < min_rating).delete()  # для оптимизации
             # self.log.add(LOG_ID, f"удалено по мин. рейтингу: {del_cnt}")
@@ -966,7 +970,8 @@ class Sender(QThread):
                 self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in, self.FinalPriceTmp._15code_optt,
                 self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count,
                 self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.customer_brand_alias,
-                self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2, self.FinalPriceTmp.ref]
+                self.FinalPriceTmp.supplier_customer_sales_share_pct, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2,
+                self.FinalPriceTmp.ref]
         dupl_rows = select(*cols, literal_column("'e'")).where(self.FinalPriceTmp.customer_brand_alias != None)
         cols_names = [i.__dict__['name'] for i in cols]
 
@@ -1020,7 +1025,9 @@ class Sender(QThread):
             while True:
                 if self.price_settings.max_rows < loaded + limit:
                     limit = self.price_settings.max_rows - loaded
-                req = select(*headers.values()).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
+                # req = select(*headers.values()).order_by(self.FinalPriceTmp.rating.desc(), self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
+                req = select(*headers.values()).order_by(self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_customer_sales_share_pct.desc(),
+                                                         self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
                 df = pd.read_sql_query(req, sess.connection(), index_col=None)
                 df = df.sort_values(self.FinalPriceTmp.price.__dict__['name'], ascending=False)
 
@@ -1051,11 +1058,14 @@ class Sender(QThread):
                 #                                                    self.FinalPriceTmp.art_brand_07).offset(loaded_to_del).limit(limit)
                 # del_min_r_2 = self.add_dels_in_history(sess, id_to_del.exists(),'Лимит строк')
                 # =============
-                id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),
-                                                                   self.FinalPriceTmp.art_brand_07).offset(loaded)#.limit(limit)
+                # id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.rating.desc(),self.FinalPriceTmp.art_brand_07).offset(loaded)#.limit(limit)
+                id_to_del = select(self.FinalPriceTmp.id).order_by(self.FinalPriceTmp.price,
+                                                                   self.FinalPriceTmp.supplier_customer_sales_share_pct.desc(),
+                                                                   self.FinalPriceTmp.art_brand_07).offset(loaded)
                 # result_del = list(sess.scalars(id_to_del).all())
-                del_min_r_2 = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
-                self.del_min_r += del_min_r_2
+                # del_min_r_2 =
+                self.del_min_r = self.add_dels_in_history(sess, self.FinalPriceTmp.id.in_(id_to_del),'Лимит строк')
+                # self.del_min_r += del_min_r_2  # при rating
 
                 # total_rows = sess.execute(func.count(self.FinalPriceTmp.id)).scalar()
                 # self.add_log(self.price_settings.buyer_price_code, f"LN del: {del_min_r_2=}, T: {total_rows=}")
@@ -1080,6 +1090,7 @@ class Sender(QThread):
                 #
                 # if self.del_min_r:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.del_min_r} (Лимит строк)")
+
 
 
             shutil.copy(fr"{csv_path}/_{self.file_name}", fr"{settings_data['send_dir']}/{self.file_name}")

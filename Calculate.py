@@ -20,7 +20,7 @@ warnings.filterwarnings('ignore')
 
 import colors
 from models import (Base2, Base2_1, Price_2, Price_2_2, PriceReport, TotalPrice_1, BasePrice, MassOffers, SupplierPriceSettings,
-                    Data07, Data09, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings, SuppliersForm, FileSettings)
+                    Data07, Data15, Data07_14, Buy_for_OS, TotalPrice_2, AppSettings, SuppliersForm, FileSettings) # Data09
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -114,7 +114,7 @@ class CalculateClass(QThread):
 
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv', 'АСТФ.csv','АСТ6.csv','1BEG.csv','АСТ4.csv','АСТ0.csv','0PAR.csv','АКД1.csv',
                 #              '1LAM.csv','КОПТ.csv']
-                # new_files = ['2TCK.csv',]
+                # new_files = ['TKTZ.csv',]
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1МСК.csv', '1FRA.csv', '1ГУД.csv', '8ГУД.csv', '9ГУД.csv', ]
                 files = []
@@ -238,8 +238,8 @@ class CalculateClass(QThread):
                 sess.execute(update(self.TmpPrice_2).values(_09code_supl_goods=text(f"regexp_replace(upper(concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._01article_comp.__dict__['name']}, "
                                                                                     f"{self.TmpPrice_2._02brand.__dict__['name']})), ' ', '', 'g')")))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
-                             values(reserve_count=Data09.reserve_count))  #put_away_zp=Data09.put_away_zp,
+                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._09code_supl_goods==Data09.code_09).
+                #              values(reserve_count=Data09.reserve_count))  #put_away_zp=Data09.put_away_zp,
 
                 sess.execute(update(self.TmpPrice_2).values(alternative_article=text(f"concat({self.TmpPrice_2._07supplier_code.__dict__['name']}, "
                                                                                      f"{self.TmpPrice_2.key1_s.__dict__['name']}, "
@@ -286,7 +286,7 @@ class CalculateClass(QThread):
                 # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._15code_optt==Buy_for_OS.article_producer).values(buy_count=Buy_for_OS.buy_count))
 
                 sess.execute(update(self.TmpPrice_2).values(count=self.TmpPrice_2._04count))
-                sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
+                # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2.reserve_count > 0).values(count=self.TmpPrice_2._04count-self.TmpPrice_2.reserve_count))
 
                 self.set_lot(sess, price_code)
 
@@ -296,7 +296,7 @@ class CalculateClass(QThread):
 
                 cur_time = datetime.datetime.now()
                 # self.TmpPrice_2._10original, self.TmpPrice_2._19min_price, self.TmpPrice_2.low_price, self.TmpPrice_2.code_pb_p, self.TmpPrice_2.markup_os,
-                # self.TmpPrice_2.max_decline, self.TmpPrice_2.put_away_zp
+                # self.TmpPrice_2.max_decline, self.TmpPrice_2.put_away_zp, self.TmpPrice_2.reserve_count
                 cols_for_total = [self.TmpPrice_2.key1_s, self.TmpPrice_2.article_s, self.TmpPrice_2.brand_s,
                                   self.TmpPrice_2.name_s, self.TmpPrice_2.count_s, self.TmpPrice_2.price_s,
                                   self.TmpPrice_2.currency_s, self.TmpPrice_2.mult_s, self.TmpPrice_2.notice_s,
@@ -313,7 +313,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.unload_percent, self.TmpPrice_2.offers_wh,
                                   self.TmpPrice_2.price_b, self.TmpPrice_2.count, self.TmpPrice_2.markup_pb,
                                   self.TmpPrice_2._06mult_new, self.TmpPrice_2.mult_less, self.TmpPrice_2._05price_plus,
-                                  self.TmpPrice_2.reserve_count, self.TmpPrice_2.buy_count, self.TmpPrice_2.min_price,
+                                  self.TmpPrice_2.buy_count, self.TmpPrice_2.min_price,
                                   self.TmpPrice_2.min_supplier, self.TmpPrice_2.tnved, self.TmpPrice_2.okpd2, self.TmpPrice_2.ref
                                   ]
 
