@@ -527,7 +527,7 @@ class CatalogUpdate(QThread):
                         }
                 # "markup_os": ["Наценка для ОС"], "costs": ["Издержки"],
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
-                sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.supplier_code == None).delete()
+                sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.price_code == None).delete()  # supplier_code
                 sess.execute(update(SupplierPriceSettings).values(update_time=cast(func.regexp_substr(SupplierPriceSettings.update_time_str, r'\d+'), REAL)))
 
                 # table_name = 'cols_fix'
