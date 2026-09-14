@@ -169,7 +169,7 @@ class MainWorker(QThread):
 
                 # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
                 #              'MI07 mikado_price_srt.csv']
-                # new_files = ['MI07 mikado_price_srt.csv']
+                # new_files = ['1MTK Остатки оригинал.xlsx']
                 # new_files = ['TKTZ Печать.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -282,10 +282,10 @@ class MainWorker(QThread):
                 if not is_report_exists:
                     sess.add(PriceReport(file_name=file_name, price_code=price_code))
 
-                if not self.check_price_time(price_code, file_path, sess):
+                if not self.check_price_time(price_code, file_path, sess) and price_code != 'NAME':  # прайс для ру словаря
                     self.cur_file_count += 1
                     sess.execute(update(PriceReport).where(PriceReport.price_code == price_code).values(
-                        info_message="Не подходит по сроку обновления", updated_at=new_update_time)) # sess.execute(req)
+                        info_message="Не подходит по сроку обновления", updated_at=new_update_time))
                     sess.commit()
                     self.add_log(self.file_size_type, price_code,f"Не подходит по сроку обновления ({self.cur_file_count}/{self.total_file_count})", cur_time)
                     return
@@ -369,11 +369,11 @@ class MainWorker(QThread):
                 for c in text_cols:
                     sess.execute(update(self.TmpPrice_1).where(c != None).values({c.__dict__['name']: c.regexp_replace(';', ',', 'g')}))
 
-                # Исправление Номенклатуры
+                # Исправление Номенклатуры (проверить дальнейшее .where(self.TmpPrice_1._03name == None) и тд)
                 self.cols_fix(price_code, sess, ("01Артикул", "03Наименование", "Примечание поставщика"))
 
                 # 01Артикул
-                sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1.article_s)))  # .where(self.TmpPrice_1._01article == None)
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._01article == None).values(_01article=func.upper(self.TmpPrice_1.article_s)))
                 sess.execute(update(self.TmpPrice_1).values(_01article=func.upper(self.TmpPrice_1._01article.regexp_replace(' +', ' ', 'g')
                                                      .regexp_replace('^ | $', '', 'g'))))
                 sess.execute(update(self.TmpPrice_1).values(_01article_comp=func.upper(self.TmpPrice_1._01article.regexp_replace(r'\W|_', '', 'g'))))
@@ -393,7 +393,7 @@ class MainWorker(QThread):
                 # apply_discount(sess, price_code, 'Цена поставщика')
 
                 # 03Наименование
-                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1.name_s))  # .where(self.TmpPrice_1._03name == None)
+                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
                 sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
                                                             regexp_replace(' +', ' ', 'g').
                                                             regexp_replace('^ | $', '', 'g')))
@@ -1086,11 +1086,11 @@ class MainWorker(QThread):
                         "Добавить в конце": True,
                         "Добавить в начале": True,
                         }
-        req = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name_set.keys())))
-        cols_settings = sess.execute(req).scalars().all()  # Price_1.article_s
+        req1 = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name_set.keys())))
+        cols_settings = sess.execute(req1).scalars().all()  # Price_1.article_s
 
         for cs in cols_settings:
-            # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}")#|{cols_name[cs.col_find]}")
+            # print(f"{cs.col_change}|{cs.change_type}|{cs.find}|{cs.set}|{cs.col_find}")#|{cols_name[cs.col_find]}")
             change_type = change_types.get(cs.change_type, None)
             set_col_name = cols_name_set.get(cs.col_change, None)
             find_col_name = cols_name_find.get(cs.col_find, None)
@@ -1142,7 +1142,7 @@ class MainWorker(QThread):
                     #                         # change.format(brand_s=Price_1.brand_s, article_s=Price_1.article_s)
                     #                                                                             )
                     # })
-                    sess.execute(req)
+                    # sess.execute(req)
                 elif cs.col_change == '06Кратность':
                     req = update(self.TmpPrice_1).where(change_type[0](func.upper(find_col_name), cs.find)
                     ).values({set_col_name: 0 if not cs.set else int(cs.set)})

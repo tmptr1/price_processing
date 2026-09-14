@@ -83,7 +83,7 @@ class CatalogUpdate(QThread):
                 # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
-
+                #     self.lot_update(sess)
                     # прайсы, для которых были удалены старые настройки, обрабатываются заново
                     # diff_settings = except_(select(LastColsFix), select(ColsFix))
                     # actual_price_codes = sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all()
@@ -902,6 +902,7 @@ class CatalogUpdate(QThread):
             if (cur_time - compare_time).days < 1:
                 return
 
+            # Сначала общее обновление, потом 4.0 Условия
             # удаление старых наименований в ru_dictionary
             cur_time = datetime.datetime.now()
             ru_dict_dels = sess.query(RuDictionary).where(RuDictionary.updated_at < cur_time - datetime.timedelta(days=30)).delete()
@@ -919,21 +920,21 @@ class CatalogUpdate(QThread):
                 save_period_hist = 5
                 save_period_hist_d = 3
                 dels = sess.query(FinalPriceHistory).where(or_(FinalPriceHistory.send_time < cur_time - datetime.timedelta(days=save_period_hist),
-                                                    FinalPriceHistory.send_time == None)).delete()
+                                                               FinalPriceHistory.send_time == None)).delete()
                 if dels:
                     total_fph_rows = sess.execute(func.count(FinalPriceHistory.id)).scalar()
                     self.log.add(LOG_ID, f"Удалено строк из истории: {dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}",
-                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
-                                     f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
+                                 f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории</span>: "
+                                 f"{dels} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fph_rows}")
 
                 cur_time = datetime.datetime.now()
                 delsD = sess.query(FinalPriceHistoryDel).where(or_(FinalPriceHistoryDel.send_time < cur_time - datetime.timedelta(days=save_period_hist_d),
-                                                    FinalPriceHistoryDel.send_time == None)).delete()
+                                                                   FinalPriceHistoryDel.send_time == None)).delete()
                 if delsD:
                     total_fphd_rows = sess.execute(func.count(FinalPriceHistoryDel.id)).scalar()
                     self.log.add(LOG_ID, f"Удалено строк из истории удалённых строк: {delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}",
-                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории удалённых строк</span>: "
-                                     f"{delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}")
+                                 f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>истории удалённых строк</span>: "
+                                 f"{delsD} [{str(datetime.datetime.now() - cur_time)[:7]}]. Всего строк: {total_fphd_rows}")
 
                 # Удаление партиций
                 for p_table_name, period in (['final_price_history', save_period_hist], ['final_price_history_del', save_period_hist_d]):
@@ -956,8 +957,8 @@ class CatalogUpdate(QThread):
                 delsPST = sess.query(PriceSendTimeHistory).where(PriceSendTimeHistory.update_time < cur_time - datetime.timedelta(days=62)).delete()
                 if delsPST:
                     self.log.add(LOG_ID, f"Удалено строк из отчёта по отправленым прайсам: {delsPST} [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                                     f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>отчёта по отправленым прайсам</span>: "
-                                     f"<span style='color:{colors.orange_log_color};font-weight:bold;'>{delsPST}</span> [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                                 f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>отчёта по отправленым прайсам</span>: "
+                                 f"<span style='color:{colors.orange_log_color};font-weight:bold;'>{delsPST}</span> [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
                 sess.query(MailReportUnloaded).where(MailReportUnloaded.date < cur_time - datetime.timedelta(days=62))
                 sess.query(Orders).where(Orders.updated_at < cur_time - datetime.timedelta(days=182)).delete()
@@ -1009,8 +1010,12 @@ class CatalogUpdate(QThread):
             #                                            PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at_2_step=None))
             sess.commit()
 
+            self.lot_update(sess)
+            sess.commit()
 
 
+
+            # 4.0 Условия
             if last_4_condition_update and last_4_condition_update <= last_DB_4_update:
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 4.0').delete()
                 sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 4.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
@@ -1025,13 +1030,13 @@ class CatalogUpdate(QThread):
             # max_decline=Data07.max_decline,
             cur_time_step = datetime.datetime.now()
             sess.execute(update(TotalPrice_2).values(delay=Data07.delay, to_price=Data07.to_price, sell_for_OS=Data07.sell_os,
-                                                markup_holidays=Data07.markup_holidays,
-                                                markup_R=Data07.markup_R, min_markup=Data07.min_markup,
-                                                min_wholesale_markup=Data07.min_wholesale_markup,
-                                                markup_wh_goods=Data07.markup_wholesale,
-                                                grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
-                                                access_pp=Data07.access_pp,
-                                                unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
+                                                     markup_holidays=Data07.markup_holidays,
+                                                     markup_R=Data07.markup_R, min_markup=Data07.min_markup,
+                                                     min_wholesale_markup=Data07.min_wholesale_markup,
+                                                     markup_wh_goods=Data07.markup_wholesale,
+                                                     grad_step=Data07.grad_step, wh_step=Data07.wholesale_step,
+                                                     access_pp=Data07.access_pp,
+                                                     unload_percent=Data07.unload_percent).where(TotalPrice_2._07supplier_code == Data07.setting))
             self.log.add(LOG_ID, f"Data07 - done [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
 
             # cur_time_step = datetime.datetime.now()
@@ -1059,14 +1064,66 @@ class CatalogUpdate(QThread):
             self.update_suppliers_settings_4(sess, last_DB_4_update)
 
             self.log.add(LOG_ID, f"Данные в Итоговом прайсе обновлены [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                      f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
-                      f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                         f"Данные в <span style='color:{colors.green_log_color};font-weight:bold;'>Итоговом прайсе</span> обновлены "
+                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Обновление данных в БД по 4.0').delete()
             sess.add(CatalogUpdateTime(catalog_name='Обновление данных в БД по 4.0', updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
 
             sess.commit()
             return True
+
+
+    def lot_update(self, sess):
+        self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
+        cur_time = datetime.datetime.now()
+        next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+        if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
+            # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
+            #     where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
+            max_lot = func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)
+            mult_conds = [
+                (max_lot == 0, TotalPrice_2._06mult),
+                (and_(max_lot > TotalPrice_2._05price * TotalPrice_2._04count,
+                      TotalPrice_2._04count > 0), TotalPrice_2._04count)
+            ]
+            sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
+                                ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
+                func.greatest(TotalPrice_2._06mult, max_lot / TotalPrice_2._05price)))))
+        else:
+            # max_lot = sess.execute(
+            #     select(SuppliersForm.supplier_min_lot_int).where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
+            mult_conds = [
+                (SuppliersForm.supplier_min_lot_int == 0, TotalPrice_2._06mult),
+                (and_(SuppliersForm.supplier_min_lot_int > TotalPrice_2._05price * TotalPrice_2._04count,
+                      TotalPrice_2._04count > 0), TotalPrice_2._04count)
+            ]
+
+            sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
+                                                    ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
+                        func.greatest(TotalPrice_2._06mult, SuppliersForm.supplier_min_lot_int / TotalPrice_2._05price)))))
+
+        # 2 step
+        # max_lot = sess.execute(select(func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)).
+        #                        where(SupplierPriceSettings.price_code == price_code)).scalar()
+        max_lot = func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)
+        m_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                                    TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot,
+                                    TotalPrice_2._05price_plus * TotalPrice_2._04count >= max_lot,
+                                    func.ceil(max_lot / TotalPrice_2._05price_plus) >= 1)).
+                     values(_06mult_new=func.ceil(max_lot / TotalPrice_2._05price_plus))).rowcount
+
+        price_cond = [
+            (max_lot / TotalPrice_2._06mult_new >= TotalPrice_2._05price_plus,
+             max_lot / TotalPrice_2._06mult_new)
+        ]
+        p_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                                                               TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot)).
+            values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
+
+        if p_count or m_count:
+            self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
 
 
     def update_suppliers_settings_4(self, sess, last_DB_4_update):
