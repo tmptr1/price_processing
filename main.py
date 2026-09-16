@@ -427,6 +427,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                   CatalogUpdateTime(catalog_name='Предложений в опте', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Заказы', updated_at='2025-01-01 01:01:01'),
                                   CatalogUpdateTime(catalog_name='Рассылка уведомлений', updated_at='2025-01-01 01:01:01'),
+                                  CatalogUpdateTime(catalog_name='Лот на выходные', updated_at='2025-01-01 01:01:01'),
                                   ])
                     sess.commit()
                 print('БД обновлена')

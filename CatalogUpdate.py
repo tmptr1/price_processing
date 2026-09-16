@@ -146,6 +146,7 @@ class CatalogUpdate(QThread):
                     # pass
                     # self.CTC.start()
                     # self.CTC.wait()
+                self.lot_update()  # лот на выходные
 
                 self.update_mass_offers()
                 self.CMO.wait()
@@ -1010,9 +1011,8 @@ class CatalogUpdate(QThread):
             #                                            PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at_2_step=None))
             sess.commit()
 
-            self.lot_update(sess)
-            sess.commit()
-
+            # self.lot_update(sess)
+            # sess.commit()
 
 
             # 4.0 Условия
@@ -1074,56 +1074,67 @@ class CatalogUpdate(QThread):
             return True
 
 
-    def lot_update(self, sess):
-        self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
-        cur_time = datetime.datetime.now()
-        next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
-        if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
-            # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
-            #     where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
-            max_lot = func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)
-            mult_conds = [
-                (max_lot == 0, TotalPrice_2._06mult),
-                (and_(max_lot > TotalPrice_2._05price * TotalPrice_2._04count,
-                      TotalPrice_2._04count > 0), TotalPrice_2._04count)
+    def lot_update(self):
+        with session() as sess:
+            cur_time = datetime.datetime.now()
+            if cur_time.hour < 8:
+                return
+
+            last_lot_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Лот на выходные')).scalar()
+
+            compare_time = datetime.datetime.strptime(f"{str(last_lot_update)[:10]} 08:00:00", "%Y-%m-%d %H:%M:%S")
+            if (cur_time - compare_time).days < 1:
+                return
+
+            self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
+            cur_time = datetime.datetime.now()
+            next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+            if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
+                # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
+                #     where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
+                max_lot = func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)
+                mult_conds = [
+                    (max_lot == 0, TotalPrice_2._06mult),
+                    (and_(max_lot > TotalPrice_2._05price * TotalPrice_2._04count,
+                          TotalPrice_2._04count > 0), TotalPrice_2._04count)
+                ]
+                sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
+                                    ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
+                    func.greatest(TotalPrice_2._06mult, max_lot / TotalPrice_2._05price)))))
+            else:
+                # max_lot = sess.execute(
+                #     select(SuppliersForm.supplier_min_lot_int).where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
+                mult_conds = [
+                    (SuppliersForm.supplier_min_lot_int == 0, TotalPrice_2._06mult),
+                    (and_(SuppliersForm.supplier_min_lot_int > TotalPrice_2._05price * TotalPrice_2._04count,
+                          TotalPrice_2._04count > 0), TotalPrice_2._04count)
+                ]
+
+                sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
+                                                        ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
+                            func.greatest(TotalPrice_2._06mult, SuppliersForm.supplier_min_lot_int / TotalPrice_2._05price)))))
+
+            # 2 step
+            # max_lot = sess.execute(select(func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)).
+            #                        where(SupplierPriceSettings.price_code == price_code)).scalar()
+            max_lot = func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)
+            m_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                                        TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot,
+                                        TotalPrice_2._05price_plus * TotalPrice_2._04count >= max_lot,
+                                        func.ceil(max_lot / TotalPrice_2._05price_plus) >= 1)).
+                         values(_06mult_new=func.ceil(max_lot / TotalPrice_2._05price_plus))).rowcount
+
+            price_cond = [
+                (max_lot / TotalPrice_2._06mult_new >= TotalPrice_2._05price_plus,
+                 max_lot / TotalPrice_2._06mult_new)
             ]
-            sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
-                                ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
-                func.greatest(TotalPrice_2._06mult, max_lot / TotalPrice_2._05price)))))
-        else:
-            # max_lot = sess.execute(
-            #     select(SuppliersForm.supplier_min_lot_int).where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
-            mult_conds = [
-                (SuppliersForm.supplier_min_lot_int == 0, TotalPrice_2._06mult),
-                (and_(SuppliersForm.supplier_min_lot_int > TotalPrice_2._05price * TotalPrice_2._04count,
-                      TotalPrice_2._04count > 0), TotalPrice_2._04count)
-            ]
+            p_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                                                                   TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot)).
+                values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
 
-            sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
-                                                    ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
-                        func.greatest(TotalPrice_2._06mult, SuppliersForm.supplier_min_lot_int / TotalPrice_2._05price)))))
-
-        # 2 step
-        # max_lot = sess.execute(select(func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)).
-        #                        where(SupplierPriceSettings.price_code == price_code)).scalar()
-        max_lot = func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)
-        m_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
-                                    TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot,
-                                    TotalPrice_2._05price_plus * TotalPrice_2._04count >= max_lot,
-                                    func.ceil(max_lot / TotalPrice_2._05price_plus) >= 1)).
-                     values(_06mult_new=func.ceil(max_lot / TotalPrice_2._05price_plus))).rowcount
-
-        price_cond = [
-            (max_lot / TotalPrice_2._06mult_new >= TotalPrice_2._05price_plus,
-             max_lot / TotalPrice_2._06mult_new)
-        ]
-        p_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
-                                                               TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot)).
-            values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
-
-        if p_count or m_count:
-            self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
+            if p_count or m_count:
+                self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
 
 
     def update_suppliers_settings_4(self, sess, last_DB_4_update):

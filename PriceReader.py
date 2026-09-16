@@ -169,7 +169,7 @@ class MainWorker(QThread):
 
                 # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
                 #              'MI07 mikado_price_srt.csv']
-                # new_files = ['1MTK Остатки оригинал.xlsx']
+                # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['TKTZ Печать.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
@@ -353,7 +353,7 @@ class MainWorker(QThread):
 
                 cur_time = datetime.datetime.now()
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 14 ...", False)
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 ...", False)
 
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
@@ -383,12 +383,6 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.brand_s_low == Brands.brand_low).values(_02brand=Brands.correct_brand))
                 # and (self.TmpPrice_1._02brand == None
 
-                # 14Производитель заполнен
-                sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
-                # print(f"14Производитель заполнен {datetime.datetime.now() - n_dt}")
-                # sess.execute(update(Price_1).where(and_(Price_1._07supplier_code == price_code, Price_1._02brand != None))
-                #              .values(_14brand_filled_in=Price_1._02brand))
-
                 # Изменение цены по условиям (Цена поставщика)
                 # apply_discount(sess, price_code, 'Цена поставщика')
 
@@ -399,12 +393,6 @@ class MainWorker(QThread):
                                                             regexp_replace('^ | $', '', 'g')))
 
                 self.check_ru_name(sess, price_code)
-
-                # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 14 завершена", cur_time)
-
-                cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 5, 6, 12, 15, 17, 18, 20 ...", False)
 
                 # 05Цена
                 sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1.price_s, clear_price=self.TmpPrice_1.price_s))
@@ -419,8 +407,16 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).values(_06mult=self.TmpPrice_1.mult_s))  # .where(self.TmpPrice_1._06mult == None)
                 sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
 
+                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 завершена", cur_time)
+
+                cur_time = datetime.datetime.now()
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 18, 20 ...", False)
+
                 # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
                 self.suppliers_goods_compare(price_code, sett, sess)
+
+                # 14Производитель заполнен
+                sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
 
                 # 04Количество
                 sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
@@ -464,7 +460,7 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
                 # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 4, 5, 6, 15, 17, 18, 20 завершена", cur_time)
+                self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 18, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
@@ -1047,6 +1043,7 @@ class MainWorker(QThread):
             #                                      _05price=SupplierGoodsFix.price_s, _06mult=SupplierGoodsFix.mult_s,
             #                                      _20exclude=SupplierGoodsFix.sales_ban)
             # sess.execute(req)
+            # if '_01article' in compare_col_list:
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.article != None)).values(_01article=SupplierGoodsFix.article))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(_02brand=SupplierGoodsFix.brand))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(_03name=SupplierGoodsFix.name))
