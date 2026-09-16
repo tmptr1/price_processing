@@ -1088,8 +1088,9 @@ class CatalogUpdate(QThread):
 
             self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
             cur_time = datetime.datetime.now()
-            next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
-            if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
+            # next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+            if cur_time.weekday() in (4, 5, 6) or cur_time.date() in holidays.RU(years=datetime.datetime.now().year):
+                self.log.add(LOG_ID, f"Учитывается supplier_weekend_min_lot_int")
                 # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
                 #     where(SuppliersForm.setting == TotalPrice_2._07supplier_code)).scalar()
                 max_lot = func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)
