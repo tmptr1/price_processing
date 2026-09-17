@@ -1133,6 +1133,11 @@ class CatalogUpdate(QThread):
                                                                    TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot)).
                 values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
 
+
+            sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Лот на выходные'
+                                                         ).values(updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+            sess.commit()
+
             if p_count or m_count:
                 self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
                              f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
