@@ -128,7 +128,7 @@ class CatalogUpdate(QThread):
                 #         func.upper(SupplierPriceSettings.works) == 'ДА')).scalars().all()
                 #     sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
                 # return
-                self.update_orders_table()
+                # self.update_orders_table()
                 self.check_prices_update_time()
                 self.send_tg_notification()
                 self.update_currency()

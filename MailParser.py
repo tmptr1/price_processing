@@ -14,11 +14,14 @@ import aspose.zip as az
 from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
-from models import FileSettings, MailReport, MailReportUnloaded, CatalogUpdateTime
-from sqlalchemy import select, delete, insert, and_
+from models import FileSettings, MailReport, MailReportUnloaded, CatalogUpdateTime, Orders, MassOffers
+from sqlalchemy import select, delete, insert, update, and_, case
 import pandas as pd
 from requests_html import HTMLSession
+import openpyxl
 import colors
+
+from CatalogUpdate import update_catalog, LOG_ID as CU_LOG_ID
 
 import setting
 engine = setting.get_engine()
@@ -45,6 +48,8 @@ class MailParserClass(QThread):
         self.log.add(LOG_ID, "Старт", f"<span style='color:{colors.green_log_color};'>Старт</span>  ")
         wait_sec = 80
 
+        self.update_orders_table()
+
         while not self.isPause:
             start_cycle_time = datetime.datetime.now()
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
@@ -54,7 +59,7 @@ class MailParserClass(QThread):
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("112898", mail)
-                # self.get_mail("151420", mail)
+                # self.get_mail("155059", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -430,6 +435,91 @@ class MailParserClass(QThread):
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"check_file_name Error", ex_text)
             return 0
+
+
+    def update_orders_table(self):
+        try:
+            with session() as sess:
+                last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Заказы')).scalar()
+                now = datetime.datetime.now()
+                # print(last_update)
+                # if now.date() == last_update.date() or now.hour < 11:
+                #     return
+                if now.date() != last_update.date() and now.hour == 11:
+                    pass
+                elif now.date() == last_update.date() and last_update.time().hour < 12 and now.hour > 11:  # 12
+                    sess.query(Orders).where(func.date(Orders.updated_at) == datetime.datetime.now().date()).delete()
+                    # pass
+                else:
+                    return
+
+                for log_i in [LOG_ID, CU_LOG_ID]:
+                    self.log.add(log_i, f"Загзузка заказов в БД ...",
+                                 f"Загзузка <span style='color:{colors.green_log_color};font-weight:bold;'>заказов</span> в БД ...")
+                start_time = datetime.datetime.now()
+                workbook = openpyxl.load_workbook(filename=settings_data["orders"])
+                lists = workbook.sheetnames
+                sheet_names = []
+                for list_name in lists:
+                    for table_name in workbook[list_name]._tables: #workbook['AvtoTO']._tables:
+                        if str(table_name).startswith('таб'):
+                            # print(list_name, table_name)
+                            sheet_names.append(list_name)
+
+                # table_name = 'orders'
+                table_class = Orders
+                cols = {"order_time": ["Заказ"], "client": ["Клиент"], "auto": ["Автомат"], "manually": ["В ручную"],
+                        "for_sort": ["Для сортировки"], "key_1_ord": ["Ключ1 в заказ"],
+                        "article_ord": ["Артикул в заказ"],
+                        "brand_ord": ["Производитель в заказ"], "count_ord": ["Заказ шт"],
+                        "price_ord": ["Цена в заказ"],
+                        "code_1c": ["В 1С Код наш"], "article_1c": ["В 1С Артикул наш"], "article": ["Тех. Артикул"],
+                        "brand": ["Тех. Производитель"], "count": ["Тех. Кол-во"], "price": ["Тех. Цена"],
+                        "name": ["Тех. Наименование"], "code_optt": ["Код ТутОптТорг"],
+                        "our_brand": ["Наш производитель"],
+                        "code_09": ["09Код"], }
+
+                for sheet_name in sheet_names:
+                    # self.log.add(LOG_ID, sheet_name)
+                    update_catalog(sess, settings_data["orders"], cols, table_class, sheet_name=sheet_name,
+                                   del_table=False, skiprows=3, orders_table=True)
+
+                # Предложений опт
+                sess.execute(update(Orders).where(and_(Orders.updated_at == None, Orders.code_optt == func.concat(MassOffers.article, MassOffers.brand)))
+                             .values(offers_wh=MassOffers.offers_count))
+                # Отказано шт
+                conditions = [(Orders.auto == Orders.manually, func.greatest(0, Orders.count - Orders.count_ord))]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(refuse=case(*conditions, else_=0)))
+                # Заявка сумма
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(ord_sum=Orders.count * Orders.price))
+                # Сумма в закупке
+                conditions = [(Orders.count_ord == 0, 0),
+                              (Orders.price_ord == 0, Orders.count_ord * Orders.price)]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(buy_sum=case(*conditions, else_=Orders.count_ord * Orders.price_ord)))
+                # ВП по подтверждённому
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(vp_accept=(Orders.price - Orders.price_ord) * Orders.count_ord))
+                # Сумма подтверждённого
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(sum_accept=Orders.price_ord * Orders.count_ord))
+                # Тип товара
+                conditions = [(Orders.offers_wh >= 2, 'Опт'),]
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(product_type=case(*conditions, else_='УТ')))
+
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                sess.execute(update(Orders).where(Orders.updated_at == None).values(updated_at=now))
+
+                sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == 'Заказы').delete()
+                sess.add(CatalogUpdateTime(catalog_name='Заказы', updated_at=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                sess.commit()
+                for log_i in [LOG_ID, CU_LOG_ID]:
+                    self.log.add(log_i,
+                                 f"Заказы загружены в БД [{str(datetime.datetime.now() - start_time)[:7]}]",
+                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Заказы</span> загружены в БД "
+                                 f"[{str(datetime.datetime.now() - start_time)[:7]}]")
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"update_orders_table Error", ex_text)
 
 class MailReportDelete(QThread):
     def __init__(self, log=None, parent=None):
