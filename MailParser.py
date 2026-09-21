@@ -48,9 +48,10 @@ class MailParserClass(QThread):
         self.log.add(LOG_ID, "Старт", f"<span style='color:{colors.green_log_color};'>Старт</span>  ")
         wait_sec = 80
 
-        self.update_orders_table()
-
         while not self.isPause:
+
+            self.update_orders_table()
+
             start_cycle_time = datetime.datetime.now()
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
             self.now_time = datetime.datetime.now().strftime("%d-%b-%Y")
