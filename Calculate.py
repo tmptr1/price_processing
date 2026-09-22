@@ -199,7 +199,7 @@ class CalculateClass(QThread):
                                   TotalPrice_1._02brand, TotalPrice_1._14brand_filled_in, TotalPrice_1._03name,
                                   TotalPrice_1._04count, TotalPrice_1._05price, TotalPrice_1.clear_price, TotalPrice_1._06mult,
                                   TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._20exclude,
-                                  TotalPrice_1._13grad, TotalPrice_1._17code_unique, TotalPrice_1._18short_name,
+                                  TotalPrice_1._13grad, TotalPrice_1._17code_unique,
                                   TotalPrice_1.tnved, TotalPrice_1.okpd2, TotalPrice_1.ref]
                 cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
                 price = select(*cols_for_price.keys()).where(TotalPrice_1._07supplier_code == price_code)
@@ -305,7 +305,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2.clear_price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
+                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._20exclude,
                                   self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS,
                                   self.TmpPrice_2.markup_holidays, self.TmpPrice_2.markup_R, self.TmpPrice_2.min_markup,
                                   self.TmpPrice_2.min_wholesale_markup, self.TmpPrice_2.markup_wh_goods,
@@ -504,7 +504,7 @@ class CalculateClass(QThread):
                                            "03Наименование", "05Цена", "Чистая цена", "06Кратность-", "07Код поставщика",
                                            "09Код + Поставщик + Товар", "Альтернативный артикул",
                                            "13Градация", "14Производитель заполнен", "15КодТутОптТорг",
-                                           "17КодУникальности", "18КороткоеНаименование",
+                                           "17КодУникальности",
                                            "20ИслючитьИзПрайса", "В прайс", "Отсрочка", "Продаём для ОС",
                                            "Наценка Р", "Наценка ПБ", "Мин наценка", "Наценка на оптовые товары", "Шаг градации",
                                            "Шаг опт", "Разрешения ПП", "Предложений опт",
@@ -524,7 +524,7 @@ class CalculateClass(QThread):
                                   self.TmpPrice_2._05price, self.TmpPrice_2.clear_price, self.TmpPrice_2._06mult, self.TmpPrice_2._07supplier_code,
                                   self.TmpPrice_2._09code_supl_goods, self.TmpPrice_2.alternative_article,
                                   self.TmpPrice_2._13grad, self.TmpPrice_2._14brand_filled_in, self.TmpPrice_2._15code_optt,
-                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._18short_name, self.TmpPrice_2._20exclude,
+                                  self.TmpPrice_2._17code_unique, self.TmpPrice_2._20exclude,
                                   self.TmpPrice_2.to_price, self.TmpPrice_2.delay, self.TmpPrice_2.sell_for_OS, self.TmpPrice_2.markup_R,
                                   self.TmpPrice_2.markup_pb, self.TmpPrice_2.min_markup, self.TmpPrice_2.markup_wh_goods,
                                   self.TmpPrice_2.grad_step, self.TmpPrice_2.wh_step,  self.TmpPrice_2.access_pp,

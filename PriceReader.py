@@ -410,7 +410,7 @@ class MainWorker(QThread):
                 self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 18, 20 ...", False)
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 ...", False)
 
                 # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
                 self.suppliers_goods_compare(price_code, sett, sess)
@@ -457,10 +457,10 @@ class MainWorker(QThread):
                 sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
 
                 # 18КороткоеНаименование
-                sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
+                # sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
                 # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 18, 20 завершена", cur_time)
+                self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
@@ -493,7 +493,7 @@ class MainWorker(QThread):
                                  "05Цена": self.TmpPrice_1._05price, "Чистая цена": self.TmpPrice_1.clear_price, "06Кратность": self.TmpPrice_1._06mult,
                                  "15КодТутОптТорг": self.TmpPrice_1._15code_optt, "07Код поставщика": self.TmpPrice_1._07supplier_code,
                                  "20ИсключитьИзПрайса": self.TmpPrice_1._20exclude, "13Градация": self.TmpPrice_1._13grad,
-                                 "17КодУникальности": self.TmpPrice_1._17code_unique, "18КороткоеНаименование": self.TmpPrice_1._18short_name,
+                                 "17КодУникальности": self.TmpPrice_1._17code_unique,
                                  "ТНВЭД": self.TmpPrice_1.tnved, "ОКПД2": self.TmpPrice_1.okpd2,
                                  "Ссылка на запись в реестре сертификатов": self.TmpPrice_1.ref,
                                  }
@@ -513,7 +513,7 @@ class MainWorker(QThread):
                                   self.TmpPrice_1._14brand_filled_in, self.TmpPrice_1._03name, self.TmpPrice_1._04count,
                                   self.TmpPrice_1._05price, self.TmpPrice_1.clear_price, self.TmpPrice_1._06mult,
                                   self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1._20exclude,
-                                  self.TmpPrice_1._13grad, self.TmpPrice_1._17code_unique, self.TmpPrice_1._18short_name,
+                                  self.TmpPrice_1._13grad, self.TmpPrice_1._17code_unique,
                                   self.TmpPrice_1.tnved, self.TmpPrice_1.okpd2, self.TmpPrice_1.ref]
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())

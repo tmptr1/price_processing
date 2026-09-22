@@ -59,7 +59,7 @@ class SupplierPriceSettings(Base):
     # В_прайс real,
     in_price: Mapped[real]
     # Краткое_наименование integer,
-    short_name: Mapped[intgr]
+    # short_name: Mapped[intgr]
     # Закупка_для_оборотных_средств varchar(20),
     buy_for_working_capital: Mapped[real]
     # Разрешения_ПП varchar,
@@ -212,7 +212,7 @@ class Price_1(Base1):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
@@ -276,7 +276,7 @@ class Price_1_1(Base1_1):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
@@ -339,7 +339,7 @@ class TotalPrice_1(Base):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
@@ -402,7 +402,7 @@ class Price_2(Base2):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
     # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
@@ -527,7 +527,7 @@ class Price_2_2(Base2_1):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
     # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
@@ -655,7 +655,7 @@ class TotalPrice_2(Base):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     #   _19МинЦенаПоПрайсу varchar(50),
     # _19min_price: Mapped[str_x(50)]
     # _20ИслючитьИзПрайса varchar(50),
@@ -906,7 +906,7 @@ class BuyersForm(Base):
     # Прохождение наименования
     name_check: Mapped[str_x(20)]
     # Короткое наименование
-    short_name: Mapped[str_x(20)]
+    # short_name: Mapped[str_x(20)]
     # Отсрочка дней
     delay: Mapped[intgr]
     # КБ цены
@@ -1038,7 +1038,7 @@ class FinalPrice(Base3):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     # Отсрочка REAL,
     delay: Mapped[real]
     # Продаём_для_ОС varchar(20),
@@ -1174,7 +1174,7 @@ class FinalPrice_1(Base3_1):
     # _17КодУникальности varchar(500),
     _17code_unique: Mapped[str_x(256)]
     # _18КороткоеНаименование varchar(256),
-    _18short_name: Mapped[str_x(256)]
+    # _18short_name: Mapped[str_x(256)]
     # Отсрочка REAL,
     delay: Mapped[real]
     # Продаём_для_ОС varchar(20),
@@ -1793,7 +1793,7 @@ class CrossBrandTypeMarkupPct(Base):
     normalized_brand: Mapped[str_x(256)]
     customer_price_code: Mapped[str_x(20)]
     direct_supplier_customer_markup_pct: Mapped[real]
-    short_name: Mapped[str_x(20)]
+    # short_name: Mapped[str_x(20)]
     customer_brand: Mapped[str_x(256)]
     customer_period_markup_pct: Mapped[real]
     customer_min_markup_pct: Mapped[real]

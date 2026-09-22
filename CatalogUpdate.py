@@ -512,12 +512,13 @@ class CatalogUpdate(QThread):
                 sheet_name = "Настройка прайсов"
                 table_class = SupplierPriceSettings
                 ex_table_name = "Настройка_прайсов_поставщиков"
+                # "short_name": ["Краткое наименование"],
                 cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "wholesale": ["Прайс оптовый"],
                         "buy_for_working_capital": ["Закупка для оборотных средств"],
                         "is_base_price": ["Цену считать базовой"], "update_time_str": ["Срок обновление не более"],
-                        "in_price": ["В прайс"], "short_name": ["Краткое наименование"], "access_pp": ["Разрешения ПП"],
+                        "in_price": ["В прайс"], "access_pp": ["Разрешения ПП"],
                         "supplier_lot": ["Лот поставщика"], "over_base_price": ["К.Превышения базовой цены"],
                         "convenient_lot": ["Лот удобный нам"], "min_markup": ["Наценка мин"],
                         "markup_wholesale": ["Наценка опт"],
@@ -731,10 +732,11 @@ class CatalogUpdate(QThread):
                 sheet_name = "Разрешения и наценки"
                 ex_table_name = "cross_brand_type_markup_pct"
                 table_class = CrossBrandTypeMarkupPct
+                # "short_name": ["short_name"]
                 cols = {"customer_brand_alias": ["customer_brand_alias"], "supplier_price_code": ["supplier_price_code"],
                         "normalized_brand": ["normalized_brand"], "customer_price_code": ["customer_price_code"],
                         "direct_supplier_customer_markup_pct": ["direct_supplier_customer_markup_pct"],
-                        "short_name": ["short_name"], "customer_brand": ["customer_brand"],
+                        "customer_brand": ["customer_brand"],
                         "customer_period_markup_pct": ["customer_period_markup_pct"],
                         "customer_min_markup_pct": ["customer_min_markup_pct"], "floor_markup_pct": ["floor_markup_pct"],
                         "starting_markup_pct": ["starting_markup_pct"], "grad_step_pct": ["grad_step_pct"],
@@ -755,8 +757,8 @@ class CatalogUpdate(QThread):
                 #     for sh in sheet_names[1:]:
                 #         update_catalog(sess, path_to_file, cols, table_name, table_class, sheet_name=sh, del_table=False)
 
-                sess.execute(update(CrossBrandTypeMarkupPct).values(short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
-                                                                    normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
+                sess.execute(update(CrossBrandTypeMarkupPct).values(normalized_brand=func.upper(CrossBrandTypeMarkupPct.normalized_brand)))
+                # short_name=func.upper(CrossBrandTypeMarkupPct.short_name),
 
                 # table_name = 'data07_14'
                 sheet_name = "07&14Данные"
@@ -824,14 +826,16 @@ class CatalogUpdate(QThread):
                 ex_table_name = "Анкета_покупателя"
                 # "us_set": ["Установить УС"], "kos_markup": ["Наценка для К.ОС"], "markup_buyer_wh": ["Наценка покупателя опт"],
                 # "final_markup": ["Итоговая наценка"], "d_val_was": ["Д Вал была"], "rise_markup": ["Доп наценка рост"],
-                # "val_dynamic": ["Динамика Вал"], "vp_dynamic": ["Динамика ВП"], "d_change": ["Д изменения"], "kb_price": ["КБ цены"], "costs": ["Издержки"],
+                # "val_dynamic": ["Динамика Вал"], "vp_dynamic": ["Динамика ВП"], "d_change": ["Д изменения"],
+                # "kb_price": ["КБ цены"], "costs": ["Издержки"], "short_name": ["Короткое наименование"]
+
                 cols = {"name": ["Наименование"], "name2": ["Наименование2"], "buyer_code": ["Код покупателя"],
                         "price_name": ["Имя прайса"], "file_name": ["Имя файла"], "file_extension": ["Расширение файла"],
                         "buyer_price_code": ["Код прайса покупателя"], "main_price": ["Основной прайс"],
                         "zp_brands_setting": ["Настройка ЗП и Брендов"], "included": ["Включен?"], "period": ["Срок"],
                         "us_buyer_req": ["УС по требованиям покупателя"], "us_current": ["УС текущий"],
                         "us_was": ["УС была"], "us_change": ["УС Изменения"], "us_above": ["Уровень сервиса не ниже"],
-                        "name_check": ["Прохождение наименования"], "short_name": ["Короткое наименование"],
+                        "name_check": ["Прохождение наименования"],
                         "delay": ["Отсрочка дней"], "percent": ["Проценты за период"],
                         "base_price_tolerance_pct": ["base_price_tolerance_pct"], "max_rows": ["Максимум строк"],
                         "max_rise": ["Максимальный рост"], "max_fall": ["Максимальное снижение"],
@@ -948,7 +952,7 @@ class CatalogUpdate(QThread):
 
 
                 # Удаление из таблицы для сравнения цен (макс. снижение цены)
-                sess.query(LastPrice).where(or_(LastPrice.updated_at < cur_time - datetime.timedelta(days=7), LastPrice.updated_at == None)).delete()
+                sess.query(LastPrice).where(or_(LastPrice.updated_at < cur_time - datetime.timedelta(days=14), LastPrice.updated_at == None)).delete()
                 # if price_comp_d:
                 #     self.log.add(LOG_ID, f"Удалено строк last_price: {price_comp_d} [{str(datetime.datetime.now() - cur_time)[:7]}]",
                 #                      f"Удалено строк <span style='color:{colors.green_log_color};font-weight:bold;'>last_price</span>: "
