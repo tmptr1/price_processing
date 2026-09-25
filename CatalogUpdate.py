@@ -1079,30 +1079,63 @@ class CatalogUpdate(QThread):
 
 
     def lot_update(self):
-        with session() as sess:
-            cur_time = datetime.datetime.now()
-            if cur_time.hour < 8:
-                return
+        try:
+            with session() as sess:
+                cur_time = datetime.datetime.now()
+                if cur_time.hour < 8:
+                    return
 
-            last_lot_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Лот на выходные')).scalar()
+                last_lot_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name == 'Лот на выходные')).scalar()
 
-            compare_time = datetime.datetime.strptime(f"{str(last_lot_update)[:10]} 08:00:00", "%Y-%m-%d %H:%M:%S")
-            if (cur_time - compare_time).days < 1:
-                return
+                compare_time = datetime.datetime.strptime(f"{str(last_lot_update)[:10]} 08:00:00", "%Y-%m-%d %H:%M:%S")
+                if (cur_time - compare_time).days < 1:
+                    return
 
-            self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
-            cur_time = datetime.datetime.now()
-            # next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+                self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
+                cur_time = datetime.datetime.now()
+                # next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
 
-            m_count, p_count = set_lot(self, sess)
+                m_count, p_count = set_lot(self, sess)
 
-            sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Лот на выходные'
-                                                         ).values(updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
-            sess.commit()
+                sess.commit()
 
-            if p_count or m_count:
-                self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
+                if p_count or m_count:
+                    self.log.add(LOG_ID, f"Корректировка №1 под supplier_min_lot_int в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка №1 под supplier_min_lot_int</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
+
+                # Лот удобный нам / поставщика
+                cur_time = datetime.datetime.now()
+                max_lot = func.greatest(SupplierPriceSettings.supplier_lot, SupplierPriceSettings.convenient_lot)
+                m_count = sess.execute(update(TotalPrice_2).where(
+                    and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                         TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot,
+                         TotalPrice_2._05price_plus * TotalPrice_2._04count >= max_lot,
+                         func.ceil(max_lot / TotalPrice_2._05price_plus) >= 1)).
+                                       values(
+                    _06mult_new=func.ceil(max_lot / TotalPrice_2._05price_plus))).rowcount
+
+                price_cond = [
+                    (max_lot / TotalPrice_2._06mult_new >= TotalPrice_2._05price_plus,
+                     max_lot / TotalPrice_2._06mult_new)
+                ]
+                p_count = sess.execute(update(TotalPrice_2).where(and_(SupplierPriceSettings.price_code == TotalPrice_2._07supplier_code,
+                                                                       TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot)).
+                                       values(_05price_plus=case(*price_cond, else_=max_lot))).rowcount
+
+                if p_count or m_count:
+                    self.log.add(LOG_ID,
+                                 f"Корректировка №2 под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка №2 под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]", )
+
+                sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Лот на выходные'
+                                                             ).values(updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+                sess.commit()
+
+        except (OperationalError, UnboundExecutionError) as db_ex:
+            raise db_ex
+        except Exception as lot_update_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, f"lot_update Error", ex_text)
 
 
     def update_suppliers_settings_4(self, sess, last_DB_4_update):
