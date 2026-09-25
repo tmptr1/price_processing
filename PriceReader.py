@@ -170,7 +170,7 @@ class MainWorker(QThread):
                 # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
                 #              'MI07 mikado_price_srt.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
-                # new_files = ['TKTZ Печать.xls']
+                # new_files = ['MI24 mikado_price_smf.csv']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
