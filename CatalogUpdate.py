@@ -2116,17 +2116,17 @@ def set_lot(self, sess):
         max_lot = func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)
 
         mult_conds = [
-            (max_lot == 0, TotalPrice_2._07supplier_code._06mult),
-            (and_(max_lot > TotalPrice_2._07supplier_code._05price * TotalPrice_2._07supplier_code._04count,
-                  TotalPrice_2._07supplier_code._04count > 0), TotalPrice_2._07supplier_code._04count)
+            (max_lot == 0, TotalPrice_2._06mult),
+            (and_(max_lot > TotalPrice_2._05price * TotalPrice_2._04count,
+                  TotalPrice_2._04count > 0), TotalPrice_2._04count)
         ]
-        sess.execute(update(TotalPrice_2._07supplier_code).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
+        sess.execute(update(TotalPrice_2).where(SuppliersForm.setting == TotalPrice_2._07supplier_code
                                                    ).values(_06mult_new=case(*mult_conds, else_=func.ceil(
-            func.greatest(TotalPrice_2._07supplier_code._06mult, max_lot / TotalPrice_2._07supplier_code._05price)))))
+            func.greatest(TotalPrice_2._06mult, max_lot / TotalPrice_2._05price)))))
 
         # 2 step
         m_count = sess.execute(
-            update(TotalPrice_2._07supplier_code).where(and_(SuppliersForm.setting == TotalPrice_2._07supplier_code,
+            update(TotalPrice_2).where(and_(SuppliersForm.setting == TotalPrice_2._07supplier_code,
                                                TotalPrice_2._06mult_new * TotalPrice_2._05price_plus < max_lot,
                                                TotalPrice_2._05price_plus * TotalPrice_2._04count >= max_lot,
                                                func.ceil(max_lot / TotalPrice_2._05price_plus) >= 1)).
