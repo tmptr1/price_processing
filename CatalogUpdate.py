@@ -472,11 +472,11 @@ class CatalogUpdate(QThread):
                 table_class = FileSettings
                 ex_table_name = 'Настройка_строк'
                 cols = {"price_code": ["Прайс"], "parent_code": ["Прайс родитель"], "save": ["Сохраняем"], "email": ["Почта"],
-                        "file_name_cond": ["Условие имени файла"], "file_name": ["Имя файла"], "pass_up": ["Пропуск сверху"],
-                        "pass_down": ["Пропуск снизу"], "compare": ["Сопоставление по"], "rc_key_s": ["R/C КлючП"],
-                        "name_key_s": ["Название КлючП"], "rc_article_s": ["R/C АртикулП"], "name_article_s": ["Название АртикулП"],
-                        "rc_brand_s": ["R/C БрендП"], "name_brand_s": ["Название БрендП"], "replace_brand_s": ["Подставить Бренд"],
-                        "rc_name_s": ["R/C НаименованиеП"], "name_name_s": ["Название НаименованиеП"],
+                        "mail_type": ["Тип вложения"], "file_name_cond": ["Условие имени файла"], "file_name": ["Имя файла"],
+                        "pass_up": ["Пропуск сверху"], "pass_down": ["Пропуск снизу"], "compare": ["Сопоставление по"],
+                        "rc_key_s": ["R/C КлючП"], "name_key_s": ["Название КлючП"], "rc_article_s": ["R/C АртикулП"],
+                        "name_article_s": ["Название АртикулП"], "rc_brand_s": ["R/C БрендП"], "name_brand_s": ["Название БрендП"],
+                        "replace_brand_s": ["Подставить Бренд"], "rc_name_s": ["R/C НаименованиеП"], "name_name_s": ["Название НаименованиеП"],
                         "rc_count_s": ["R/C КоличествоП"], "name_count_s": ["Название КоличествоП"], "rc_price_s": ["R/C ЦенаП"],
                         "name_price_s": ["Название ЦенаП"], "rc_mult_s": ["R/C КратностьП"], "name_mult_s": ["Название КратностьП"],
                         "rc_notice_s": ["R/C ПримечаниеП"], "name_notice_s": ["Название ПримечаниеП"],
@@ -1091,17 +1091,17 @@ class CatalogUpdate(QThread):
                 if (cur_time - compare_time).days < 1:
                     return
 
-                self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
-                cur_time = datetime.datetime.now()
-                # next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
-
-                m_count, p_count = set_lot(self, sess)
-
-                sess.commit()
-
-                if p_count or m_count:
-                    self.log.add(LOG_ID, f"Корректировка №1 под supplier_min_lot_int в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка №1 под supplier_min_lot_int</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
+                # self.log.add(LOG_ID, f"Корректировка под лот в Итоговом прайсе ...", f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе ...")
+                # cur_time = datetime.datetime.now()
+                # # next_day = datetime.datetime.now() + datetime.timedelta(days=1)  # если след. день выходной / праздник
+                #
+                # m_count, p_count = set_lot(self, sess)
+                #
+                # sess.commit()
+                #
+                # if p_count or m_count:
+                #     self.log.add(LOG_ID, f"Корректировка №1 под supplier_min_lot_int в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                #                  f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка №1 под supplier_min_lot_int</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",)
 
                 # Лот удобный нам / поставщика
                 cur_time = datetime.datetime.now()
@@ -1124,8 +1124,8 @@ class CatalogUpdate(QThread):
 
                 if p_count or m_count:
                     self.log.add(LOG_ID,
-                                 f"Корректировка №2 под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка №2 под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]", )
+                                 f"Корректировка под лот в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                                 f"<span style='color:{colors.green_log_color};font-weight:bold;'>Корректировка под лот</span> в Итоговом прайсе: {m_count} (кратность), {p_count} (цена) [{str(datetime.datetime.now() - cur_time)[:7]}]", )
 
                 sess.execute(update(CatalogUpdateTime).where(CatalogUpdateTime.catalog_name == 'Лот на выходные'
                                                              ).values(updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))

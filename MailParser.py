@@ -60,7 +60,10 @@ class MailParserClass(QThread):
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("112898", mail)
-                # self.get_mail("155059", mail)
+                # self.get_mail("156404", mail)
+                # self.get_mail("156425", mail)
+                # self.get_mail("156356", mail)
+                # self.get_mail("156386", mail)
                 # return
                 _, res = mail.uid('search', '(SINCE "' + self.check_since + '")', "ALL")
                 letters_id = res[0].split()[:]
@@ -178,7 +181,7 @@ class MailParserClass(QThread):
             received_time = datetime.datetime.strptime(str(received_time), "%d %b %Y %H-%M-%S")
 
             with session() as sess:
-                req = select(FileSettings.file_name, FileSettings.file_name_cond, FileSettings.price_code
+                req = select(FileSettings.file_name, FileSettings.file_name_cond, FileSettings.price_code, FileSettings.mail_type
                              ).where(
                     and_(func.lower(FileSettings.email) == str.lower(sender), func.upper(FileSettings.save) == "ДА"))
                 db_data = sess.execute(req).all()
@@ -208,40 +211,11 @@ class MailParserClass(QThread):
         loaded = False
 
         for part in message.walk():
-            # Получение прайса по ссылке
-            try:
-                if sender == 'no-reply@impeks-autoparts.ru' and str(part.get_content_type()).startswith('text/'):
-                    # Прайс-лист сгенерирован, для загрузки перейдите по <a href="https://impeks-autoparts.ru/?page=get_price&p=5ed3f1f27add4da9a2afb279737646ab&FranchiseeId=10148069">ссылке</a>.<br />Дата и время
-                    text = part.get_payload(decode=True).decode('utf-8')
-                    pattern = 'для загрузки перейдите по <a href="'
-                    if not re.search(pattern, text):
-                        continue
-                    url = re.search(fr'{pattern}[^"]+', text)
-                    url = url.group()[len(pattern):]
 
-                    name = 'price'
-                    file_dir = fr"{tmp_archive_dir}/{name}.zip"
+            # Получение прайсов по ссылке
+            self.check_ref_content(part, db_data, tmp_archive_dir, tmp_dir, sender, received_time)
 
-                    HTMLsess = HTMLSession()
-                    response = HTMLsess.get(url, stream=True, timeout=100)
-                    response.raise_for_status()
-
-                    with open(file_dir, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=10000):  # 10 MB
-                            f.write(chunk)
-
-                    with session() as sess:
-                        if self.load_archieve(sess, tmp_dir, 'zip', file_dir, db_data, sender, received_time):
-                            loaded = True
-
-                        if not loaded:
-                            sess.query(MailReportUnloaded).where(and_(MailReportUnloaded.sender == sender, MailReportUnloaded.file_name == name)).delete()
-                            sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
-                            sess.commit()
-
-            except Exception as get_price_from_url_ex:
-                ex_text = traceback.format_exc()
-                self.log.error(LOG_ID, "get_price_from_url_ex Error", ex_text)
+            self.get_impeks_price(sender, part, tmp_archive_dir, tmp_dir, db_data, received_time)
 
 
             if part.get_content_disposition() == 'attachment':
@@ -334,6 +308,82 @@ class MailParserClass(QThread):
                             sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
                             sess.commit()
 
+    def check_ref_content(self, part, db_data, tmp_archive_dir, tmp_dir, sender, received_time):
+        try:
+            for file_name, file_name_cond, price_code, mail_type in db_data:
+                if mail_type == 'ссылка' and str(part.get_content_type()).startswith('text/'):
+                    text = part.get_payload(decode=True).decode('unicode-escape')
+                    pattern = "доступен для скачивания по ссылке.+<a href='.+.zip"  # для ABS
+                    if not re.search(pattern, text, re.DOTALL):
+                        break
+
+                    url = re.search(fr"href='[^']+", text)
+                    url = url.group()[6:]
+                    # print(url)
+
+                    name = 'price'
+                    file_dir = fr"{tmp_archive_dir}/{name}.zip"
+
+                    HTMLsess = HTMLSession()
+                    response = HTMLsess.get(url, stream=True, timeout=100)
+                    response.raise_for_status()
+
+                    with open(file_dir, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=10485760):  # 10 MB
+                            f.write(chunk)
+
+
+                    with session() as sess:
+                        if self.load_archieve(sess, tmp_dir, 'zip', file_dir, db_data, sender, received_time):
+                            loaded = True
+
+                        if not loaded:
+                            sess.query(MailReportUnloaded).where(and_(MailReportUnloaded.sender == sender,
+                                                                      MailReportUnloaded.file_name == name)).delete()
+                            sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
+                            sess.commit()
+                    break
+
+        except Exception as get_price_from_url_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "get_price_from_url_ex Error", ex_text)
+
+
+    def get_impeks_price(self, sender, part, tmp_archive_dir, tmp_dir, db_data, received_time):
+        try:
+            if sender == 'no-reply@impeks-autoparts.ru' and str(part.get_content_type()).startswith('text/'):
+                # Прайс-лист сгенерирован, для загрузки перейдите по <a href="https://impeks-autoparts.ru/?page=get_price&p=5ed3f1f27add4da9a2afb279737646ab&FranchiseeId=10148069">ссылке</a>.<br />Дата и время
+                text = part.get_payload(decode=True).decode('utf-8')
+                pattern = 'для загрузки перейдите по <a href="'
+                if not re.search(pattern, text):
+                    return
+                url = re.search(fr'{pattern}[^"]+', text)
+                url = url.group()[len(pattern):]
+
+                name = 'price'
+                file_dir = fr"{tmp_archive_dir}/{name}.zip"
+
+                HTMLsess = HTMLSession()
+                response = HTMLsess.get(url, stream=True, timeout=100)
+                response.raise_for_status()
+
+                with open(file_dir, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=10485760):  # 10 MB
+                        f.write(chunk)
+
+                with session() as sess:
+                    if self.load_archieve(sess, tmp_dir, 'zip', file_dir, db_data, sender, received_time):
+                        loaded = True
+
+                    if not loaded:
+                        sess.query(MailReportUnloaded).where(
+                            and_(MailReportUnloaded.sender == sender, MailReportUnloaded.file_name == name)).delete()
+                        sess.add(MailReportUnloaded(sender=sender, file_name=name, date=received_time))
+                        sess.commit()
+
+        except Exception as get_impeks_ex:
+            ex_text = traceback.format_exc()
+            self.log.error(LOG_ID, "get_impeks_ex Error", ex_text)
 
     def load_archieve(self, sess, tmp_dir, file_format, path_to_archive, db_data, sender, received_time):
         loaded = False
@@ -428,7 +478,8 @@ class MailParserClass(QThread):
             elif type == 'Заканчивается':
                 if len(file_name) < len(file_db_name):
                     return 0
-                return 1 if file_name[-len(file_db_name):] == file_db_name else 0
+                clear_name = ".".join(file_name.split('.')[:-1])
+                return 1 if clear_name[-len(file_db_name):] == file_db_name else 0
             else:
                 return 0
 

@@ -1484,6 +1484,7 @@ class FileSettings(Base):
     # Сохраняем varchar(20),
     save: Mapped[str_x(20)]
     email: Mapped[str_x(256)]
+    mail_type: Mapped[str_x(50)]
     # Условие_имени_файла varchar(20),
     file_name_cond: Mapped[str_x(20)]
     # Имя_файла varchar(256),

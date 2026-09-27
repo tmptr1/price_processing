@@ -170,7 +170,7 @@ class MainWorker(QThread):
                 # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
                 #              'MI07 mikado_price_srt.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
-                # new_files = ['MI24 mikado_price_smf.csv']
+                # new_files = ['A947 MSK_541.csv']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -654,8 +654,11 @@ class MainWorker(QThread):
                         pass
                 # print(f"{table=}")
             elif frmt == 'csv':
-                table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251', nrows=max_row,
-                                    encoding_errors='ignore')
+                if re.match(r'A[\d]{3}', price_code):  # для ABS
+                    table = pd.read_csv(path_to_price, header=None, sep=';', nrows=max_row, encoding_errors='ignore')
+                else:
+                    table = pd.read_csv(path_to_price, header=None, sep=';', encoding='windows-1251', nrows=max_row,
+                                        encoding_errors='ignore')
             elif frmt == 'html':
                 try:
                     mails = sess.execute(select(FileSettings.email).where(FileSettings.price_code==price_code)).scalars().all()

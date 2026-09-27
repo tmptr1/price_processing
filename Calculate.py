@@ -279,7 +279,7 @@ class CalculateClass(QThread):
                 cur_time = datetime.datetime.now()
 
                 self.set_price(sess)
-                self.set_mult(sess, price_code)
+                # self.set_mult(sess, price_code)
 
                 # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count, self.TmpPrice_2._04count>0)).
                 #              values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
