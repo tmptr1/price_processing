@@ -111,7 +111,6 @@ class MainWorker(QThread):
                                                  info_message="Не работаем",
                                                  updated_at=new_update_time))
                             sess.execute(req)
-                            sess.commit()
                             self.log.add(LOG_ID, f"{price_code} Не работаем",
                                          f"<span style='color:{colors.orange_log_color};"
                                          f"font-weight:bold;'>{price_code}</span> Не работаем")
@@ -143,7 +142,6 @@ class MainWorker(QThread):
                                                  info_message="Не указано сохранение",
                                                  updated_at=new_update_time))
                             sess.execute(req)
-                            sess.commit()
                             self.log.add(LOG_ID, f"{price_code} Не указано сохранение",
                                          f"<span style='color:{colors.orange_log_color};"
                                          f"font-weight:bold;'>{price_code}</span> Не указано сохранение")
