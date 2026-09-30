@@ -1167,7 +1167,8 @@ class CatalogUpdate(QThread):
 
         cur_time_step = datetime.datetime.now()
         updated_rows = self.words_except(sess)
-        self.log.add(LOG_ID, f"words_except - done ({updated_rows}) [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
+        ex_dels = sess.query(TotalPrice_2).where(TotalPrice_2._20exclude != None).delete()
+        self.log.add(LOG_ID, f"words_except - done ({updated_rows}), del ({ex_dels}) [{str(datetime.datetime.now() - cur_time_step)[:7]}]")
         sess.commit()
 
         cur_time_step = datetime.datetime.now()
