@@ -167,8 +167,7 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['MI02 mikado_price_shaxt.csv', 'TKTZ Печать.xls', '1ГУД Крд прайс PQ.xls', '1FRA Прайс ФорвардАвто Краснодар.xlsx',
-                #              'MI07 mikado_price_srt.csv']
+                # new_files = ['A988 KRD_310.csv', 'A734 RND_187.csv', 'A652 MSK_1152.csv', 'A660 MSK_90.csv', ]
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['АСТН ПРАЙС НЛК.xlsx', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
@@ -325,6 +324,7 @@ class MainWorker(QThread):
 
                 # Удаление старой версии
                 # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
+                for_price_compare = sess.execute(select(func.upper(SupplierPriceSettings.for_price_compare)).where(SupplierPriceSettings.price_code==price_code)).scalar() == 'ДА'
 
                 # загрузка сырых данных
                 sett = sess.get(FileSettings, {'id': id_settig})
@@ -353,7 +353,10 @@ class MainWorker(QThread):
 
                 cur_time = datetime.datetime.now()
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 ...", False)
+                if not for_price_compare:
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 ...", False)
+                else:
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 5 ...", False)
 
                 # замена пустых бренд п на значение по умолчанию
                 sess.execute(update(self.TmpPrice_1).where(func.trim(self.TmpPrice_1.brand_s) == '').values(brand_s=None))
@@ -388,12 +391,12 @@ class MainWorker(QThread):
 
                 # 03Наименование
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
-                sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
-                                                            regexp_replace(' +', ' ', 'g').
-                                                            regexp_replace('^ | $', '', 'g')))
+                if not for_price_compare:
+                    sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
+                                                                regexp_replace(' +', ' ', 'g').
+                                                                regexp_replace('^ | $', '', 'g')))
 
-                self.check_ru_name(sess, price_code)
-
+                    self.check_ru_name(sess, price_code)
                 # 05Цена
                 sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1.price_s, clear_price=self.TmpPrice_1.price_s))
                 # .where(self.TmpPrice_1._05price == None)
@@ -403,14 +406,20 @@ class MainWorker(QThread):
                     and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
                              .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate, clear_price=self.TmpPrice_1._05price * ExchangeRate.rate))
 
-                # 06Кратность
-                sess.execute(update(self.TmpPrice_1).values(_06mult=self.TmpPrice_1.mult_s))  # .where(self.TmpPrice_1._06mult == None)
-                sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
+                if not for_price_compare:
+                    # 06Кратность
+                    sess.execute(update(self.TmpPrice_1).values(_06mult=self.TmpPrice_1.mult_s))  # .where(self.TmpPrice_1._06mult == None)
+                    sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
 
-                self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 завершена", cur_time)
+                    self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 завершена", cur_time)
+                else:
+                    self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 5 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 ...", False)
+                if not for_price_compare:
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 ...", False)
+                else:
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 20 ...", False)
 
                 # исправление товаров поставщиков (01Артикул, 02Производитель, 03Наименование, 04Количество, 05Цена, 06Кратность)
                 self.suppliers_goods_compare(price_code, sett, sess)
@@ -418,9 +427,12 @@ class MainWorker(QThread):
                 # 14Производитель заполнен
                 sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
 
-                # 04Количество
-                sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
-                                                                          else_=self.TmpPrice_1.count_s)))
+                if not for_price_compare:
+                    # 04Количество
+                    sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
+                                                                              else_=self.TmpPrice_1.count_s)))
+                else:
+                    sess.execute(update(self.TmpPrice_1).values(_04count=self.TmpPrice_1.count_s))
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s - self.TmpPrice_1._04count))
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count == None).values(_04count=self.TmpPrice_1.count_s))
 
@@ -450,36 +462,50 @@ class MainWorker(QThread):
                                                             regexp_replace(r"\W|_", "", 'g'))) # func.upper
                 self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
 
+                self.del_dupl = self.del_duples(sess)
+
+                if self.del_dupl:
+                    self.add_log(self.file_size_type, price_code, f"Удалено дублей: {self.del_dupl}", )
+
+                if for_price_compare:  # Скидка  проценки
+                    sess.execute(update(self.TmpPrice_1).where(SupplierPriceSettings.price_code==price_code).values(
+                        _05price=self.TmpPrice_1.price_s * (1 + SupplierPriceSettings.for_price_compare_discount)))
+
                 # 20ИсключитьИзПрайса
                 self.words_except(sess, price_code)
 
-                # 17КодУникальности
-                sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
+                if not for_price_compare:
+                    # 17КодУникальности
+                    sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
 
                 # 18КороткоеНаименование
                 # sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
                 # sess.commit()  #sess.flush()
-                self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 завершена", cur_time)
+                if not for_price_compare:
+                    self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 завершена", cur_time)
+                else:
+                    self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 20 завершена", cur_time)
 
-                cur_time = datetime.datetime.now()
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
+                if not for_price_compare:
+                    cur_time = datetime.datetime.now()
+                    self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
 
-                # 13Градация
-                total_sum = sess.execute(select(func.sum(self.TmpPrice_1._05price))).scalar() or 1
+                    # 13Градация
+                    total_sum = sess.execute(select(func.sum(self.TmpPrice_1._05price))).scalar() or 1
 
-                subq = select(self.TmpPrice_1.id, self.TmpPrice_1._07supplier_code,
-                              func.floor((total_sum - func.sum(self.TmpPrice_1._05price).over(order_by=(self.TmpPrice_1._05price,
-                                                                                                        self.TmpPrice_1.id))) / (total_sum / 100))).where(
-                    and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
+                    subq = select(self.TmpPrice_1.id, self.TmpPrice_1._07supplier_code,
+                                  func.floor((total_sum - func.sum(self.TmpPrice_1._05price).over(order_by=(self.TmpPrice_1._05price,
+                                                                                                            self.TmpPrice_1.id))) / (total_sum / 100))).where(
+                        and_(self.TmpPrice_1._20exclude == None, self.TmpPrice_1._05price > 0))
 
-                sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
-                # sess.commit()  #sess.flush()
+                    sess.execute(insert(self.TmpSum).from_select(['id', 'price_code', 'prev_sum'], subq))
+                    # sess.commit()  #sess.flush()
 
-                sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
-                # sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
+                    sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id == self.TmpSum.id).values(_13grad=self.TmpSum.prev_sum))
+                    # sess.query(self.TmpSum).where(self.TmpSum.price_code == price_code).delete()
 
-                self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
+                    self.add_log(self.file_size_type, price_code, "Обработка 13 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
                 csv_cols_dict = {"Ключ1 поставщика": self.TmpPrice_1.key1_s, "Артикул поставщика": self.TmpPrice_1.article_s,
@@ -1243,6 +1269,33 @@ class MainWorker(QThread):
             sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._14brand_filled_in == dscnt.find).values(
                 {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(str(dscnt.set).replace(',', '.')))}))
 
+    def del_duples(self, sess):
+        # D для всех дублей
+        duples = select(self.TmpPrice_1._15code_optt).group_by(self.TmpPrice_1._15code_optt).having(func.count(self.TmpPrice_1.id) > 1)
+        sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._15code_optt==duples.c._15code_optt).values(_20exclude='D'))
+
+        # D1 не с мин. ценой среди D
+        min_p_table = (select(self.TmpPrice_1._15code_optt, func.min(self.TmpPrice_1._05price).label('min_p')).
+                       where(self.TmpPrice_1._20exclude=='D').group_by(self.TmpPrice_1._15code_optt))
+        sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1._15code_optt==min_p_table.c._15code_optt,
+                                                   self.TmpPrice_1._05price==min_p_table.c.min_p)).values(_20exclude='D1'))
+
+        # D2 не с макс. кол-вом среди D1
+        max_c_table = (select(self.TmpPrice_1._15code_optt, func.max(self.TmpPrice_1._04count).label('max_c')).where(self.TmpPrice_1._20exclude == 'D1').
+                       group_by(self.TmpPrice_1._15code_optt))
+        sess.execute(update(self.TmpPrice_1).where(and_(self.TmpPrice_1._15code_optt==max_c_table.c._15code_optt,
+                                                   self.TmpPrice_1._04count==max_c_table.c.max_c)).values(_20exclude='D2'))
+
+        # D3 не с макс. id среди D2
+        max_id_table = (select(self.TmpPrice_1._15code_optt, func.max(self.TmpPrice_1.id).label('max_id')).where(self.TmpPrice_1._20exclude == 'D2').
+                        group_by(self.TmpPrice_1._15code_optt))
+        sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1.id==max_id_table.c.max_id).values(_20exclude='D3'))
+
+
+        sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._20exclude=='D3').values(_20exclude=None))
+        dup_del = sess.query(self.TmpPrice_1).where(self.TmpPrice_1._20exclude != None).delete()
+
+        return dup_del
 
     def create_csv(self, sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
         self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Формирование csv...", False)
@@ -1270,7 +1323,7 @@ class MainWorker(QThread):
             cnt_wo_article = sess.execute(select(func.count()).select_from(self.TmpPrice_1).where(self.TmpPrice_1._01article == None)).scalar()
             sess.execute(update(PriceReport).where(PriceReport.price_code == price_code)
                          .values(info_message="Ок", updated_at=new_update_time, row_count=cnt, row_wo_article=cnt_wo_article,
-                                 last_notification=None))  # last_notification - прайс обновился после уведомления на почту
+                                 last_notification=None, del_dupl=self.del_dupl))  # last_notification - прайс обновился после уведомления на почту
             return True
         except PermissionError:
             self.log.add(LOG_ID,

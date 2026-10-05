@@ -6,7 +6,7 @@ from sqlalchemy.exc import OperationalError, UnboundExecutionError
 from models import (TotalPrice_2, FinalPrice, FinalPrice_1, FinalComparePrice, FinalComparePrice_1, Base3, Base3_1,
                     BuyersForm, Data07, Data09, PriceException, SuppliersForm, PriceSendTime, FinalPriceHistory,
                     AppSettings, PriceReport, PriceSendTimeHistory, FinalPriceHistoryDel, SupplierPriceSettings,
-                    CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice)
+                    CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice, PriceCompareCatalog)
 from ftplib import FTP
 import smtplib
 from email.mime.text import MIMEText
@@ -640,7 +640,9 @@ class Sender(QThread):
 
     def set_lot(self, sess):
         cur_dt = datetime.datetime.now()
-        if cur_dt.weekday() in (4, 5, 6) or cur_dt.date() in holidays.RU(years=datetime.datetime.now().year):
+        # с утра пятницы до утра понедельника
+        if (cur_dt.weekday() in (5, 6) or cur_dt.date() in holidays.RU(years=datetime.datetime.now().year) or
+                (cur_dt.weekday() == 4 and cur_dt.hour >= 8) or (cur_dt.weekday() == 0 and cur_dt.hour <= 8)):
             self.add_log(self.price_settings.buyer_price_code, f"Учитывается supplier_weekend_min_lot_int")
             # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
             #     where(SuppliersForm.setting == tbl._07supplier_code)).scalar()
@@ -919,9 +921,12 @@ class Sender(QThread):
                                                 self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price)))
 
         # prev dynamic parts (в приоритете, перекрывает всё)
-        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+        # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
+        #     price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
+        #                         PrevDynamicParts.store_price_rub)))
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PriceCompareCatalog._15code_optt).values(
             price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
-                                PrevDynamicParts.store_price_rub)))
+                                PriceCompareCatalog.price)))
 
 
     def del_price_below_zero(self, sess):

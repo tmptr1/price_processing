@@ -118,6 +118,8 @@ class CalculateClass(QThread):
                 # new_files = ['АСТ5.csv', ]
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1МСК.csv', '1FRA.csv', '1ГУД.csv', '8ГУД.csv', '9ГУД.csv', ]
+                # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', '1ГУД.csv']
+
                 files = []
                 for f in new_files:
                     if self.check_file_condition(f):
@@ -191,7 +193,7 @@ class CalculateClass(QThread):
                 sess.execute(text(f"ALTER TABLE {self.TmpPrice_2.__tablename__} SET (autovacuum_enabled = false);"))
                 sess.commit()
 
-                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию, удаление дублей ...', True)
+                self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'Загрузка, удаление по первому условию ...', True)
                 cur_time = datetime.datetime.now()
 
                 cols_for_price = [TotalPrice_1.key1_s, TotalPrice_1.article_s, TotalPrice_1.brand_s, TotalPrice_1.name_s,
@@ -215,14 +217,13 @@ class CalculateClass(QThread):
                 del_20 = sess.query(self.TmpPrice_2).where(self.TmpPrice_2._20exclude != None).delete()
                 del_positions_1 = del_art + del_brand + del_price + del_count + del_20
 
-                # Удаление дублей 01Артикул, 14Производитель заполнен
-                del_dupl = self.del_duples(sess)
-
+                # Удаление дублей 15Code
+                # del_dupl = self.del_duples(sess)
+                #
                 update_step_time = str(datetime.datetime.now() - cur_time)[:7]
-                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}), удаление дублей ({del_dupl}) [{update_step_time}]",
+                self.log.add(LOG_ID, f"{price_code} Загрузка, удаление по первому условию ({del_positions_1}) [{update_step_time}]",
                              f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>{price_code}</span> "
-                             f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>), "
-                             f"удаление дублей (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_dupl else 'black'};'>{del_dupl}</span>) [{update_step_time}]")
+                             f"Загрузка, удаление по первому условию (<span style='color:{colors.orange_log_color + ';font-weight:bold' if del_positions_1 else 'black'};'>{del_positions_1}</span>) [{update_step_time}]")
 
 
                 self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, 'data 07, 09 ...', False)
@@ -338,7 +339,7 @@ class CalculateClass(QThread):
                              .values(info_message2="Ок", updated_at_2_step=start_time.strftime("%Y.%m.%d %H:%M:%S"),
                                      db_added=start_time.strftime("%Y.%m.%d %H:%M:%S"),
                                      row_count_2=cnt, del_art=del_art, del_brand=del_brand, del_price=del_price,
-                                     del_count=del_count, del_20=del_20, del_dupl=del_dupl))
+                                     del_count=del_count, del_20=del_20))  # del_dupl=del_dupl
                 total_cnt = sess.execute(select(func.count()).select_from(TotalPrice_2)).scalar()
                 sess.commit()
                 self.add_log(self.file_size_type, price_code, 'создание csv, загрузка в БД', cur_time)

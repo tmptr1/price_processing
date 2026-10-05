@@ -43,6 +43,8 @@ class SupplierPriceSettings(Base):
     buy: Mapped[str_x(20)]
     # Работаем varchar(20),
     works: Mapped[str_x(20)]
+    for_price_compare: Mapped[str_x(20)]
+    for_price_compare_discount: Mapped[real]
     # Почта varchar(256),
     # email: Mapped[str_x(256)]
     # Условие_имени_файла varchar(20),
@@ -159,6 +161,7 @@ class Price_1(Base1):
                       Index("price_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_article_name_index", "article_s", "name_s"),
                       Index("price_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
+                      Index("price_1_15code_optt_index", "_15code_optt"),
                       # Index("price_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
                       {"prefixes": ['UNLOGGED'],},
                       )
@@ -226,6 +229,7 @@ class Price_1_1(Base1_1):
                       Index("price_1_1_article_brand_index", "article_s", "brand_s"),
                       Index("price_1_1_article_name_index", "article_s", "name_s"),
                       Index("price_1_1_article_comp_14brand_index", "_01article_comp", "_14brand_filled_in"),
+                      Index("price_1_1_15code_optt_index", "_15code_optt"),
                       # Index("price_1_1_reg_name_index", text("lower(regexp_replace(_03name, '[^а-яА-ЯёЁ]', '', 'g'))")),
                       {"prefixes": ['UNLOGGED'], },
                       )
@@ -349,7 +353,7 @@ class Price_2(Base2):
     __table_args__ = (Index("price_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
-                      Index("price_2_15code_optt_index", "_15code_optt"),
+                      # Index("price_2_15code_optt_index", "_15code_optt"),
                       {"prefixes": ['UNLOGGED'],},
                       )
 
@@ -474,7 +478,7 @@ class Price_2_2(Base2_1):
     __table_args__ = (Index("price_2_2_09code_supl_goods_index", "_09code_supl_goods"),
                       Index("price_2_2_01article_14brand_filled_in_index", "_01article_comp", "_14brand_filled_in"),
                       Index("price_2_2_07supplier_code_14brand_filled_in_index", "_07supplier_code", "_14brand_filled_in"),
-                      Index("price_2_2_15code_optt_index", "_15code_optt"),
+                      #Index("price_2_2_15code_optt_index", "_15code_optt"),
                       {"prefixes": ['UNLOGGED'],},
                       )
 
@@ -1627,6 +1631,24 @@ class Brands(Base):
     brand_low: Mapped[str_x(500)]
     mass_offers: Mapped[str_x(10)]
     base_price: Mapped[str_x(10)]
+
+class PriceCompareDiscount(Base):
+    __tablename__ = "price_compare_discount"
+    id: Mapped[intpk]
+    suppliers_count: Mapped[str_x(20)]
+    discount: Mapped[real]
+
+
+class PriceCompareCatalog(Base):
+    __tablename__ = "price_compare_catalog"
+    __table_args__ = (Index("price_compare_catalog_15code_optt_index", "_15code_optt"),)
+    id: Mapped[intpk]
+    _15code_optt: Mapped[str_x(256)]
+    price_code: Mapped[str_x(20)]
+    old_price: Mapped[numeric]
+    price: Mapped[numeric]
+    duple: Mapped[Boolean] = mapped_column(Boolean, default=False)
+    suppliers_count: Mapped[int] = mapped_column(Integer, default=1)
 
 
 class SupplierGoodsFix(Base):
