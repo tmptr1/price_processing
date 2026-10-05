@@ -472,7 +472,7 @@ class Sender(QThread):
                               self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
                               self.FinalPriceTmp._15code_optt, self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old,
                               self.FinalPriceTmp.count, self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.tnved,
-                              self.FinalPriceTmp.tnved]
+                              self.FinalPriceTmp.tnved, self.FinalPriceTmp.price_formula]
             cols_for_price = {i: i.__dict__['name'] for i in cols_for_price}
 
             if self.new_send_time is not None:
@@ -563,7 +563,7 @@ class Sender(QThread):
                                 self.FinalPriceTmp.alternative_article, self.FinalPriceTmp._14brand_filled_in,
                                 self.FinalPriceTmp._15code_optt, self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old,
                                 self.FinalPriceTmp.count, self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_update_time,
-                                self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2, self.FinalPriceTmp.ref]
+                                self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2, self.FinalPriceTmp.ref, self.FinalPriceTmp.price_formula, ]
         raw_name_cols_for_del_history = [c.__dict__['name'] for c in cols_for_del_history]
 
         del_positions = delete(self.FinalPriceTmp).where(condition).returning(*cols_for_del_history).cte()
@@ -672,7 +672,7 @@ class Sender(QThread):
             p_count = sess.execute(
                 update(self.FinalPriceTmp).where(and_(SuppliersForm.setting == self.FinalPriceTmp._07supplier_code,
                                                 self.FinalPriceTmp._06mult_new * self.FinalPriceTmp.price < max_lot))
-                .values(price=case(*price_cond, else_=max_lot))).rowcount
+                .values(price=case(*price_cond, else_=max_lot), price_formula=self.FinalPriceTmp.price_formula + 'weekend_min_lot ')).rowcount
 
         else:
             # max_lot = sess.execute(
@@ -704,7 +704,7 @@ class Sender(QThread):
             p_count = sess.execute(
                 update(self.FinalPriceTmp).where(and_(SuppliersForm.setting == self.FinalPriceTmp._07supplier_code,
                                                 self.FinalPriceTmp._06mult_new * self.FinalPriceTmp.price < SuppliersForm.supplier_min_lot_int))
-                .values(price=case(*price_cond, else_=SuppliersForm.supplier_min_lot_int))).rowcount
+                .values(price=case(*price_cond, else_=SuppliersForm.supplier_min_lot_int), price_formula=self.FinalPriceTmp.price_formula + 'min_lot ')).rowcount
 
         # return m_count, p_count
 
@@ -825,7 +825,7 @@ class Sender(QThread):
         if next_day.weekday() in (5, 6) or next_day.date() in holidays.RU(years=datetime.datetime.now().year):
             sess.execute(update(self.FinalPriceTmp).where(and_(SuppliersForm.supplier_weekend_markup_pct > 0,
                                                                self.FinalPriceTmp._07supplier_code==SuppliersForm.setting))
-                         .values(price=self.FinalPriceTmp.price*(SuppliersForm.supplier_weekend_markup_pct+1)))
+                         .values(price=self.FinalPriceTmp.price*(SuppliersForm.supplier_weekend_markup_pct+1), price_formula=self.FinalPriceTmp.price_formula + 'weekend_markup '))
 
 
         # nt = datetime.datetime.now()
@@ -885,7 +885,8 @@ class Sender(QThread):
         cond = and_(SuppliersForm.setting==self.FinalPriceTmp._07supplier_code, SuppliersForm.max_price_drop_pct > 0,
                     self.FinalPriceTmp.art_brand_07==LastPrice.art_brand_07,
                     self.FinalPriceTmp.price < LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))
-        changed_rows = sess.execute(update(self.FinalPriceTmp).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct))).rowcount
+        changed_rows = sess.execute(update(self.FinalPriceTmp).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct),
+                                                                                  price_formula=self.FinalPriceTmp.price_formula + 'last_price ')).rowcount
         lp_changed_rows = sess.execute(update(LastPrice).where(cond).values(price=LastPrice.price * (1 - SuppliersForm.max_price_drop_pct),
                                                                             updated_at=datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"))).rowcount
         if changed_rows:
@@ -918,7 +919,8 @@ class Sender(QThread):
         # direct прямая
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.direct_supplier_customer_markup_pct!=0).
                      values(price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct),
-                                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price)))
+                                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price),
+                            price_formula='direct '))
 
         # prev dynamic parts (в приоритете, перекрывает всё)
         # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
@@ -926,7 +928,8 @@ class Sender(QThread):
         #                         PrevDynamicParts.store_price_rub)))
         sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PriceCompareCatalog._15code_optt).values(
             price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
-                                PriceCompareCatalog.price)))
+                                PriceCompareCatalog.price),
+            price_formula='prev_dynamic_parts '))
 
 
     def del_price_below_zero(self, sess):
@@ -1028,7 +1031,7 @@ class Sender(QThread):
                 self.FinalPriceTmp._17code_unique, self.FinalPriceTmp.count_old, self.FinalPriceTmp.count,
                 self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_update_time, self.FinalPriceTmp.customer_brand_alias,
                 self.FinalPriceTmp.supplier_customer_sales_share_pct, self.FinalPriceTmp.tnved, self.FinalPriceTmp.okpd2,
-                self.FinalPriceTmp.ref]
+                self.FinalPriceTmp.ref, self.FinalPriceTmp.price_formula]
         dupl_rows = select(*cols, literal_column("'e'")).where(self.FinalPriceTmp.customer_brand_alias != None)
         cols_names = [i.__dict__['name'] for i in cols]
 

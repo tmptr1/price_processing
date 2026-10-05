@@ -1114,6 +1114,7 @@ class FinalPrice(Base3):
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
+    price_formula: Mapped[String] = mapped_column(String(50), nullable=True, default='')
 
 class FinalPrice_1(Base3_1):
     __tablename__ = "final_price_1"
@@ -1250,6 +1251,7 @@ class FinalPrice_1(Base3_1):
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
+    price_formula: Mapped[str_x(50)] = mapped_column(String(50), nullable=True, default='')
 
 
 class FinalPriceHistory(Base):
@@ -1311,6 +1313,7 @@ class FinalPriceHistory(Base):
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
+    price_formula: Mapped[str_x(50)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 
@@ -1374,6 +1377,7 @@ class FinalPriceHistoryDel(Base):
     tnved: Mapped[str_x(150)]
     okpd2: Mapped[str_x(150)]
     ref: Mapped[str_x(256)]
+    price_formula: Mapped[str_x(50)]
     supplier_update_time: Mapped[datetime.datetime] = mapped_column(nullable=True)
     send_time: Mapped[datetime.datetime] = mapped_column(nullable=True, primary_key=True)
 

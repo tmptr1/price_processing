@@ -1582,7 +1582,7 @@ class CatalogUpdate(QThread):
 
     def update_price_compare_catalog(self):
         cur_time = datetime.datetime.now()
-        if cur_time.hour < 1 or cur_time.hour > 8: # ПОМЕНЯТЬ на 3
+        if cur_time.hour < 3 or cur_time.hour > 9:
             return
         with session() as sess:
             last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name=='Справочник для проценок')).scalar()
