@@ -135,6 +135,16 @@ class MainWorker(QThread):
                                          f"font-weight:bold;'>{price_code}</span> Не указана стандартизация")
                             continue
 
+                        # TMP
+                        req = select(SupplierPriceSettings.for_price_compare).where(
+                            SupplierPriceSettings.price_code == price_code)
+                        for_price_compare = sess.execute(req).scalar()
+                        if not for_price_compare:
+                            pass
+                        elif str(for_price_compare).upper() == 'ДА':
+                            self.log.add(LOG_ID, f"{price_code} ---",)
+                            continue
+
                         save = sess.execute(select(FileSettings.save).where(FileSettings.price_code == price_code)).scalar()
                         if not save or str(save).upper() != 'ДА':
                             sess.query(PriceReport).where(PriceReport.price_code == price_code).delete()
