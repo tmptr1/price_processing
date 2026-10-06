@@ -899,14 +899,14 @@ class CatalogUpdate(QThread):
                 self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts ...",)
 
                 # Слияние PriceCompareCatalog с PrevDynamicParts
-                sess.execute(update(PriceCompareCatalog).where(
-                    PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt).values(
+                sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
+                                                            PrevDynamicParts.code_optt != None)).values(
                     price=func.greatest(PriceCompareCatalog.price, PrevDynamicParts.store_price_rub),
                     price_code='prev'))
 
                 new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt,
                                   PrevDynamicParts.store_price_rub).where(
-                    ~exists().where(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt))
+                    ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt, PrevDynamicParts.code_optt != None)))
                 sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
                 sess.commit()
 
@@ -1644,11 +1644,13 @@ class CatalogUpdate(QThread):
                         price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
 
         # Слияние PriceCompareCatalog с PrevDynamicParts
-        sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt).values(
+        sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
+                                                            PrevDynamicParts.code_optt != None)).values(
                             price=func.greatest(PriceCompareCatalog.price, PrevDynamicParts.store_price_rub), price_code='prev'))
 
         new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt, PrevDynamicParts.store_price_rub).where(
-                            ~exists().where(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt))
+                            ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
+                                                            PrevDynamicParts.code_optt != None)))
         sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
 
 
