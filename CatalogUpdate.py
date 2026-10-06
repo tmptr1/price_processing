@@ -1582,15 +1582,16 @@ class CatalogUpdate(QThread):
 
     def update_price_compare_catalog(self):
         cur_time = datetime.datetime.now()
+        catalog_name = 'Справочник для проценок'
         if cur_time.hour < 3 or cur_time.hour > 9:
             return
         with session() as sess:
-            last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name=='Справочник для проценок')).scalar()
+            last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==catalog_name)).scalar()
             if last_update.strftime("%Y-%m-%d") == str(cur_time.date()):
                 return
 
-        self.log.add(LOG_ID, f"Обновление Справочник для проценок ...",
-                     f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>Справочник для проценок</span> ...",)
+        self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
+                     f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...",)
 
         sess.query(PriceCompareCatalog).delete()
         sess.execute(text(f"ALTER SEQUENCE {PriceCompareCatalog.__tablename__}_id_seq restart 1"))
@@ -1651,9 +1652,11 @@ class CatalogUpdate(QThread):
         sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
 
 
+        sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
+        sess.add(CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
         sess.commit()
-        self.log.add(LOG_ID, f"Справочник для проценок обновлен[{str(datetime.datetime.now() - cur_time)[:7]}]",
-                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>Справочник для проценок</span> обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]")
+        self.log.add(LOG_ID, f"{catalog_name} обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
 
 def old_words_except(sess):
@@ -1951,9 +1954,9 @@ class CreateBasePrice(QThread):
                 sess.commit()
 
 
-            self.log.add(LOG_ID, f"{catalog_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> "
-                         f"обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]")
+            self.log.add(LOG_ID, f"{catalog_name} обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> "
+                         f"Обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]")
         # except (OperationalError, UnboundExecutionError) as db_ex:
         #     raise db_ex
         except Exception as ex:

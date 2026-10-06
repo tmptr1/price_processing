@@ -642,7 +642,7 @@ class Sender(QThread):
         cur_dt = datetime.datetime.now()
         # с утра пятницы до утра понедельника
         if (cur_dt.weekday() in (5, 6) or cur_dt.date() in holidays.RU(years=datetime.datetime.now().year) or
-                (cur_dt.weekday() == 4 and cur_dt.hour >= 8) or (cur_dt.weekday() == 0 and cur_dt.hour <= 8)):
+                (cur_dt.weekday() == 4 and cur_dt.hour >= 8) or (cur_dt.weekday() == 0 and cur_dt.hour < 8)):
             self.add_log(self.price_settings.buyer_price_code, f"Учитывается supplier_weekend_min_lot_int")
             # max_lot = sess.execute(select(func.greatest(SuppliersForm.supplier_min_lot_int, SuppliersForm.supplier_weekend_min_lot_int)).
             #     where(SuppliersForm.setting == tbl._07supplier_code)).scalar()
