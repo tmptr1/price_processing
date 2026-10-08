@@ -409,8 +409,12 @@ class Sender(QThread):
                                                    'Создание csv ...', False)
 
             cur_time = datetime.datetime.now()
-            self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
-            self.create_csv(sess)
+            if 'csv' in self.price_settings.file_extension or 'zip' in self.price_settings.file_extension:
+                self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
+                self.create_csv(sess)
+            if 'xls' in self.price_settings.file_extension:
+                self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.xls"
+                self.create_csv(sess, format='xls')
 
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
@@ -1057,7 +1061,7 @@ class Sender(QThread):
         # ПРИ ФОРМАТЕ В СКОБКАХ, МОЖНО ИСПОЛЬЗОВАТЬ ДОП КОЛОНКИ ДЛЯ ВРЕМЕННОГО СОДЕРЖАНИЯ НОВЫХ ДАННЫХ, ДАЛЬШЕ ИХ ОБЪЕДИНИТЬ
 
 
-    def create_csv(self, sess):
+    def create_csv(self, sess, format='csv'):
         try:
             csv_path = fr"{settings_data['catalogs_dir']}/pre Отправка"
 
@@ -1079,8 +1083,13 @@ class Sender(QThread):
 
             # "Артикул", "Бренд", "Наименование", "Кол-во", "Цена", "Кратность", "17КодУникальности"
             df = pd.DataFrame(columns=[*headers.keys()])
-            df.to_csv(fr"{csv_path}/_{self.file_name}", sep=';', decimal=',',
-                      encoding="windows-1251", index=False, errors='ignore')
+            if format == 'csv':
+                df.to_csv(fr"{csv_path}/_{self.file_name}", sep=';', decimal=',',
+                          encoding="windows-1251", index=False, errors='ignore')
+            elif format == 'xls':
+                with pd.ExcelWriter(fr"{csv_path}/_{self.file_name}", engine='openpyxl') as xls_writer:
+                    df.to_excel(xls_writer, index=False, header=[*headers.keys()])
+                # df.to_excel(fr"{csv_path}/_{self.file_name}", encoding="windows-1251", index=False, errors='ignore')
 
             limit = CHUNKSIZE
             loaded = 0
@@ -1095,14 +1104,19 @@ class Sender(QThread):
 
                 df_len = len(df)
 
-                loaded += df_len
+                # loaded += df_len
                 if not df_len:
                     break
 
-                # df[self.FinalPriceTmp._01article.__dict__['name']] = df[self.FinalPriceTmp._01article.__dict__['name']].apply(lambda x: f'="{x}"' if str(x).startswith('0') else x)
-                df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
-                          sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
-                          errors='ignore')
+                if format == 'csv':
+                    df.to_csv(fr"{csv_path}/_{self.file_name}", mode='a',
+                              sep=';', decimal=',', encoding="windows-1251", index=False, header=False,
+                              errors='ignore')
+                elif format == 'xls':
+                    with pd.ExcelWriter(fr"{csv_path}/_{self.file_name}", engine='openpyxl', mode='a', if_sheet_exists='overlay') as xls_writer:
+                        df.to_excel(xls_writer, index=False, startrow=loaded+1, header=False, )
+
+                loaded += df_len
 
             # limit = CHUNKSIZE
             if self.price_settings.max_rows == loaded:
@@ -1180,7 +1194,7 @@ class Sender(QThread):
                 # msg.attach(MIMEText("price PL3", 'plain'))
 
 
-                for frmt in ('zip', 'csv'):
+                for frmt in ('zip', 'csv', 'xls'):
                     msg = MIMEMultipart()
                     msg["Subject"] = Header(f"{self.price_settings.price_name}")
                     msg["From"] = settings_data['mail_login']
@@ -1217,7 +1231,7 @@ class Sender(QThread):
 
                             shutil.copy(file_path_csv, fr"{settings_data['catalogs_dir']}/Последнее отправленное/{self.file_name}")
 
-                        elif frmt == 'csv' and frmt in self.price_settings.file_extension:
+                        elif frmt in ('csv', 'xls') and frmt in self.price_settings.file_extension:
                             file_path = fr"{settings_data['send_dir']}/{self.file_name}"
                             with open(file_path, 'rb') as f:
                                 file = MIMEBase('application', 'vnd.ms-excel')
