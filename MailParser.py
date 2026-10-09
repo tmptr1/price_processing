@@ -56,7 +56,7 @@ class MailParserClass(QThread):
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
             self.now_time = datetime.datetime.now().strftime("%d-%b-%Y")
             try:
-                mail = imaplib.IMAP4_SSL(host='imap.yandex.ru', port=993, timeout=25)
+                mail = imaplib.IMAP4_SSL(host='imap.yandex.ru', port=993, timeout=100)
                 mail.login(settings_data['mail_login'], settings_data['mail_imap_password'])
                 mail.select("inbox")
                 # self.get_mail("112898", mail)
