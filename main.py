@@ -868,6 +868,8 @@ def is_copy_program_running():
         os.path.abspath(r"C:\Users\XLWork\файлы\price_processing\start_app_autostart.bat")
     )
 
+    app_count = 0
+
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
             name = (proc.info["name"] or "").lower()
@@ -879,7 +881,9 @@ def is_copy_program_running():
             command = os.path.normcase(" ".join(cmdline))
 
             if bat_path_1 in command or bat_path_2 in command:
-                return True
+                app_count += 1
+                if app_count > 1:
+                    return True
 
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
