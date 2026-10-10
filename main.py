@@ -8,6 +8,7 @@ import datetime
 import os
 from sqlalchemy import text, select
 from sqlalchemy.orm import sessionmaker
+import psutil
 
 import setting
 # print(os.getpid())
@@ -859,6 +860,35 @@ def main():
     window.show()
     app.exec()
 
+def is_copy_program_running():
+    bat_path_1 = os.path.normcase(
+        os.path.abspath(r"C:\Users\XLWork\файлы\price_processing\start_app.bat")
+    )
+    bat_path_2 = os.path.normcase(
+        os.path.abspath(r"C:\Users\XLWork\файлы\price_processing\start_app_autostart.bat")
+    )
+
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            name = (proc.info["name"] or "").lower()
+            cmdline = proc.info["cmdline"] or []
+
+            if name not in ("cmd.exe", "powershell.exe", "pwsh.exe"):
+                continue
+
+            command = os.path.normcase(" ".join(cmdline))
+
+            if bat_path_1 in command or bat_path_2 in command:
+                return True
+
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    return False
+
 
 if __name__ == '__main__':
-    main()
+    if not is_copy_program_running():
+        main()
+    else:
+        print("Программа уже запущена. Запуск дубля программы запрещён.")

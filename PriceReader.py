@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore')
 import colors
 from models import (Base1, Base1_1, PriceReport, Price_1, Price_1_1, SupplierPriceSettings, FileSettings, ColsFix, Brands,
                     SupplierGoodsFix, ExchangeRate, SumTable, SumTable2, TotalPrice_1, AppSettings, RuDictionary,
-                    CommonWordExclusions, SuppliersForm)
+                    CommonWordExclusions, SuppliersForm, PriceCompareCatalog)
 import setting
 engine = setting.get_engine()
 # engine.echo = True
@@ -177,7 +177,10 @@ class MainWorker(QThread):
                 # print(f"{new_files=}")
                 # return
 
-                # new_files = ['A988 KRD_310.csv', 'A734 RND_187.csv', 'A652 MSK_1152.csv', 'A660 MSK_90.csv', ]
+                # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
+                # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
+                # new_files = ['A988 KRD_310.csv',]# 'A652 MSK_1152.csv']
+                # new_files = ['A652 MSK_1152.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['АСТН ПРАЙС НЛК.xlsx', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
@@ -538,6 +541,29 @@ class MainWorker(QThread):
                 # to csv
                 if not self.create_csv(sess, price_code, csv_cols_dict, start_calc_price_time, new_update_time):
                     return
+
+                # Обновление каталога PriceCompareCatalog
+                if for_price_compare:
+                    cur_time_pc = datetime.datetime.now()
+                    # добавление
+                    added_rows_1 = sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt
+                            ).values(suppliers_count=PriceCompareCatalog.suppliers_count + 1, updated_at=datetime.datetime.now())).rowcount
+
+                    sess.execute(update(PriceCompareCatalog).where(and_(TotalPrice_1._07supplier_code==price_code,
+                                                                        PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt)
+                                                                   ).values(suppliers_count=PriceCompareCatalog.suppliers_count-1))
+                    sess.query(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count <= 0).delete()
+
+                    new_rows = select(self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1.price_s,
+                                      self.TmpPrice_1._05price, self.TmpPrice_1._05price, literal_column(f"now()")).where(
+                        ~select(1).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt).exists())
+
+                    cols_to_price_comp = ['_15code_optt', 'price_code', 'price_s', 'old_price', 'price', 'updated_at']
+                    added_rows_2 = sess.execute(insert(PriceCompareCatalog).from_select(cols_to_price_comp, new_rows)).rowcount
+                    added_rows = added_rows_1 + added_rows_2
+
+                    self.add_log(self.file_size_type, price_code, f"Добавлено в справочник для проценок: {added_rows} ({added_rows_1} + {added_rows_2})", cur_time_pc)
+
 
                 # перенос данных в total
                 sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code == price_code).delete()

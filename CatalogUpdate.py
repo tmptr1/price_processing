@@ -85,6 +85,14 @@ class CatalogUpdate(QThread):
                 # print(get_work_days(datetime.date(year=2026, month=5, day=8)))
                 # return
                 # with session() as sess:
+                #     price_comp_cat_dels = sess.query(PriceCompareCatalog).where(or_(~select(1).where(and_(
+                #         TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code,
+                #         func.upper(SupplierPriceSettings.for_price_compare) == 'ДА',
+                #         PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt)).exists(),
+                #                                                                 PriceCompareCatalog.updated_at < func.now() - text(
+                #                                                                     "interval '25 hour'"))).delete()
+                #     print(price_comp_cat_dels)
+                #     return
                 #     self.lot_update(sess)
                     # прайсы, для которых были удалены старые настройки, обрабатываются заново
                     # diff_settings = except_(select(LastColsFix), select(ColsFix))
@@ -150,7 +158,7 @@ class CatalogUpdate(QThread):
                     # self.CTC.wait()
                 self.lot_update()  # лот на выходные
 
-                self.update_price_compare_catalog()
+                # self.update_price_compare_catalog()
 
                 self.update_mass_offers()
                 self.CMO.wait()
@@ -940,10 +948,21 @@ class CatalogUpdate(QThread):
             cur_time = datetime.datetime.now()
             ru_dict_dels = sess.query(RuDictionary).where(RuDictionary.updated_at < cur_time - datetime.timedelta(days=30)).delete()
             if ru_dict_dels:
-                self.log.add(LOG_ID,
-                             f"Удалено строк из справочника наименований: {ru_dict_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                self.log.add(LOG_ID, f"Удалено строк из справочника наименований: {ru_dict_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
                              f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>справочника наименований</span>: "
                              f"{ru_dict_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+            # удаление из Справочника для проценок (прайсы, старше 25 часов)
+            cur_time = datetime.datetime.now()
+            price_comp_cat_dels = sess.query(PriceCompareCatalog).where(or_(~select(1).where(and_(
+                TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code,
+                func.upper(SupplierPriceSettings.for_price_compare) == 'ДА',
+                PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt)).exists(),
+                PriceCompareCatalog.updated_at < func.now() - text("interval '25 hour'"))).delete()
+            if price_comp_cat_dels:
+                self.log.add(LOG_ID, f"Удалено строк из справочника для проценок: {price_comp_cat_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"Удалено строк из <span style='color:{colors.green_log_color};font-weight:bold;'>справочника для проценок</span>: "
+                             f"{price_comp_cat_dels} [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
             # удалить позиции старше 14 дней + неактуальные прайсы
             if self.del_history_day != cur_time.day:

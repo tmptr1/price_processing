@@ -1646,13 +1646,15 @@ class PriceCompareDiscount(Base):
 class PriceCompareCatalog(Base):
     __tablename__ = "price_compare_catalog"
     __table_args__ = (Index("price_compare_catalog_15code_optt_index", "_15code_optt"),)
-    id: Mapped[intpk]
+    id: Mapped[uuidpk]
     _15code_optt: Mapped[str_x(256)]
     price_code: Mapped[str_x(20)]
+    price_s: Mapped[numeric]
     old_price: Mapped[numeric]
     price: Mapped[numeric]
     duple: Mapped[Boolean] = mapped_column(Boolean, default=False)
     suppliers_count: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[datetime.datetime]
 
 
 class SupplierGoodsFix(Base):
