@@ -1611,85 +1611,85 @@ class CatalogUpdate(QThread):
         return updated_rows
 
 
-    def update_price_compare_catalog(self):
-        cur_time = datetime.datetime.now()
-        catalog_name = 'Справочник для проценок'
-        if cur_time.hour < 3 or cur_time.hour > 9:
-            return
-        with session() as sess:
-            last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==catalog_name)).scalar()
-            if last_update.strftime("%Y-%m-%d") == str(cur_time.date()):
-                return
-
-        self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
-                     f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...",)
-
-        sess.query(PriceCompareCatalog).delete()
-        sess.execute(text(f"ALTER SEQUENCE {PriceCompareCatalog.__tablename__}_id_seq restart 1"))
-
-        subq = select(TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._05price, TotalPrice_1._05price).where(and_(
-                TotalPrice_1._07supplier_code==SupplierPriceSettings.price_code, func.upper(SupplierPriceSettings.for_price_compare)=='ДА'),
-                TotalPrice_1._20exclude == None, TotalPrice_1._07supplier_code == MailReport.price_code, MailReport.date > func.now() - text("interval '25 hour'"))
-
-        rows = sess.execute(insert(PriceCompareCatalog).from_select(['_15code_optt', 'price_code', 'old_price', 'price'], subq)).rowcount
-        self.log.add(LOG_ID, f"Всего строк {rows}", )
-
-        cnt_price = select(PriceCompareCatalog._15code_optt, func.count(PriceCompareCatalog.id).label('cnt')). \
-            group_by(PriceCompareCatalog._15code_optt).having(func.count(PriceCompareCatalog.id) > 1)
-        sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == cnt_price.c._15code_optt).values(suppliers_count=cnt_price.c.cnt))
-
-        # Удаление всех, кроме мин цен
-        min_price_q = select(PriceCompareCatalog._15code_optt, func.min(PriceCompareCatalog.old_price).label('min_price')).where(
-                    PriceCompareCatalog.suppliers_count > 1).group_by(PriceCompareCatalog._15code_optt)
-        sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == min_price_q.c._15code_optt).values(
-                price=min_price_q.c.min_price, duple=True))
-        dup_del_1 = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.old_price != PriceCompareCatalog.price).delete()
-
-        # Оставить только строки с max id
-        max_id_q = select(PriceCompareCatalog._15code_optt, func.max(PriceCompareCatalog.id).label('max_id')).where(
-                    PriceCompareCatalog.duple == True).group_by(PriceCompareCatalog._15code_optt)
-        # sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == max_id_q.c._15code_optt,
-        #                                                     PriceCompareCatalog.id != max_id_q.c.max_id)).values(
-        #         price=min_price_q.c.min_price, discount=-1))
-        dup_del_2 = sess.query(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == max_id_q.c._15code_optt,
-                    PriceCompareCatalog.id != max_id_q.c.max_id)).delete()
-
-        dup_del = dup_del_1 + dup_del_2
-        self.log.add(LOG_ID, f"Удалено дублей {dup_del}", )
-
-        # Скидки int
-        sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareDiscount.suppliers_count.op("~")("^\d+$"),
-                                                            PriceCompareCatalog.suppliers_count == cast(PriceCompareDiscount.suppliers_count, Integer))
-                                                       ).values(price=(PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.discount))))
-        # Скидки вида: >15
-        custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
-        # print(custom_suppliers_counts)
-        for csc in custom_suppliers_counts:
-            if '>' in csc.suppliers_count:
-                count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count > count_filter).values(
-                        price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
-            if '<' in csc.suppliers_count:
-                count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count < count_filter).values(
-                        price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
-
-        # Слияние PriceCompareCatalog с PrevDynamicParts
-        sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
-                                                            PrevDynamicParts.code_optt != None)).values(
-                            price=func.greatest(PriceCompareCatalog.price, PrevDynamicParts.store_price_rub), price_code='prev'))
-
-        new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt, PrevDynamicParts.store_price_rub).where(
-                            ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
-                                                            PrevDynamicParts.code_optt != None)))
-        sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
-
-
-        sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
-        sess.add(CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
-        sess.commit()
-        self.log.add(LOG_ID, f"{catalog_name} обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                     f"<span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]")
+    # def update_price_compare_catalog(self):
+    #     cur_time = datetime.datetime.now()
+    #     catalog_name = 'Справочник для проценок'
+    #     if cur_time.hour < 3 or cur_time.hour > 9:
+    #         return
+    #     with session() as sess:
+    #         last_update = sess.execute(select(CatalogUpdateTime.updated_at).where(CatalogUpdateTime.catalog_name==catalog_name)).scalar()
+    #         if last_update.strftime("%Y-%m-%d") == str(cur_time.date()):
+    #             return
+    #
+    #     self.log.add(LOG_ID, f"Обновление {catalog_name} ...",
+    #                  f"Обновление <span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> ...",)
+    #
+    #     sess.query(PriceCompareCatalog).delete()
+    #     sess.execute(text(f"ALTER SEQUENCE {PriceCompareCatalog.__tablename__}_id_seq restart 1"))
+    #
+    #     subq = select(TotalPrice_1._15code_optt, TotalPrice_1._07supplier_code, TotalPrice_1._05price, TotalPrice_1._05price).where(and_(
+    #             TotalPrice_1._07supplier_code==SupplierPriceSettings.price_code, func.upper(SupplierPriceSettings.for_price_compare)=='ДА'),
+    #             TotalPrice_1._20exclude == None, TotalPrice_1._07supplier_code == MailReport.price_code, MailReport.date > func.now() - text("interval '25 hour'"))
+    #
+    #     rows = sess.execute(insert(PriceCompareCatalog).from_select(['_15code_optt', 'price_code', 'old_price', 'price'], subq)).rowcount
+    #     self.log.add(LOG_ID, f"Всего строк {rows}", )
+    #
+    #     cnt_price = select(PriceCompareCatalog._15code_optt, func.count(PriceCompareCatalog.id).label('cnt')). \
+    #         group_by(PriceCompareCatalog._15code_optt).having(func.count(PriceCompareCatalog.id) > 1)
+    #     sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == cnt_price.c._15code_optt).values(suppliers_count=cnt_price.c.cnt))
+    #
+    #     # Удаление всех, кроме мин цен
+    #     min_price_q = select(PriceCompareCatalog._15code_optt, func.min(PriceCompareCatalog.old_price).label('min_price')).where(
+    #                 PriceCompareCatalog.suppliers_count > 1).group_by(PriceCompareCatalog._15code_optt)
+    #     sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == min_price_q.c._15code_optt).values(
+    #             price=min_price_q.c.min_price, duple=True))
+    #     dup_del_1 = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.old_price != PriceCompareCatalog.price).delete()
+    #
+    #     # Оставить только строки с max id
+    #     max_id_q = select(PriceCompareCatalog._15code_optt, func.max(PriceCompareCatalog.id).label('max_id')).where(
+    #                 PriceCompareCatalog.duple == True).group_by(PriceCompareCatalog._15code_optt)
+    #     # sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == max_id_q.c._15code_optt,
+    #     #                                                     PriceCompareCatalog.id != max_id_q.c.max_id)).values(
+    #     #         price=min_price_q.c.min_price, discount=-1))
+    #     dup_del_2 = sess.query(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == max_id_q.c._15code_optt,
+    #                 PriceCompareCatalog.id != max_id_q.c.max_id)).delete()
+    #
+    #     dup_del = dup_del_1 + dup_del_2
+    #     self.log.add(LOG_ID, f"Удалено дублей {dup_del}", )
+    #
+    #     # Скидки int
+    #     sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareDiscount.suppliers_count.op("~")("^\d+$"),
+    #                                                         PriceCompareCatalog.suppliers_count == cast(PriceCompareDiscount.suppliers_count, Integer))
+    #                                                    ).values(price=(PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.discount))))
+    #     # Скидки вида: >15
+    #     custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
+    #     # print(custom_suppliers_counts)
+    #     for csc in custom_suppliers_counts:
+    #         if '>' in csc.suppliers_count:
+    #             count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+    #             sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count > count_filter).values(
+    #                     price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
+    #         if '<' in csc.suppliers_count:
+    #             count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+    #             sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count < count_filter).values(
+    #                     price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
+    #
+    #     # Слияние PriceCompareCatalog с PrevDynamicParts
+    #     sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
+    #                                                         PrevDynamicParts.code_optt != None)).values(
+    #                         price=func.greatest(PriceCompareCatalog.price, PrevDynamicParts.store_price_rub), price_code='prev'))
+    #
+    #     new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt, PrevDynamicParts.store_price_rub).where(
+    #                         ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
+    #                                                         PrevDynamicParts.code_optt != None)))
+    #     sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
+    #
+    #
+    #     sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == catalog_name).delete()
+    #     sess.add(CatalogUpdateTime(catalog_name=catalog_name, updated_at=cur_time.strftime("%Y-%m-%d %H:%M:%S")))
+    #     sess.commit()
+    #     self.log.add(LOG_ID, f"{catalog_name} обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]",
+    #                  f"<span style='color:{colors.green_log_color};font-weight:bold;'>{catalog_name}</span> обновлен [{str(datetime.datetime.now() - cur_time)[:7]}]")
 
 
 def old_words_except(sess):
