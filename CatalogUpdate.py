@@ -910,12 +910,12 @@ class CatalogUpdate(QThread):
                 sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt,
                                                             PrevDynamicParts.code_optt != None)).values(
                     price=func.greatest(PriceCompareCatalog.price, PrevDynamicParts.store_price_rub),
-                    price_code='prev'))
+                    price_code='prev', updated_at=datetime.datetime.now()))
 
-                new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt,
-                                  PrevDynamicParts.store_price_rub).where(
+                new_rows = select(literal_column("'prev new'"), PrevDynamicParts.code_optt, PrevDynamicParts.store_price_rub,
+                                  literal_column(f"now()")).where(
                     ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt, PrevDynamicParts.code_optt != None)))
-                sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price'], new_rows))
+                sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price', 'updated_at'], new_rows))
                 sess.commit()
 
                 self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts закончено [{str(datetime.datetime.now() - cur_time)[:7]}]", )
@@ -1015,7 +1015,7 @@ class CatalogUpdate(QThread):
                 sess.query(MailReportUnloaded).where(MailReportUnloaded.date < cur_time - datetime.timedelta(days=62))
                 sess.query(Orders).where(Orders.updated_at < cur_time - datetime.timedelta(days=182)).delete()
 
-            # проверка неактуальных прайсов
+            # проверка неактуальных прайсов TP2
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
             actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.calculate == 'ДА',
                                                                                                  SupplierPriceSettings.works == 'ДА'))).scalars().all())
@@ -1024,11 +1024,23 @@ class CatalogUpdate(QThread):
             if useless_prices:
                 self.log.add(LOG_ID, f"Не обрабатываем или не работаем: {useless_prices}")
                 dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
-                sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
                 sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices)).values(
                     info_message="Не обрабатываем или не работаем", info_message2=None))
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
+
+            # проверка неактуальных прайсов TP1
+            loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
+            actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.standard == 'ДА',
+                                                                    SupplierPriceSettings.works == 'ДА'))).scalars().all())
+            useless_prices = (loaded_prices - actual_prices)
+            if useless_prices:
+                self.log.add(LOG_ID, f"Не обрабатываем или не работаем: {useless_prices}")
+                dels = sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices)).values(
+                    info_message="Не стандартизируем или не работаем", info_message2=None))
+                self.log.add(LOG_ID, f"Удалено строк (Стандартизируем, Работаем): {dels}",
+                             f"Удалено строк (Стандартизируем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
 
             # expired_prices = set(sess.execute(select(PriceReport.price_code).where(
             #     and_(SupplierPriceSettings.price_code == PriceReport.price_code, PriceReport.updated_at_2_step != None,
