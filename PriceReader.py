@@ -338,6 +338,8 @@ class MainWorker(QThread):
                 # Удаление старой версии
                 # sess.query(Price_1).where(Price_1._07supplier_code == price_code).delete()
                 for_price_compare = sess.execute(select(func.upper(SupplierPriceSettings.for_price_compare)).where(SupplierPriceSettings.price_code==price_code)).scalar() == 'ДА'
+                for_calculate = sess.execute(select(func.upper(SupplierPriceSettings.calculate)).where(SupplierPriceSettings.price_code == price_code)).scalar() == 'ДА'
+                lite_update = for_price_compare and not for_calculate
 
                 # загрузка сырых данных
                 sett = sess.get(FileSettings, {'id': id_settig})
@@ -366,7 +368,7 @@ class MainWorker(QThread):
 
                 cur_time = datetime.datetime.now()
                 # sender.send(["add", mp.current_process().name, price_code, 1, f"Обработка 1, 2, 3, 4, 14 ..."])
-                if not for_price_compare:
+                if not lite_update:
                     self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 3, 5, 6 ...", False)
                 else:
                     self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 1, 2, 5 ...", False)
@@ -404,7 +406,7 @@ class MainWorker(QThread):
 
                 # 03Наименование
                 sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._03name == None).values(_03name=self.TmpPrice_1.name_s))
-                if not for_price_compare:
+                if not lite_update:
                     sess.execute(update(self.TmpPrice_1).values(_03name=self.TmpPrice_1._03name.regexp_replace('[\n\r]', ' ', 'g').
                                                                 regexp_replace(' +', ' ', 'g').
                                                                 regexp_replace('^ | $', '', 'g')))
@@ -419,7 +421,7 @@ class MainWorker(QThread):
                     and_(self.TmpPrice_1.currency_s != None, ExchangeRate.code == func.upper(self.TmpPrice_1.currency_s)))
                              .values(_05price=self.TmpPrice_1._05price * ExchangeRate.rate, clear_price=self.TmpPrice_1._05price * ExchangeRate.rate))
 
-                if not for_price_compare:
+                if not lite_update:
                     # 06Кратность
                     sess.execute(update(self.TmpPrice_1).values(_06mult=self.TmpPrice_1.mult_s))  # .where(self.TmpPrice_1._06mult == None)
                     sess.execute(update(self.TmpPrice_1).where(or_(self.TmpPrice_1._06mult == None, self.TmpPrice_1._06mult < 1)).values(_06mult=1))
@@ -429,7 +431,7 @@ class MainWorker(QThread):
                     self.add_log(self.file_size_type, price_code, "Обработка 1, 2, 5 завершена", cur_time)
 
                 cur_time = datetime.datetime.now()
-                if not for_price_compare:
+                if not lite_update:
                     self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 ...", False)
                 else:
                     self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 4, 14, 15, 20 ...", False)
@@ -440,7 +442,7 @@ class MainWorker(QThread):
                 # 14Производитель заполнен
                 sess.execute(update(self.TmpPrice_1).values(_14brand_filled_in=func.upper(func.coalesce(self.TmpPrice_1._02brand, self.TmpPrice_1.brand_s))))
 
-                if not for_price_compare:
+                if not lite_update:
                     # 04Количество
                     sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
                                                                               else_=self.TmpPrice_1.count_s)))
@@ -487,7 +489,7 @@ class MainWorker(QThread):
                 # 20ИсключитьИзПрайса
                 self.words_except(sess, price_code)
 
-                if not for_price_compare:
+                if not lite_update:
                     # 17КодУникальности
                     sess.execute(update(self.TmpPrice_1).values(_17code_unique=func.upper(self.TmpPrice_1._07supplier_code + self.TmpPrice_1._15code_optt + "ДАSS")))
 
@@ -495,12 +497,12 @@ class MainWorker(QThread):
                 # sess.execute(update(self.TmpPrice_1).values(_18short_name=func.regexp_substr(self.TmpPrice_1._03name, r'(\S+.){1,2}(\S+){0,1}')))
 
                 # sess.commit()  #sess.flush()
-                if not for_price_compare:
+                if not lite_update:
                     self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 17, 20 завершена", cur_time)
                 else:
                     self.add_log(self.file_size_type, price_code, "Обработка 4, 14, 15, 20 завершена", cur_time)
 
-                if not for_price_compare:
+                if not lite_update:
                     cur_time = datetime.datetime.now()
                     self.UpdatePriceStatusTableSignal.emit(self.file_size_type, price_code, "Обработка 13 ...", False)
 
