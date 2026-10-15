@@ -54,6 +54,7 @@ class SupplierPriceSettings(Base):
     update_time_str: Mapped[str_x(50)]
     # Имя_файла varchar(256),
     # file_name: Mapped[str_x(256)]
+    use_ru_dictionary: Mapped[str_x(20)]
     # Прайс_оптовый varchar(20),
     wholesale: Mapped[str_x(20)]
     # Цену_считать_базовой varchar(20),
@@ -1620,7 +1621,7 @@ class SuppliersForm(Base):
     price_age_for_notification_hours: Mapped[real]
     price_update_notification_emails: Mapped[str_x(150)]
     setting: Mapped[str_x(20)]
-    use_ru_dictionary: Mapped[str_x(20)]
+    # use_ru_dictionary: Mapped[str_x(20)]
     days: Mapped[str_x(150)]
     supplier_weekend_markup_pct: Mapped[real]
     max_price_drop_pct: Mapped[real]

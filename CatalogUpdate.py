@@ -528,6 +528,7 @@ class CatalogUpdate(QThread):
                 cols = {"supplier_code": ["Код поставщика"], "price_code": ["Код прайса"],
                         "standard": ["Стандартизируем"], "calculate": ["Обрабатываем"], "buy": ["Можем купить?"],
                         "works": ["Работаем"], "for_price_compare": ["Для проценки"], "for_price_compare_discount": ["Скидка  проценки"],
+                        "use_ru_dictionary": ["use_ru_dictionary"],
                         "wholesale": ["Прайс оптовый"], "buy_for_working_capital": ["Закупка для оборотных средств"],
                         "is_base_price": ["Цену считать базовой"], "update_time_str": ["Срок обновление не более"],
                         "in_price": ["В прайс"], "access_pp": ["Разрешения ПП"],
@@ -829,7 +830,8 @@ class CatalogUpdate(QThread):
                 sheet_name = "Анкета поставщика"
                 table_class = SuppliersForm
                 ex_table_name = "Анкета_поставщика"
-                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"], "use_ru_dictionary": ["use_ru_dictionary"],
+                # "use_ru_dictionary": ["use_ru_dictionary"],
+                cols = {"rating": ["Рейтинг поставщика"], "setting": ["Настройка"],
                         "supplier_min_lot_int": ["supplier_min_lot_int"],
                         "supplier_weekend_min_lot_int": ["supplier_weekend_min_lot_int"], "days": ["Дни трансляции"],
                         "supplier_weekend_markup_pct": ["supplier_weekend_markup_pct"],
@@ -996,6 +998,7 @@ class CatalogUpdate(QThread):
                         if dt < datetime.datetime.now() - datetime.timedelta(days=period):
                             sess.execute(text(f"drop table {t};"))
 
+                sess.commit()
 
 
                 # Удаление из таблицы для сравнения цен (макс. снижение цены)
@@ -1298,6 +1301,7 @@ class CatalogUpdate(QThread):
                 conn.execute(text(f"VACUUM ANALYZE {TotalPrice_2.__tablename__};"))
                 conn.execute(text(f"VACUUM ANALYZE {LastPrice.__tablename__};"))
                 conn.execute(text(f"VACUUM ANALYZE {RuDictionary.__tablename__};"))
+                conn.execute(text(f"VACUUM ANALYZE {PriceCompareCatalog.__tablename__};"))
             self.log.add(LOG_ID, f"vacuum finish [{str(datetime.datetime.now() - cur_time)[:7]}]")
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex

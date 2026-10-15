@@ -179,7 +179,7 @@ class MainWorker(QThread):
 
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
-                # new_files = ['A988 KRD_310.csv',]# 'A652 MSK_1152.csv']
+                # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv']
                 # new_files = ['A652 MSK_1152.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['АСТН ПРАЙС НЛК.xlsx', ]
@@ -546,52 +546,7 @@ class MainWorker(QThread):
 
                 # Обновление каталога PriceCompareCatalog
                 if for_price_compare:
-                    cur_time_pc = datetime.datetime.now()
-                    # добавление
-                    added_rows_1 = sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt
-                            ).values(suppliers_count=PriceCompareCatalog.suppliers_count + 1, updated_at=datetime.datetime.now(),
-                                                old_price=func.least(PriceCompareCatalog.old_price, self.TmpPrice_1._05price))).rowcount
-                    sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
-                                                                        PriceCompareCatalog.price_s > self.TmpPrice_1.price_s)
-                           ).values(price_s=self.TmpPrice_1.price_s, price_code=self.TmpPrice_1._07supplier_code))
-
-                    # Удаление count <= 0
-                    sess.execute(update(PriceCompareCatalog).where(and_(TotalPrice_1._07supplier_code==price_code,
-                                                                        PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt)
-                                                                   ).values(suppliers_count=PriceCompareCatalog.suppliers_count-1))
-                    sess.query(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count <= 0).delete()
-
-                    new_rows = select(self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1.price_s,
-                                      self.TmpPrice_1._05price, self.TmpPrice_1._05price, literal_column(f"now()")).where(
-                        ~select(1).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt).exists())
-
-                    cols_to_price_comp = ['_15code_optt', 'price_code', 'price_s', 'old_price', 'price', 'updated_at']
-                    added_rows_2 = sess.execute(insert(PriceCompareCatalog).from_select(cols_to_price_comp, new_rows)).rowcount
-                    added_rows = added_rows_1 + added_rows_2
-
-                    # Скидки int
-                    sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
-                                PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
-                                PriceCompareCatalog.suppliers_count == cast(PriceCompareDiscount.suppliers_count, Integer))
-                        ).values(price=PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.discount)))
-
-                    # Скидки вида: >15
-                    custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
-                        PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
-                    # print(custom_suppliers_counts)
-                    for csc in custom_suppliers_counts:
-                        if '>' in csc.suppliers_count:
-                            count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                            more_upd = sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
-                                PriceCompareCatalog.suppliers_count > count_filter)).values(
-                                price=(PriceCompareCatalog.old_price * (1 + csc.discount)))).rowcount
-                        if '<' in csc.suppliers_count:
-                            count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                            sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
-                                PriceCompareCatalog.suppliers_count < count_filter)).values(
-                                price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
-
-                    self.add_log(self.file_size_type, price_code, f"Добавлено в справочник для проценок: {added_rows} ({added_rows_1} + {added_rows_2})", cur_time_pc)
+                    self.update_price_compare_catalog(sess, price_code)
 
 
                 # перенос данных в total
@@ -609,6 +564,26 @@ class MainWorker(QThread):
                 cols_for_total = {i: i.__dict__['name'] for i in cols_for_total}
                 total = select(*cols_for_total.keys())
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
+
+                if for_price_compare:
+                    # мин цена из актуальных строк
+                    # min_price_q = select(TotalPrice_1._15code_optt, func.min(TotalPrice_1._05price).label('min_price')).where(
+                    #                      and_(PriceCompareCatalog._15code_optt==self.TmpPrice_1._15code_optt,
+                    #                           PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt)).group_by(TotalPrice_1._15code_optt)
+                    min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
+                                         TotalPrice_1._07supplier_code, TotalPrice_1.price_s).where(and_(
+                                         and_(PriceCompareCatalog._15code_optt==self.TmpPrice_1._15code_optt,
+                                              PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt),
+                                         or_(PriceCompareCatalog.price==None))
+                                    ).distinct(TotalPrice_1._15code_optt
+                                    ).order_by(TotalPrice_1._15code_optt, TotalPrice_1._05price.asc())
+
+                    sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt==min_price_q.c._15code_optt
+                                                   ).values(old_price=min_price_q.c.min_price,
+                                                            price_s=min_price_q.c.price_s,
+                                                           price_code=min_price_q.c._07supplier_code,
+                                                           updated_at=datetime.datetime.now()))
+                    self.apply_discounts_pcc(sess)
 
                 # дочерние прайсы
                 children_prices = sess.execute(select(distinct(FileSettings.price_code))
@@ -1066,10 +1041,10 @@ class MainWorker(QThread):
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
 
 
-        cur_name_set_priority = sess.execute(select(SuppliersForm.use_ru_dictionary).where(SuppliersForm.setting==price_code)).scalar()
+        cur_name_set_priority = sess.execute(select(SupplierPriceSettings.use_ru_dictionary).where(SupplierPriceSettings.price_code==price_code)).scalar()
 
         if str(cur_name_set_priority).lower() == 'да':
-            priority_name_set_prices = select(SuppliersForm.setting).where(func.lower(SuppliersForm.use_ru_dictionary) == 'да')
+            priority_name_set_prices = select(SupplierPriceSettings.price_code).where(func.lower(SupplierPriceSettings.use_ru_dictionary) == 'да')
             updated_dict_names = sess.execute(update(RuDictionary).where(
                 and_(self.TmpPrice_1._14brand_filled_in == RuDictionary.brand_upper,
                      self.TmpPrice_1._01article_comp == RuDictionary.article_comp,
@@ -1083,7 +1058,7 @@ class MainWorker(QThread):
                 self.add_log(self.file_size_type, price_code, f"Изменено {updated_dict_names} названий в справочнике")
 
         elif not cur_name_set_priority or str(cur_name_set_priority).replace(' ', '') == '':
-            priority_name_set_prices = select(SuppliersForm.setting).where(func.lower(SuppliersForm.use_ru_dictionary) == 'да')
+            priority_name_set_prices = select(SupplierPriceSettings.price_code).where(func.lower(SupplierPriceSettings.use_ru_dictionary) == 'да')
             updated_dict_names = sess.execute(update(RuDictionary).where(
                 and_(self.TmpPrice_1._14brand_filled_in == RuDictionary.brand_upper,
                      self.TmpPrice_1._01article_comp == RuDictionary.article_comp,
@@ -1397,6 +1372,66 @@ class MainWorker(QThread):
                          f"<span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
                          f"{price_code}</span> ({self.cur_file_count}/{self.total_file_count})")
             return False
+
+    def update_price_compare_catalog(self, sess, price_code):
+        cur_time_pc = datetime.datetime.now()
+        # добавление
+        added_rows_1 = sess.execute(
+            update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt
+                                              ).values(suppliers_count=PriceCompareCatalog.suppliers_count + 1,
+                                                       updated_at=datetime.datetime.now(),
+                                                       old_price=func.least(PriceCompareCatalog.old_price,
+                                                                            self.TmpPrice_1._05price))).rowcount
+        sess.execute(
+            update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
+                                                   PriceCompareCatalog.price_s > self.TmpPrice_1.price_s)
+                                              ).values(price_s=self.TmpPrice_1.price_s,
+                                                       price_code=self.TmpPrice_1._07supplier_code))
+
+        # Удаление count <= 0
+        sess.execute(update(PriceCompareCatalog).where(and_(TotalPrice_1._07supplier_code == price_code,
+                                                            PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt)
+                                                       ).values(
+            suppliers_count=PriceCompareCatalog.suppliers_count - 1, price=None))  # Для пересчёта
+        sess.query(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count <= 0).delete()
+
+        new_rows = select(self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1.price_s,
+                          self.TmpPrice_1._05price, self.TmpPrice_1._05price, literal_column(f"now()")).where(
+            ~select(1).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt).exists())
+
+        cols_to_price_comp = ['_15code_optt', 'price_code', 'price_s', 'old_price', 'price', 'updated_at']
+        added_rows_2 = sess.execute(insert(PriceCompareCatalog).from_select(cols_to_price_comp, new_rows)).rowcount
+        added_rows = added_rows_1 + added_rows_2
+
+        self.add_log(self.file_size_type, price_code, f"Добавлено в справочник для проценок: {added_rows} ({added_rows_1} + {added_rows_2})", cur_time_pc)
+
+    def apply_discounts_pcc(self, sess):
+        # Скидки int
+        sess.execute(
+            update(PriceCompareCatalog).where(and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
+                                                   PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
+                                                   PriceCompareCatalog.suppliers_count == cast(
+                                                       PriceCompareDiscount.suppliers_count, Integer))
+                                              ).values(
+                price=PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.discount)))
+
+        # Скидки вида: >15
+        custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
+            PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
+        # print(custom_suppliers_counts)
+        for csc in custom_suppliers_counts:
+            if '>' in csc.suppliers_count:
+                count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                sess.execute(update(PriceCompareCatalog).where(
+                    and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
+                         PriceCompareCatalog.suppliers_count > count_filter)).values(
+                    price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
+            if '<' in csc.suppliers_count:
+                count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                sess.execute(update(PriceCompareCatalog).where(
+                    and_(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
+                         PriceCompareCatalog.suppliers_count < count_filter)).values(
+                    price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
 
     def add_log(self, row_id, price_code, msg, cur_time=None, new_row=False):
         # лог с выводом этапа в таблицу
