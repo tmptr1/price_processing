@@ -566,7 +566,7 @@ class MainWorker(QThread):
                 sess.execute(insert(TotalPrice_1).from_select(cols_for_total.values(), total))
 
                 if for_price_compare:
-                    # мин цена из актуальных строк
+                    # Мин цена из актуальных строк. Пересчёт новых и старых (price=none) строк
                     # min_price_q = select(TotalPrice_1._15code_optt, func.min(TotalPrice_1._05price).label('min_price')).where(
                     #                      and_(PriceCompareCatalog._15code_optt==self.TmpPrice_1._15code_optt,
                     #                           PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt)).group_by(TotalPrice_1._15code_optt)

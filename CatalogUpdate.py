@@ -23,7 +23,7 @@ from models import (Base, BasePrice, MassOffers, MailReport, CatalogUpdateTime, 
                     Data07_14, Data15, Data09, Buy_for_OS, TotalPrice_1, TotalPrice_2, PriceReport,
                     SuppliersForm, FinalPriceHistory, Orders, PriceSendTime, FinalPriceHistoryDel, PriceSendTimeHistory,
                     MailReportUnloaded, CrossBrandTypeMarkupPct, PrevDynamicParts, LastPrice, LastColsFix, RuDictionary,
-                    CommonWordExclusions, PriceCompareDiscount, PriceCompareCatalog)
+                    CommonWordExclusions, PriceCompareDiscount, PriceCompareCatalog, PriceCompareCatalogClear)
 from telebot import TeleBot
 from telebot import apihelper
 import holidays
@@ -918,9 +918,64 @@ class CatalogUpdate(QThread):
                                   literal_column(f"now()")).where(
                     ~exists().where(and_(PriceCompareCatalog._15code_optt == PrevDynamicParts.code_optt, PrevDynamicParts.code_optt != None)))
                 sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price', 'updated_at'], new_rows))
+
+                # Доп. таблица
+                sess.query(PriceCompareCatalogClear).delete()
+                sess.execute(text(f"insert into {PriceCompareCatalogClear.__tablename__} select * from {PriceCompareCatalog.__tablename__};"))
+                # замена prev на min значение из tp1
+                prices_for_price_compare = select(SupplierPriceSettings.price_code).where(
+                    func.upper(SupplierPriceSettings.for_price_compare) == 'ДА')
+                min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
+                                     TotalPrice_1._07supplier_code, TotalPrice_1.price_s
+                                     ).where(and_(or_(PriceCompareCatalogClear.price_code == 'prev',
+                                                      PriceCompareCatalogClear.price_code == 'prev new'),
+                                                  PriceCompareCatalogClear._15code_optt == TotalPrice_1._15code_optt,
+                                                  TotalPrice_1._07supplier_code.in_(prices_for_price_compare))
+                                             ).distinct(TotalPrice_1._15code_optt
+                                                        ).order_by(TotalPrice_1._15code_optt,
+                                                                   TotalPrice_1._05price.asc())
+
+                sess.execute(update(PriceCompareCatalogClear).where(
+                    PriceCompareCatalogClear._15code_optt == min_price_q.c._15code_optt
+                    ).values(old_price=min_price_q.c.min_price, price_s=min_price_q.c.price_s, price=None,
+                             price_code=min_price_q.c._07supplier_code, updated_at=datetime.datetime.now()))
+
+                # Скидки для PriceCompareCatalogClear
+                # Скидки int
+                sess.execute(
+                    update(PriceCompareCatalogClear).where(
+                        and_(PriceCompareCatalogClear.price == None,
+                             PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
+                             PriceCompareCatalogClear.suppliers_count == cast(
+                                 PriceCompareDiscount.suppliers_count, Integer))
+                    ).values(
+                        price=PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.discount)))
+
+                # Скидки вида: >15
+                custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
+                    PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
+                # print(custom_suppliers_counts)
+                for csc in custom_suppliers_counts:
+                    if '>' in csc.suppliers_count:
+                        count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                        sess.execute(update(PriceCompareCatalogClear).where(
+                            and_(PriceCompareCatalogClear.price == None,
+                                 PriceCompareCatalogClear.suppliers_count > count_filter)).values(
+                            price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+                    if '<' in csc.suppliers_count:
+                        count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                        sess.execute(update(PriceCompareCatalogClear).where(
+                            and_(PriceCompareCatalogClear.price == None,
+                                 PriceCompareCatalogClear.suppliers_count < count_filter)).values(
+                            price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+
+                prev_del = sess.query(PriceCompareCatalogClear).where(or_(PriceCompareCatalogClear.price_code == 'prev',
+                                                                          PriceCompareCatalogClear.price_code == 'prev new')).delete()
+
                 sess.commit()
 
-                self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts закончено [{str(datetime.datetime.now() - cur_time)[:7]}]", )
+                self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts закончено (удалено {prev_del} prev из отдельного справочника) "
+                             f"[{str(datetime.datetime.now() - cur_time)[:7]}]", )
 
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
