@@ -179,7 +179,7 @@ class MainWorker(QThread):
 
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
-                new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv']
+                # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv']
                 # new_files = ['A652 MSK_1152.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['АСТН ПРАЙС НЛК.xlsx', ]
@@ -585,10 +585,27 @@ class MainWorker(QThread):
                                                             price_s=min_price_q.c.price_s,
                                                            price_code=min_price_q.c._07supplier_code,
                                                            updated_at=datetime.datetime.now()))
+
                     self.add_log(self.file_size_type, price_code, f"step 2")
+                    min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
+                                         TotalPrice_1._07supplier_code, TotalPrice_1.price_s).where(
+                        and_(PriceCompareCatalog.price == 0,
+                             PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt,
+                             TotalPrice_1._07supplier_code.in_(prices_for_price_compare),
+                             TotalPrice_1._15code_optt != None, TotalPrice_1._05price > 0)
+                    ).distinct(TotalPrice_1._15code_optt
+                               ).order_by(TotalPrice_1._15code_optt, TotalPrice_1._05price.asc())
+
+                    sess.execute(
+                        update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == min_price_q.c._15code_optt
+                                                          ).values(old_price=min_price_q.c.min_price,
+                                                                   price_s=min_price_q.c.price_s,
+                                                                   price_code=min_price_q.c._07supplier_code,
+                                                                   updated_at=datetime.datetime.now()))
+                    self.add_log(self.file_size_type, price_code, f"step 3")
                     # print(f"{recalc=}")
                     self.apply_discounts_pcc(sess)
-                    self.add_log(self.file_size_type, price_code, f"step 3")
+                    self.add_log(self.file_size_type, price_code, f"step 4")
 
                     old_rows = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.price == 0).delete()
                     if old_rows:
@@ -1435,7 +1452,7 @@ class MainWorker(QThread):
         # обновление
         self.added_rows_1 = sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt
                                               ).values(suppliers_count=PriceCompareCatalog.suppliers_count + 1,
-                                                       price=0)).rowcount
+                                                       )).rowcount  # price=0
                                                      # updated_at = datetime.datetime.now()
                                                        # old_price=func.least(PriceCompareCatalog.old_price,
                                                        #                      self.TmpPrice_1._05price))).rowcount
