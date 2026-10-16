@@ -586,7 +586,7 @@ class MainWorker(QThread):
                     #                                        price_code=min_price_q.c._07supplier_code,
                     #                                        updated_at=datetime.datetime.now()))
 
-                    self.add_log(self.file_size_type, price_code, f"step 2")
+                    # self.add_log(self.file_size_type, price_code, f"step 2")
                     min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
                                          TotalPrice_1._07supplier_code, TotalPrice_1.price_s).where(
                         and_(PriceCompareCatalog.price == 0,
@@ -602,10 +602,10 @@ class MainWorker(QThread):
                                                                    price_s=min_price_q.c.price_s,
                                                                    price_code=min_price_q.c._07supplier_code,
                                                                    updated_at=datetime.datetime.now()))
-                    self.add_log(self.file_size_type, price_code, f"step 3")
+                    # self.add_log(self.file_size_type, price_code, f"step 3")
                     # print(f"{recalc=}")
                     self.apply_discounts_pcc(sess)
-                    self.add_log(self.file_size_type, price_code, f"step 4")
+                    # self.add_log(self.file_size_type, price_code, f"step 4")
 
                     old_rows = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.price == 0).delete()
                     if old_rows:
@@ -1476,7 +1476,7 @@ class MainWorker(QThread):
         self.added_rows_2 = sess.execute(insert(PriceCompareCatalog).from_select(cols_to_price_comp, new_rows)).rowcount
         self.added_rows = self.added_rows_1 + self.added_rows_2
 
-        self.add_log(self.file_size_type, price_code, f"Добавлено в справочник для проценок: {self.added_rows} ({self.added_rows_1} + {self.added_rows_2})")
+        # self.add_log(self.file_size_type, price_code, f"Добавлено в справочник для проценок: {self.added_rows} ({self.added_rows_1} + {self.added_rows_2})")
 
         # prices_for_price_compare = select(SupplierPriceSettings.price_code).where(
         #                             func.upper(SupplierPriceSettings.for_price_compare) == 'ДА')
