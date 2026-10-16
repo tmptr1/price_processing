@@ -570,10 +570,13 @@ class MainWorker(QThread):
                     # min_price_q = select(TotalPrice_1._15code_optt, func.min(TotalPrice_1._05price).label('min_price')).where(
                     #                      and_(PriceCompareCatalog._15code_optt==self.TmpPrice_1._15code_optt,
                     #                           PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt)).group_by(TotalPrice_1._15code_optt)
+                    prices_for_price_compare = select(SupplierPriceSettings.price_code).where(
+                                                func.upper(SupplierPriceSettings.for_price_compare) == 'ДА')
                     min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
                                          TotalPrice_1._07supplier_code, TotalPrice_1.price_s).where(and_(
                                          and_(PriceCompareCatalog._15code_optt==self.TmpPrice_1._15code_optt,
-                                              PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt),
+                                              PriceCompareCatalog._15code_optt==TotalPrice_1._15code_optt,
+                                              TotalPrice_1._07supplier_code.in_(prices_for_price_compare)),
                                          or_(PriceCompareCatalog.price==None))
                                     ).distinct(TotalPrice_1._15code_optt
                                     ).order_by(TotalPrice_1._15code_optt, TotalPrice_1._05price.asc())
