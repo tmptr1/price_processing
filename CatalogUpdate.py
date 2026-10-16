@@ -75,8 +75,8 @@ class CatalogUpdate(QThread):
                 # self.update_price_compare_catalog()
                 # self.update_price_settings_catalog_3_0()
                 # self.update_price_settings_catalog_4_0()
-                # self.update_price_settings_catalog_4_0_cond()
-                # return
+                self.update_price_settings_catalog_4_0_cond()
+                return
 
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
@@ -930,21 +930,22 @@ class CatalogUpdate(QThread):
                                      ).where(and_(or_(PriceCompareCatalogClear.price_code == 'prev',
                                                       PriceCompareCatalogClear.price_code == 'prev new'),
                                                   PriceCompareCatalogClear._15code_optt == TotalPrice_1._15code_optt,
-                                                  TotalPrice_1._07supplier_code.in_(prices_for_price_compare))
+                                                  TotalPrice_1._07supplier_code.in_(prices_for_price_compare),
+                                                  TotalPrice_1._05price > 0)
                                              ).distinct(TotalPrice_1._15code_optt
                                                         ).order_by(TotalPrice_1._15code_optt,
                                                                    TotalPrice_1._05price.asc())
 
                 sess.execute(update(PriceCompareCatalogClear).where(
                     PriceCompareCatalogClear._15code_optt == min_price_q.c._15code_optt
-                    ).values(old_price=min_price_q.c.min_price, price_s=min_price_q.c.price_s, price=None,
+                    ).values(old_price=min_price_q.c.min_price, price_s=min_price_q.c.price_s, price=-1,
                              price_code=min_price_q.c._07supplier_code, updated_at=datetime.datetime.now()))
 
                 # Скидки для PriceCompareCatalogClear
                 # Скидки int
                 sess.execute(
                     update(PriceCompareCatalogClear).where(
-                        and_(PriceCompareCatalogClear.price == None,
+                        and_(PriceCompareCatalogClear.price == -1,
                              PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
                              PriceCompareCatalogClear.suppliers_count == cast(
                                  PriceCompareDiscount.suppliers_count, Integer))
@@ -959,13 +960,13 @@ class CatalogUpdate(QThread):
                     if '>' in csc.suppliers_count:
                         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                         sess.execute(update(PriceCompareCatalogClear).where(
-                            and_(PriceCompareCatalogClear.price == None,
+                            and_(PriceCompareCatalogClear.price == -1,
                                  PriceCompareCatalogClear.suppliers_count > count_filter)).values(
                             price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
                     if '<' in csc.suppliers_count:
                         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                         sess.execute(update(PriceCompareCatalogClear).where(
-                            and_(PriceCompareCatalogClear.price == None,
+                            and_(PriceCompareCatalogClear.price == -1,
                                  PriceCompareCatalogClear.suppliers_count < count_filter)).values(
                             price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
 
