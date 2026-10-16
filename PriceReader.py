@@ -572,10 +572,10 @@ class MainWorker(QThread):
 
                     min_price_q = select(TotalPrice_1._15code_optt, TotalPrice_1._05price.label('min_price'),
                                              TotalPrice_1._07supplier_code, TotalPrice_1.price_s).where(
-                            and_(PriceCompareCatalog.price==None,
+                            and_(PriceCompareCatalog.price == 0,
                                  PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt,
                                  TotalPrice_1._07supplier_code.in_(prices_for_price_compare),
-                                 TotalPrice_1._15code_optt != None)
+                                 TotalPrice_1._15code_optt != None, TotalPrice_1._05price > 0)
                         ).distinct(TotalPrice_1._15code_optt
                                         ).order_by(TotalPrice_1._15code_optt, TotalPrice_1._05price.asc())
 
@@ -587,7 +587,7 @@ class MainWorker(QThread):
                     # print(f"{recalc=}")
                     self.apply_discounts_pcc(sess)
 
-                    old_rows = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.price == None).delete()
+                    old_rows = sess.query(PriceCompareCatalog).where(PriceCompareCatalog.price <= 0).delete()
                     if old_rows:
                         self.add_log(self.file_size_type, price_code, f"Удалено из price_compare_catalog: {old_rows}")
 
@@ -1432,7 +1432,7 @@ class MainWorker(QThread):
         # обновление
         self.added_rows_1 = sess.execute(update(PriceCompareCatalog).where(PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt
                                               ).values(suppliers_count=PriceCompareCatalog.suppliers_count + 1,
-                                                       price=None)).rowcount
+                                                       price=0)).rowcount
                                                      # updated_at = datetime.datetime.now()
                                                        # old_price=func.least(PriceCompareCatalog.old_price,
                                                        #                      self.TmpPrice_1._05price))).rowcount
@@ -1445,7 +1445,7 @@ class MainWorker(QThread):
         sess.execute(update(PriceCompareCatalog).where(and_(TotalPrice_1._07supplier_code == price_code,
                                                             PriceCompareCatalog._15code_optt == TotalPrice_1._15code_optt)
                                                        ).values(suppliers_count=PriceCompareCatalog.suppliers_count - 1,
-                                                                price=None))
+                                                                price=0))
         sess.query(PriceCompareCatalog).where(PriceCompareCatalog.suppliers_count <= 0).delete()
 
         new_rows = select(self.TmpPrice_1._15code_optt, self.TmpPrice_1._07supplier_code, self.TmpPrice_1.price_s,
@@ -1479,7 +1479,7 @@ class MainWorker(QThread):
     def apply_discounts_pcc(self, sess):
         # Скидки int
         # PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
-        sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog.price==None,
+        sess.execute(update(PriceCompareCatalog).where(and_(PriceCompareCatalog.price==0,
                                                    PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
                                                    PriceCompareCatalog.suppliers_count == cast(
                                                        PriceCompareDiscount.suppliers_count, Integer))
@@ -1495,14 +1495,14 @@ class MainWorker(QThread):
                 count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                 # PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
                 sess.execute(update(PriceCompareCatalog).where(
-                    and_(PriceCompareCatalog.price==None,
+                    and_(PriceCompareCatalog.price==0,
                          PriceCompareCatalog.suppliers_count > count_filter)).values(
                     price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
             if '<' in csc.suppliers_count:
                 count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                 # PriceCompareCatalog._15code_optt == self.TmpPrice_1._15code_optt,
                 sess.execute(update(PriceCompareCatalog).where(
-                    and_(PriceCompareCatalog.price==None,
+                    and_(PriceCompareCatalog.price==0,
                          PriceCompareCatalog.suppliers_count < count_filter)).values(
                     price=(PriceCompareCatalog.old_price * (1 + csc.discount))))
 

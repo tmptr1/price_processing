@@ -1652,7 +1652,7 @@ class PriceCompareCatalog(Base):
     price_code: Mapped[str_x(20)]
     price_s: Mapped[numeric]
     old_price: Mapped[numeric]
-    price: Mapped[numeric]
+    price: Mapped[Numeric] = mapped_column(Numeric(12, 2), nullable=True, default=0)
     # duple: Mapped[Boolean] = mapped_column(Boolean, default=False)
     suppliers_count: Mapped[int] = mapped_column(Integer, default=1)
     updated_at: Mapped[datetime.datetime]
