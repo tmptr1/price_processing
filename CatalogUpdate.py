@@ -1168,12 +1168,12 @@ class CatalogUpdate(QThread):
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_2._07supplier_code))).scalars().all())
             actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.calculate == 'ДА',
                                                                                                  SupplierPriceSettings.works == 'ДА'))).scalars().all())
-            useless_prices = (loaded_prices - actual_prices)
+            useless_prices_2 = (loaded_prices - actual_prices)
             # print(useless_prices)
-            if useless_prices:
-                self.log.add(LOG_ID, f"Не обрабатываем или не работаем (tp2): {useless_prices}")
-                dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices)).delete()
-                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices)).values(
+            if useless_prices_2:
+                self.log.add(LOG_ID, f"Не обрабатываем или не работаем (tp2): {useless_prices_2}")
+                dels = sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(useless_prices_2)).delete()
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices_2)).values(
                     info_message="Не обрабатываем или не работаем", info_message2=None))
                 self.log.add(LOG_ID, f"Удалено строк (Обрабаытваем, Работаем): {dels}",
                              f"Удалено строк (Обрабаытваем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
@@ -1183,11 +1183,11 @@ class CatalogUpdate(QThread):
             loaded_prices = set(sess.execute(select(distinct(TotalPrice_1._07supplier_code))).scalars().all())
             actual_prices = set(sess.execute(select(SupplierPriceSettings.price_code).where(and_(SupplierPriceSettings.standard == 'ДА',
                                                                     SupplierPriceSettings.works == 'ДА'))).scalars().all())
-            useless_prices = (loaded_prices - actual_prices)
-            if useless_prices:
-                self.log.add(LOG_ID, f"Не обрабатываем или не работаем (tp1): {useless_prices}")
-                dels = sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices)).delete()
-                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices)).values(
+            useless_prices_1 = (loaded_prices - actual_prices)
+            if useless_prices_1:
+                self.log.add(LOG_ID, f"Не обрабатываем или не работаем (tp1): {useless_prices_1}")
+                dels = sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(useless_prices_1)).delete()
+                sess.execute(update(PriceReport).where(PriceReport.price_code.in_(useless_prices_1)).values(
                     info_message="Не стандартизируем или не работаем", info_message2=None))
                 self.log.add(LOG_ID, f"Удалено строк (Стандартизируем, Работаем): {dels}",
                              f"Удалено строк (Стандартизируем, Работаем): <span style='color:{colors.orange_log_color};font-weight:bold;'>{dels}</span> ")
@@ -1217,8 +1217,11 @@ class CatalogUpdate(QThread):
 
             working_prices = sess.execute(select(distinct(SupplierPriceSettings.price_code)).where(func.upper(SupplierPriceSettings.works)=='ДА')).scalars().all()
             sess.query(PriceReport).where(PriceReport.price_code.not_in(working_prices)).delete()
-            sess.execute(update(PriceReport).where(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок',
-                                                       PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(
+
+            prices_for_price_compare = select(SupplierPriceSettings.price_code).where(SupplierPriceSettings.standard == 'ДА')
+            sess.execute(update(PriceReport).where(and_(or_(PriceReport.info_message != 'Ок', PriceReport.info_message2 != 'Ок',
+                                                       PriceReport.price_code.in_(useless_prices_2.union(expired_prices))),
+                                                       PriceReport.price_code.notin_(prices_for_price_compare))).values(
                 updated_at=None, updated_at_2_step=None))
             # sess.execute(update(PriceReport).where(or_(PriceReport.info_message2 != 'Ок',
             #                                            PriceReport.price_code.in_(useless_prices.union(expired_prices)))).values(updated_at_2_step=None))
