@@ -182,7 +182,7 @@ class MainWorker(QThread):
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv']
                 # new_files = ['A652 MSK_1152.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
-                # new_files = ['АСТН ПРАЙС НЛК.xlsx', ]
+                # new_files = ['MI07 mikado_price_srt.csv', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -1228,6 +1228,8 @@ class MainWorker(QThread):
                         "Добавить в конце": True,
                         "Добавить в начале": True,
                         }
+        # supplier_code = select(SupplierPriceSettings.supplier_code).where(SupplierPriceSettings.price_code==price_code)
+        # ColsFix.price_code == supplier_code
         req1 = select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_change.in_(cols_name_set.keys())))
         cols_settings = sess.execute(req1).scalars().all()  # Price_1.article_s
 
@@ -1336,6 +1338,8 @@ class MainWorker(QThread):
                        "Равно": lambda col, x: func.upper(col) == x,
                        "Не равно": lambda col, x: func.upper(col) != x,
                        }
+        # supplier_code = select(SupplierPriceSettings.supplier_code).where(SupplierPriceSettings.price_code==price_code)
+        # ColsFix.price_code == supplier_code
         words = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
                                                         ColsFix.col_change == '20ИсключитьИзПрайса'))).scalars().all()
 
@@ -1375,6 +1379,8 @@ class MainWorker(QThread):
 
 
     def apply_discount(self, sess, price_code):
+        # supplier_code = select(SupplierPriceSettings.supplier_code).where(SupplierPriceSettings.price_code==price_code)
+        # ColsFix.price_code == supplier_code
         discounts = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
                                                             ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])))).scalars().all()
         price_cols = {'05Цена': self.TmpPrice_1._05price, 'Цена поставщика': self.TmpPrice_1._05price} # price_s

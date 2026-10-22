@@ -638,6 +638,15 @@ class CatalogUpdate(QThread):
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
                 sess.execute(update(ColsFix).values(find=func.upper(ColsFix.find)))
+                # дублирование MI01, MI02 ... для MIK
+                supplier_settings = sess.execute(select(ColsFix).where(func.length(ColsFix.price_code)==3)).scalars()
+                for supplier_setting in supplier_settings:
+                    price_codes = sess.execute(select(SupplierPriceSettings.price_code).where(
+                        SupplierPriceSettings.supplier_code==supplier_setting.price_code)).scalars().all()
+                    for price_code_cf in price_codes:
+                        sess.execute(insert(ColsFix).values(price_code=price_code_cf, col_find=supplier_setting.col_find,
+                                find=supplier_setting.find, change_type=supplier_setting.change_type,
+                                col_change=supplier_setting.col_change, set=supplier_setting.set))
 
                 # table_name = 'brands'
                 sheet_name = "Справочник Бренды"
