@@ -1643,7 +1643,12 @@ class PriceCompareDiscount(Base):
     __tablename__ = "price_compare_discount"
     id: Mapped[intpk]
     suppliers_count: Mapped[str_x(20)]
-    discount: Mapped[real]
+    less_500: Mapped[real]
+    more_500: Mapped[real]
+    more_1000: Mapped[real]
+    more_5000: Mapped[real]
+    more_15000: Mapped[real]
+    more_30000: Mapped[real]
 
 
 class PriceCompareCatalog(Base):

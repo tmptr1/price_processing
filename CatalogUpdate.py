@@ -675,8 +675,10 @@ class CatalogUpdate(QThread):
                 # table_name = 'price_compare_discount'
                 sheet_name = "Скидки от цены конкурентов"
                 table_class = PriceCompareDiscount
-                ex_table_name = "Проценка_изменение_цены"
-                cols = {"suppliers_count": ["Поставщиков товара"], "discount": ["Изменение"], }
+                ex_table_name = "Проценка_изменение_цен2"
+                cols = {"suppliers_count": ["Конкурентов"], "less_500": ["<= 500"], "more_500": ["> 500 <= 1000"],
+                        "more_1000": ["> 1000 <= 5000"], "more_5000": ["> 5000 <= 15000"], "more_15000": ["> 15000 <= 30000"],
+                        "more_30000": ["> 30000"], }
                 update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
@@ -1041,32 +1043,50 @@ class CatalogUpdate(QThread):
 
                 # Скидки для PriceCompareCatalogClear
                 # Скидки int
+                discount_conditions = [
+                    (PriceCompareCatalog.old_price <= 500, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.less_500)),
+                    (PriceCompareCatalog.old_price <= 1000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_500)),
+                    (PriceCompareCatalog.old_price <= 5000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_1000)),
+                    (PriceCompareCatalog.old_price <= 15000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_5000)),
+                    (PriceCompareCatalog.old_price <= 30000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_15000)),
+                    (PriceCompareCatalog.old_price > 30000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_30000)),
+                ]
                 sess.execute(
                     update(PriceCompareCatalogClear).where(
                         and_(PriceCompareCatalogClear.price == 0,
                              PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
                              PriceCompareCatalogClear.suppliers_count == cast(
                                  PriceCompareDiscount.suppliers_count, Integer))
-                    ).values(
-                        price=PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.discount)))
+                    ).values(price=case(*discount_conditions)))
+                        # price=PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.discount)))
 
                 # Скидки вида: >15
                 custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
                     PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
                 # print(custom_suppliers_counts)
                 for csc in custom_suppliers_counts:
+                    csc_conditions = [
+                        (PriceCompareCatalog.old_price <= 500, PriceCompareCatalog.old_price * (1 + csc.less_500)),
+                        (PriceCompareCatalog.old_price <= 1000, PriceCompareCatalog.old_price * (1 + csc.more_500)),
+                        (PriceCompareCatalog.old_price <= 5000, PriceCompareCatalog.old_price * (1 + csc.more_1000)),
+                        (PriceCompareCatalog.old_price <= 15000, PriceCompareCatalog.old_price * (1 + csc.more_5000)),
+                        (PriceCompareCatalog.old_price <= 30000, PriceCompareCatalog.old_price * (1 + csc.more_15000)),
+                        (PriceCompareCatalog.old_price > 30000, PriceCompareCatalog.old_price * (1 + csc.more_30000)),
+                    ]
                     if '>' in csc.suppliers_count:
                         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                         sess.execute(update(PriceCompareCatalogClear).where(
                             and_(PriceCompareCatalogClear.price == 0,
                                  PriceCompareCatalogClear.suppliers_count > count_filter)).values(
-                            price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+                            price=case(*csc_conditions)))
+                            # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
                     if '<' in csc.suppliers_count:
                         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
                         sess.execute(update(PriceCompareCatalogClear).where(
                             and_(PriceCompareCatalogClear.price == 0,
                                  PriceCompareCatalogClear.suppliers_count < count_filter)).values(
-                            price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+                            price=case(*csc_conditions)))
+                            # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
 
                 prev_del = sess.query(PriceCompareCatalogClear).where(
                     or_(PriceCompareCatalogClear.price_code == 'prev',
