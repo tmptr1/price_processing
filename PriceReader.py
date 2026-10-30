@@ -179,7 +179,7 @@ class MainWorker(QThread):
 
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
-                # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv']
+                # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', '1LAM Прайс-лист.xls']
                 # new_files = ['A652 MSK_1152.csv']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['MI07 mikado_price_srt.csv', ]
@@ -188,7 +188,7 @@ class MainWorker(QThread):
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
                 files = []
                 for f in new_files:
-                    if self.check_file_condition(f):
+                    if self.check_file_condition_price_comp(f):
                         files.append(f)
 
                 if files:
@@ -232,7 +232,7 @@ class MainWorker(QThread):
             self.log.add(LOG_ID, f"Пауза [{self.file_size_type+1}]", f"<span style='color:{colors.orange_log_color};'>Пауза [{self.file_size_type+1}]</span>  ")
             self.SetLabelColorSignal.emit('red')
 
-    def check_file_condition(self, file_name):
+    def check_file_condition_size(self, file_name):
         MB = os.path.getsize(f"{settings_data['mail_files_dir']}/{file_name}") / 1024 / 1024
         if self.file_size_type == 1:
             if MB > self.mb_limit:
@@ -242,6 +242,19 @@ class MainWorker(QThread):
         if MB <= self.mb_limit:
             return True
         return False
+
+    def check_file_condition_price_comp(self, file_name):
+        price_code = file_name[:4]
+        with session() as sess:
+            for_price_compare = sess.execute(select(func.upper(SupplierPriceSettings.for_price_compare)).where(
+                SupplierPriceSettings.price_code == price_code)).scalar() == 'ДА'
+            if self.file_size_type == 1 and for_price_compare:
+                return True
+            if self.file_size_type == 0 and not for_price_compare:
+                return True
+
+            return False
+
 
     def multi_calculate(self, args):
         file_path, custom_price_code = args
