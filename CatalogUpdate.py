@@ -1706,8 +1706,8 @@ class CatalogUpdate(QThread):
             diff_settings.c.price_code.in_(actual_price_codes)).distinct()).scalars().all()
         # print(prices_with_deleted_settings)
         if prices_with_deleted_settings:
-            sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(prices_with_deleted_settings)).delete()
-            sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(prices_with_deleted_settings)).delete()
+            # sess.query(TotalPrice_2).where(TotalPrice_2._07supplier_code.in_(prices_with_deleted_settings)).delete()
+            # sess.query(TotalPrice_1).where(TotalPrice_1._07supplier_code.in_(prices_with_deleted_settings)).delete()
             sess.execute(update(PriceReport).where(PriceReport.price_code.in_(prices_with_deleted_settings)).values(
                 updated_at=None, updated_at_2_step=None, info_message=None, info_message2=None))
             sess.commit()
