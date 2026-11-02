@@ -10,7 +10,7 @@ import os
 import holidays
 import holidays_ru
 from sqlalchemy import (text, select, delete, insert, update, Sequence, and_, not_, func, distinct, or_, String, inspect,
-                        case, Integer, literal_column, except_, exists, cast)
+                        case, Integer, literal_column, except_, exists, cast, Numeric)
 # from sqlalchemy.dialects.postgresql import insert as p_insert
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, UnboundExecutionError
@@ -180,7 +180,7 @@ class MainWorker(QThread):
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', '1LAM Прайс-лист.xls']
-                # new_files = ['A652 MSK_1152.csv']
+                # new_files = ['1МТЗ Прайс.xlsx']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['MI07 mikado_price_srt.csv', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
@@ -480,14 +480,12 @@ class MainWorker(QThread):
                     if percent:
                         sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1._05price * (1+percent)))
 
-                # Изменение цены по условиям (05Цена)
-                self.apply_discount(sess, price_code)
-                # print(f"Изменение цены по условиям {datetime.datetime.now() - n_dt}")
-
-
                 # 15КодТутОптТорг
                 sess.execute(update(self.TmpPrice_1).values(_15code_optt=(self.TmpPrice_1._01article+self.TmpPrice_1._14brand_filled_in).
                                                             regexp_replace(r"\W|_", "", 'g'))) # func.upper
+                # Изменение цены по условиям (05Цена)
+                self.apply_discount(sess, price_code)
+
                 self.cols_fix(price_code, sess, ("15КодТутОптТорг", "06Кратность"))
 
                 self.del_dupl = self.del_duples(sess)
@@ -1394,13 +1392,24 @@ class MainWorker(QThread):
     def apply_discount(self, sess, price_code):
         # supplier_code = select(SupplierPriceSettings.supplier_code).where(SupplierPriceSettings.price_code==price_code)
         # ColsFix.price_code == supplier_code
-        discounts = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code,
+        discounts = sess.execute(select(ColsFix).where(and_(ColsFix.price_code == price_code, ColsFix.col_find.in_(['Производитель поставщика', '14Производитель заполнен']),
                                                             ColsFix.col_change.in_(['05Цена', 'Цена поставщика'])))).scalars().all()
         price_cols = {'05Цена': self.TmpPrice_1._05price, 'Цена поставщика': self.TmpPrice_1._05price} # price_s
         for dscnt in discounts:
             # print(dscnt.set, 1 + float(str(dscnt.set).replace(',', '.')), dscnt.col_change, dscnt.find)
             sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._14brand_filled_in == dscnt.find).values(
                 {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(str(dscnt.set).replace(',', '.')))}))
+
+        req = update(self.TmpPrice_1).where(and_(ColsFix.price_code == price_code, ColsFix.col_find == '15КодТутОптТорг',
+                                                        ColsFix.col_change == '05Цена', self.TmpPrice_1._15code_optt == ColsFix.find)
+                   ).values(_05price=self.TmpPrice_1._05price * (1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))))
+        # print(req.compile(compile_kwargs={"literal_binds": True},))
+        sess.execute(req)
+
+        req = update(self.TmpPrice_1).where(and_(ColsFix.price_code == price_code, ColsFix.col_find == '15КодТутОптТорг',
+                                                        ColsFix.col_change == 'Цена поставщика', self.TmpPrice_1._15code_optt == ColsFix.find)
+                   ).values(price_s=self.TmpPrice_1.price_s * (1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))))
+        sess.execute(req)
 
     def del_duples(self, sess):
         # D для всех дублей
