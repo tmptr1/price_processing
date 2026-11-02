@@ -701,9 +701,37 @@ class CatalogUpdate(QThread):
 
                 sess.commit()
 
-            self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
-                         f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
-                         f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+                self.log.add(LOG_ID, f"{base_name} обновлён [{str(datetime.datetime.now() - cur_time)[:7]}]",
+                             f"<span style='color:{colors.green_log_color};font-weight:bold;'>{base_name}</span> обновлён "
+                             f"[{str(datetime.datetime.now() - cur_time)[:7]}]")
+
+
+                # Обновление цен по ИсправНомПоУсл (для всех currency_s)
+                cur_time = datetime.datetime.now()
+                sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(
+                    ['Производитель поставщика', '14Производитель заполнен']),
+                                                             TotalPrice_2._07supplier_code == ColsFix.price_code,
+                                                             TotalPrice_2._14brand_filled_in == ColsFix.find,
+                                                             ColsFix.find != None)).values(
+                    _05price=TotalPrice_2._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
+                    _05price_plus=None))
+
+                req = update(TotalPrice_2).where(
+                    and_(ColsFix.price_code == TotalPrice_2._07supplier_code, ColsFix.col_find == '15КодТутОптТорг',
+                         ColsFix.col_change == '05Цена', TotalPrice_2._15code_optt == ColsFix.find)
+                    ).values(_05price=TotalPrice_2._05price * (
+                            1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))),
+                             _05price_plus=None)
+                sess.execute(req)
+
+                conditions = [(and_(TotalPrice_2._04count > 0,
+                                    TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count),
+                               TotalPrice_2.markup_holidays / TotalPrice_2._04count)]
+                sess.execute(update(TotalPrice_2).where(TotalPrice_2._05price_plus == None).
+                        values(_05price_plus=case(*conditions, else_=TotalPrice_2._05price)))
+                self.log.add(LOG_ID, f"05price - done [{str(datetime.datetime.now() - cur_time)[:7]}]")
+                sess.commit()
+
         except (OperationalError, UnboundExecutionError) as db_ex:
             raise db_ex
         except Exception as ex:
@@ -1031,7 +1059,7 @@ class CatalogUpdate(QThread):
                                 PrevDynamicParts.code_optt != None, PrevDynamicParts.store_price_rub > 0))
                 sess.execute(insert(PriceCompareCatalog).from_select(['price_code', '_15code_optt', 'price', 'updated_at'], new_rows))
 
-                # Доп. таблица
+                # Доп. таблица по тз
                 sess.query(PriceCompareCatalogClear).delete()
                 sess.execute(text(f"insert into {PriceCompareCatalogClear.__tablename__} select * from {PriceCompareCatalog.__tablename__};"))
 
@@ -1059,12 +1087,12 @@ class CatalogUpdate(QThread):
                 # Скидки для PriceCompareCatalogClear
                 # Скидки int
                 discount_conditions = [
-                    (PriceCompareCatalog.old_price <= 500, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.less_500)),
-                    (PriceCompareCatalog.old_price <= 1000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_500)),
-                    (PriceCompareCatalog.old_price <= 5000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_1000)),
-                    (PriceCompareCatalog.old_price <= 15000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_5000)),
-                    (PriceCompareCatalog.old_price <= 30000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_15000)),
-                    (PriceCompareCatalog.old_price > 30000, PriceCompareCatalog.old_price * (1 + PriceCompareDiscount.more_30000)),
+                    (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.less_500)),
+                    (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_500)),
+                    (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_1000)),
+                    (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_5000)),
+                    (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_15000)),
+                    (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_30000)),
                 ]
                 sess.execute(
                     update(PriceCompareCatalogClear).where(
@@ -1081,12 +1109,12 @@ class CatalogUpdate(QThread):
                 # print(custom_suppliers_counts)
                 for csc in custom_suppliers_counts:
                     csc_conditions = [
-                        (PriceCompareCatalog.old_price <= 500, PriceCompareCatalog.old_price * (1 + csc.less_500)),
-                        (PriceCompareCatalog.old_price <= 1000, PriceCompareCatalog.old_price * (1 + csc.more_500)),
-                        (PriceCompareCatalog.old_price <= 5000, PriceCompareCatalog.old_price * (1 + csc.more_1000)),
-                        (PriceCompareCatalog.old_price <= 15000, PriceCompareCatalog.old_price * (1 + csc.more_5000)),
-                        (PriceCompareCatalog.old_price <= 30000, PriceCompareCatalog.old_price * (1 + csc.more_15000)),
-                        (PriceCompareCatalog.old_price > 30000, PriceCompareCatalog.old_price * (1 + csc.more_30000)),
+                        (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + csc.less_500)),
+                        (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + csc.more_500)),
+                        (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + csc.more_1000)),
+                        (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + csc.more_5000)),
+                        (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_15000)),
+                        (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_30000)),
                     ]
                     if '>' in csc.suppliers_count:
                         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))

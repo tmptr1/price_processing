@@ -424,7 +424,6 @@ class MainWorker(QThread):
                                                                 regexp_replace(' +', ' ', 'g').
                                                                 regexp_replace('^ | $', '', 'g')))
 
-                    self.check_ru_name(sess, price_code)
                 # 05Цена
                 sess.execute(update(self.TmpPrice_1).values(_05price=self.TmpPrice_1.price_s, clear_price=self.TmpPrice_1.price_s))
                 # .where(self.TmpPrice_1._05price == None)
@@ -459,6 +458,8 @@ class MainWorker(QThread):
                     # 04Количество
                     sess.execute(update(self.TmpPrice_1).values(_04count=case((self.TmpPrice_1._04count != None, self.TmpPrice_1.count_s - self.TmpPrice_1._04count),
                                                                               else_=self.TmpPrice_1.count_s)))
+                    # Названия после 14 кода
+                    self.check_ru_name(sess, price_code)
                 else:
                     sess.execute(update(self.TmpPrice_1).values(_04count=self.TmpPrice_1.count_s))
                 # sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._04count != None).values(_04count=self.TmpPrice_1.count_s - self.TmpPrice_1._04count))
@@ -1088,7 +1089,6 @@ class MainWorker(QThread):
 
     def check_ru_name(self, sess, price_code):
         now_dt = datetime.datetime.now()
-
         sess.execute(update(self.TmpPrice_1).values(ru_chars=self.TmpPrice_1._03name.regexp_replace('[^а-яА-ЯёЁ]', '', 'g')))
         # names_smtp = select(self.TmpPrice_1._01article_comp, func.lower(self.TmpPrice_1._14brand_filled_in), self.TmpPrice_1._03name).where(
         #     and_(self.TmpPrice_1._01article_comp != None, func.lowerself.TmpPrice_1._14brand_filled_in != None))
@@ -1120,7 +1120,6 @@ class MainWorker(QThread):
 
                             func.lower(self.TmpPrice_1.ru_chars).in_(select(CommonWordExclusions.name)))
                         )).values(_03name=RuDictionary.name)).rowcount
-
 
         if updated_names:
             self.add_log(self.file_size_type, price_code, f"Изменено {updated_names} названий в прайсе")
