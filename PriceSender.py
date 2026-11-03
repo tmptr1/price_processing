@@ -920,12 +920,6 @@ class Sender(QThread):
 
 
     def set_direct_markup(self, sess):
-        # direct прямая
-        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.direct_supplier_customer_markup_pct!=0).
-                     values(price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct),
-                                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price),
-                            price_formula='direct '))
-
         # prev dynamic parts (в приоритете, перекрывает всё)
         # sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp._15code_optt == PrevDynamicParts.code_optt).values(
         #     price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
@@ -934,6 +928,12 @@ class Sender(QThread):
             price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.floor_markup_pct),
                                 PriceCompareCatalog.price),
             price_formula='prev_dynamic_parts '))
+
+        # direct прямая
+        sess.execute(update(self.FinalPriceTmp).where(self.FinalPriceTmp.direct_supplier_customer_markup_pct!=0).
+                     values(price=func.greatest(self.FinalPriceTmp._05price_plus * (1 + self.FinalPriceTmp.direct_supplier_customer_markup_pct),
+                                                self.FinalPriceTmp._05price_plus, self.FinalPriceTmp._05price),
+                            price_formula='direct '))
 
 
     def del_price_below_zero(self, sess):

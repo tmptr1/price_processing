@@ -84,7 +84,7 @@ class MailParserClass(QThread):
                             self.letters_b.add(i)
                             self.log.add(LOG_ID, f"{i}")
                             self.get_mail(i, mail)  # получение необходимых файлов из письма
-                            time.sleep(2)
+                            # time.sleep(2)
 
                     if self.now_time < (datetime.datetime.now()).strftime("%d-%b-%Y"):
                         self.now_time = (datetime.datetime.now()).strftime("%d-%b-%Y")
@@ -109,6 +109,7 @@ class MailParserClass(QThread):
             except Exception as ex:
                 ex_text = traceback.format_exc()
                 self.log.error(LOG_ID, "ERROR", ex_text)
+                time.sleep(20)
 
             self.UpdateReportSignal.emit(True)
 
