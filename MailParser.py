@@ -205,6 +205,7 @@ class MailParserClass(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, "get_mail Error", ex_text)
+            time.sleep(20)
 
     def load_content(self, message, tmp_archive_dir, tmp_dir, db_data, sender, received_time):
         '''Скачивает необходимые файлы, в случае с архивами, скачивает полный архив в папку Archives, далее распаковывает
