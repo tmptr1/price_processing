@@ -84,6 +84,7 @@ class MailParserClass(QThread):
                             self.letters_b.add(i)
                             self.log.add(LOG_ID, f"{i}")
                             self.get_mail(i, mail)  # получение необходимых файлов из письма
+                            time.sleep(2)
 
                     if self.now_time < (datetime.datetime.now()).strftime("%d-%b-%Y"):
                         self.now_time = (datetime.datetime.now()).strftime("%d-%b-%Y")

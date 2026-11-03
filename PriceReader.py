@@ -180,7 +180,7 @@ class MainWorker(QThread):
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', ]#'A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', '1LAM Прайс-лист.xls']
-                # new_files = ['1МТЗ Прайс.xlsx']
+                # new_files = ['2PAR Прайс-лист удобный XLSX.xlsx']
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['MI07 mikado_price_srt.csv', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
@@ -1118,7 +1118,8 @@ class MainWorker(QThread):
                             and_(not_(func.regexp_like(self.TmpPrice_1._03name, '[а-яА-ЯёЁ]{3}')),
                                  func.length(self.TmpPrice_1.ru_chars).cast(Integer) < RuDictionary.ru_chars_len),
 
-                            func.lower(self.TmpPrice_1.ru_chars).in_(select(CommonWordExclusions.name)))
+                            func.lower(self.TmpPrice_1.ru_chars).in_(select(CommonWordExclusions.name)),
+                            self.TmpPrice_1._03name == None)
                         )).values(_03name=RuDictionary.name)).rowcount
 
         if updated_names:
