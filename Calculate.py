@@ -116,7 +116,7 @@ class CalculateClass(QThread):
                 # new_files = ['1ГУД.csv', '8ГУД.csv', '9ГУД.csv', 'АСТФ.csv','АСТ6.csv','1BEG.csv','АСТ4.csv','АСТ0.csv','0PAR.csv','АКД1.csv',
                 #              '1LAM.csv','КОПТ.csv']
                 # new_files = ['АКД1.csv', '1МТЗ.csv', 'VTTE.csv', '1MTK.csv', '1MKO.csv', 'MKOZ.csv', ]
-                new_files = ['1MTK.csv', '2MTK.csv']
+                # new_files = ['1MTK.csv', '2MTK.csv']
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1МСК.csv', '1FRA.csv', '1ГУД.csv', '8ГУД.csv', '9ГУД.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', '1ГУД.csv']

@@ -184,7 +184,7 @@ class MainWorker(QThread):
                 # new_files = ['АКД1 price_KRD1.xlsx', '1МТЗ Прайс.xlsx', 'VTTE Электроинструмент.xlsx', '1MTK Остатки оригинал.xlsx',
                 #              '1MKO остатки_ОС.xls', 'MKOZ остатки_ИМ.xls', ]
                 # new_files = ['1LAM Прайс-лист.xls']
-                new_files = ['1MTK Остатки оригинал.xlsx', '2MTK Остатки не оригинал.xlsx']
+                # new_files = ['1MTK Остатки оригинал.xlsx', '2MTK Остатки не оригинал.xlsx']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
