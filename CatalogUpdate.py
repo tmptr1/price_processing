@@ -708,12 +708,15 @@ class CatalogUpdate(QThread):
 
                 # Обновление цен по ИсправНомПоУсл (для всех currency_s)
                 cur_time = datetime.datetime.now()
+                price_conditions = [(and_(TotalPrice_2.currency_s != None, func.upper(TotalPrice_2.currency_s) == ExchangeRate.code),
+                                    TotalPrice_2.price_s * ExchangeRate.rate *
+                                     (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))),]
                 sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(
                     ['Производитель поставщика', '14Производитель заполнен']),
                                                              TotalPrice_2._07supplier_code == ColsFix.price_code,
                                                              TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
-                    _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
+                    _05price=case(*price_conditions, else_=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))),
                     _05price_plus=None))
 
                 req = update(TotalPrice_2).where(
