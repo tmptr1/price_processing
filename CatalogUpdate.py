@@ -713,7 +713,7 @@ class CatalogUpdate(QThread):
                                                              TotalPrice_2._07supplier_code == ColsFix.price_code,
                                                              TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
-                    _05price=TotalPrice_2._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
+                    _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
                     _05price_plus=None))
 
                 req = update(TotalPrice_2).where(
@@ -1424,7 +1424,7 @@ class CatalogUpdate(QThread):
 
     def update_suppliers_settings_4(self, sess, last_DB_4_update):
         last_4_condition_2_update = sess.execute(select(CatalogUpdateTime.updated_at).where(
-            CatalogUpdateTime.catalog_name == '4.0 Настройка прайсов поставщиков.xlsx"')).scalar()
+            CatalogUpdateTime.catalog_name == '4.0 Настройка прайсов поставщиков.xlsx')).scalar()
         if last_4_condition_2_update and last_4_condition_2_update <= last_DB_4_update:
             return
 
@@ -1437,7 +1437,7 @@ class CatalogUpdate(QThread):
                                                      TotalPrice_2.currency_s == None,
                                                      TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                      ColsFix.find != None)).values(
-            _05price=TotalPrice_2._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
+            _05price=TotalPrice_2.price_s * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),  # price_s
             _05price_plus=None))
 
         req = update(TotalPrice_2).where(and_(ColsFix.price_code == TotalPrice_2._07supplier_code, ColsFix.col_find == '15КодТутОптТорг',

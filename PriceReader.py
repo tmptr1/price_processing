@@ -181,6 +181,8 @@ class MainWorker(QThread):
                 # new_files = ['A734 RND_187.csv', 'A660 MSK_90.csv', 'A954 MSK_787.csv', 'A955 MSK_696.csv', 'A937 MSK_691.csv']
                 # new_files = ['A988 KRD_310.csv', 'A652 MSK_1152.csv', '1LAM Прайс-лист.xls']
                 # new_files = ['2PAR Прайс-лист удобный XLSX.xlsx']
+                new_files = ['АКД1 price_KRD1.xlsx', '1МТЗ Прайс.xlsx', 'VTTE Электроинструмент.xlsx', '1MTK Остатки оригинал.xlsx',
+                             '1MKO остатки_ОС.xls', 'MKOZ остатки_ИМ.xls', ]
                 # new_files = ['1LAM Прайс-лист.xls']
                 # new_files = ['MI07 mikado_price_srt.csv', ]
                 # new_files = ['1ГУД Крд прайс PQ.xls']
@@ -246,8 +248,9 @@ class MainWorker(QThread):
     def check_file_condition_price_comp(self, file_name):
         price_code = file_name[:4]
         with session() as sess:
-            for_price_compare = sess.execute(select(func.upper(SupplierPriceSettings.for_price_compare)).where(
-                SupplierPriceSettings.price_code == price_code)).scalar() == 'ДА'
+            for_price_compare = sess.execute(select(func.upper(SupplierPriceSettings.for_price_compare)).where(and_(
+                SupplierPriceSettings.price_code == price_code, func.upper(SupplierPriceSettings.for_price_compare) == 'ДА',
+                func.upper(SupplierPriceSettings.calculate) != 'ДА'))).scalar() == 'ДА'
             if self.file_size_type == 1 and for_price_compare:
                 return True
             if self.file_size_type == 0 and not for_price_compare:
@@ -1397,8 +1400,9 @@ class MainWorker(QThread):
         price_cols = {'05Цена': self.TmpPrice_1._05price, 'Цена поставщика': self.TmpPrice_1._05price} # price_s
         for dscnt in discounts:
             # print(dscnt.set, 1 + float(str(dscnt.set).replace(',', '.')), dscnt.col_change, dscnt.find)
+            # {price_cols[dscnt.col_change]: price_cols[dscnt.col_change] * 1 ...}
             sess.execute(update(self.TmpPrice_1).where(self.TmpPrice_1._14brand_filled_in == dscnt.find).values(
-                {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(str(dscnt.set).replace(',', '.')))}))
+                _05price= self.TmpPrice_1._05price * (1 + float(str(dscnt.set).replace(',', '.')))))
 
         req = update(self.TmpPrice_1).where(and_(ColsFix.price_code == price_code, ColsFix.col_find == '15КодТутОптТорг',
                                                         ColsFix.col_change == '05Цена', self.TmpPrice_1._15code_optt == ColsFix.find)
