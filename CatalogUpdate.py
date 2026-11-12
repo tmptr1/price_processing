@@ -2282,7 +2282,8 @@ class CreateMassOffers(QThread):
                     .where(datetime.datetime.now() - datetime.timedelta(days=1) < MailReport.date)
                 subq = select(TotalPrice_1._01article_comp, TotalPrice_1._14brand_filled_in, TotalPrice_1._07supplier_code).where(
                     and_(TotalPrice_1._07supplier_code.in_(actual_prices), TotalPrice_1._07supplier_code == SupplierPriceSettings.price_code,
-                         SupplierPriceSettings.wholesale == 'ДА', TotalPrice_1._20exclude == None, TotalPrice_1._05price > 0,
+                         func.upper(SupplierPriceSettings.wholesale) == 'ДА', func.upper(SupplierPriceSettings.works) == 'ДА',
+                         TotalPrice_1._20exclude == None, TotalPrice_1._05price > 0,
                          TotalPrice_1._14brand_filled_in != None, TotalPrice_1._01article_comp != None))
                 sess.execute(insert(MassOffers).from_select(['article', 'brand', 'price_code'], subq))
                 sess.query(MassOffers).where(
