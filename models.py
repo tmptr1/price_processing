@@ -1406,7 +1406,7 @@ class FinalComparePrice(Base3):
 
 class FinalComparePrice_1(Base3_1):
     __tablename__ = "final_compare_price_1"
-    __table_args__ = (Index("final_compare_price_15code_optt_index", "_15code_optt",),
+    __table_args__ = (Index("final_compare_price_1_15code_optt_index", "_15code_optt",),
                       {"prefixes": ['UNLOGGED'], }, # ["UNLOGGED"],
                       )
 
