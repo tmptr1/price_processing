@@ -76,6 +76,8 @@ class CatalogUpdate(QThread):
                 # self.update_price_settings_catalog_3_0()
                 # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
+                # path_to_file = fr"{settings_data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
+                # get_tables_skip_row_dict(path_to_file)
                 # return
 
                 # self.check_prices_update_time()
@@ -87,6 +89,10 @@ class CatalogUpdate(QThread):
 
 
                 # with session() as sess:
+                    # self.update_price_compare_discount(sess)
+                    # sess.commit()
+                    # update_price_compare_catalog(sess, PriceCompareCatalogClear)
+                    # return
                 #     cur_time = datetime.datetime.now()
                 #     self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts ...", )
                 #
@@ -597,7 +603,8 @@ class CatalogUpdate(QThread):
                         "rc_tnved": ["R/C ТНВЭД"], "name_tnved": ["ТНВЭД"], "rc_okpd2": ["R/C ОКПД2"], "name_okpd2": ["ОКПД2"],
                         "rc_ref": ["R/C Ссылка на запись в реестре сертификатов"], "name_ref": ["Название Ссылка на запись в реестре сертификатов"]
                         }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.execute(update(FileSettings).values(email=FileSettings.email.regexp_replace(' ', '', 'g')))
 
                 rc_cols = [['r_key_s', 'c_key_s', 'rc_key_s'],
@@ -641,7 +648,8 @@ class CatalogUpdate(QThread):
                         "supplier_rating": ["Рейтинг поставщика"],
                         }
                 # "markup_os": ["Наценка для ОС"], "costs": ["Издержки"],
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.query(SupplierPriceSettings).filter(SupplierPriceSettings.price_code == None).delete()  # supplier_code
                 sess.execute(update(SupplierPriceSettings).values(update_time=cast(func.regexp_substr(SupplierPriceSettings.update_time_str, r'\d+'), REAL)))
 
@@ -651,7 +659,8 @@ class CatalogUpdate(QThread):
                 ex_table_name = "Исправ_Ном_по_Услов"
                 cols = {"price_code": ["Код прайса"], "col_find": ["Столбец поиска"], "find": ["Найти"],
                         "change_type": ["Вариант исправления"], "col_change": ["Столбец исправления"], "set": ["Установить"]}
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.execute(update(ColsFix).values(find=func.upper(ColsFix.find)))
                 # дублирование MI01, MI02 ... для MIK
                 supplier_settings = sess.execute(select(ColsFix).where(func.length(ColsFix.price_code)==3)).scalars()
@@ -669,7 +678,8 @@ class CatalogUpdate(QThread):
                 ex_table_name = "Бренды_"
                 cols = {"correct_brand": ["Правильный Бренд"], "brand": ["Поиск"],
                         "mass_offers": ["Для подсчёта предложений в опте"], "base_price": ["Для базовой цены"], }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.execute(update(Brands).values(brand_low=func.lower(Brands.brand.regexp_replace(r'\W|_', '', 'g'))))
 
                 # table_name = 'supplier_goods_fix'
@@ -685,16 +695,19 @@ class CatalogUpdate(QThread):
                         "put_away_percent": ["Убрать %"], "put_away_count": ["Убрать шт"], "nomenclature": ["Номенклатура"],
                         "mult_s": ["Кратность поставщика"], "name_s": ["Наименование поставщика"]
                         }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'price_compare_discount'
                 sheet_name = "Скидки от цены конкурентов"
                 table_class = PriceCompareDiscount
                 ex_table_name = "Проценка_изменение_цен2"
-                cols = {"suppliers_count": ["Конкурентов"], "less_500": ["<= 500"], "more_500": ["> 500 <= 1000"],
-                        "more_1000": ["> 1000 <= 5000"], "more_5000": ["> 5000 <= 15000"], "more_15000": ["> 15000 <= 30000"],
-                        "more_30000": ["> 30000"], }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                self.update_price_compare_discount(sess)
+                # cols = {"suppliers_count": ["Конкурентов"], "less_500": ["<= 500"], "more_500": ["> 500 <= 1000"],
+                #         "more_1000": ["> 1000 <= 5000"], "more_5000": ["> 5000 <= 15000"], "more_15000": ["> 15000 <= 30000"],
+                #         "more_30000": ["> 30000"], }
+                # update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                # nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 sess.query(CatalogUpdateTime).filter(CatalogUpdateTime.catalog_name == base_name).delete()
                 sess.add(CatalogUpdateTime(catalog_name=base_name, updated_at=new_update_time))
@@ -740,6 +753,41 @@ class CatalogUpdate(QThread):
         except Exception as ex:
             ex_text = traceback.format_exc()
             self.log.error(LOG_ID, f"update_price_settings_catalog_4_0 Error", ex_text)
+
+    def update_price_compare_discount(self, sess):
+        sess.execute(delete(PriceCompareDiscount))
+        sess.execute(text(f"ALTER SEQUENCE {PriceCompareDiscount.__tablename__}_id_seq restart 1"))
+
+        path_to_file = fr"{settings_data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
+        tables_skip_rows_dict = get_tables_skip_row_dict(path_to_file)
+
+        df = pd.read_excel(path_to_file, na_filter=False, sheet_name='Скидки от цены конкурентов',
+                           skiprows=tables_skip_rows_dict['Проценка_изменение_цен2'][0], nrows=1)
+        cols = []
+        start_append_flag = False
+        for c in df:
+            if start_append_flag:  # skip first cols
+                if str(c).startswith('Unnamed:'):
+                    break
+                cols.append(c)
+            elif c == 'Конкурентов':
+                start_append_flag = True
+                cols.append(c)
+        print(cols)
+        new_df = pd.read_excel(path_to_file, usecols=[*cols], na_filter=False, sheet_name='Скидки от цены конкурентов',
+                               skiprows=tables_skip_rows_dict['Проценка_изменение_цен2'][0], nrows=tables_skip_rows_dict['Проценка_изменение_цен2'][1])
+        # cols.remove('Конкурентов')
+        new_df = new_df.reindex(columns=[*cols])
+        price_conditions = []
+        for row in new_df.values:
+            print(row)
+            for i, rng in enumerate(row[1:], start=1):
+                print(f"[{row[0]}] ({cols[i]}) : {rng}")
+                price_conditions.append(PriceCompareDiscount(suppliers_count=str(row[0]), price_condition=str(cols[i]),
+                                                             price_mult=float(rng)))
+                # sess.add(PriceCompareDiscount())
+        sess.add_all(price_conditions)
+            # print(row['Конкурентов'])
 
 
     # def update_price_settings_catalog_3_0(self):
@@ -906,7 +954,8 @@ class CatalogUpdate(QThread):
                         "opt_starting_markup_pct": ["opt_starting_markup_pct"],
                         "supplier_customer_sales_share_pct": ["supplier_customer_sales_share_pct"],
                         "unique_grad_step_pct": ["unique_grad_step_pct"], "opt_grad_step_pct": ["opt_grad_step_pct"], }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # sheet_names = []
                 # df = pd.ExcelFile(path_to_file)
@@ -929,7 +978,8 @@ class CatalogUpdate(QThread):
                 # "max_decline": ["Макс снижение от базовой цены"]
                 cols = {"works": ["Работаем?"], "update_time": ["Период обновления не более"], "setting": ["Настройка"],
                         "correct": ["Правильное"], "markup_pb": ["Наценка ПБ"], "code_pb_p": ["Код ПБ_П"]}
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.execute(update(Data07_14).values(correct=func.upper(Data07_14.correct)))
 
                 # table_name = 'data07'
@@ -944,14 +994,16 @@ class CatalogUpdate(QThread):
                         "markup_wholesale": ["Наценка на оптовые товары"], "grad_step": ["Шаг градации"],
                         "wholesale_step": ["Шаг опт"], "access_pp": ["Разрешения ПП"], "unload_percent": ["% Отгрузки"]}
                 # "markup_os": ["Наценка для ОС"],
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'data09'
                 sheet_name = "09Данные"
                 table_class = Data09
                 ex_table_name = "_09Данные"
                 cols = {"reserve_count": ["ШтР"], "code_09": ["09"], }  # "put_away_zp": ["УбратьЗП"]
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 # sess.execute(update(Data09).where(Data09.put_away_zp.is_(None)).values(put_away_zp='все'))
 
                 # table_name = 'buy_for_os'
@@ -959,14 +1011,16 @@ class CatalogUpdate(QThread):
                 table_class = Buy_for_OS
                 ex_table_name = "Закупки_для_ОС"
                 cols = {"buy_count": ["Количество закупок"], "article_producer": ["АртикулПроизводитель"]}
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'reserve'
                 # sheet_name = "Резерв_да"
                 # table_class = Reserve
                 # ex_table_name = "Резерв_да"
                 # cols = {"code_09": ["09Код"], "reserve_count": ["ШтР"], "code_07": ["07Код"]}
-                # update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                # update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                # nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'suppliers_form'
                 sheet_name = "Анкета поставщика"
@@ -981,7 +1035,8 @@ class CatalogUpdate(QThread):
                         "price_update_notification_emails": ["price_update_notification_emails"],
                         "max_price_drop_pct": ["max_price_drop_pct"],
                         }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'buyers_form'
                 sheet_name = "Анкета покупателя"
@@ -1012,7 +1067,8 @@ class CatalogUpdate(QThread):
                         "col_5": ["5 Столбец в прайсе"], "col_6": ["6 Столбец в прайсе"], "col_7": ["7 Столбец в прайсе"],
                         "col_8": ["8 Столбец в прайсе"], "col_9": ["9 Столбец в прайсе"], "col_10": ["10 Столбец в прайсе"],
                         }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'prev_dynamic_parts'
                 sheet_name = "prev dynamic parts"
@@ -1020,7 +1076,8 @@ class CatalogUpdate(QThread):
                 ex_table_name = "prev_dynamic_parts"
                 # "parts_markup_pct": ["parts_markup_pct"],
                 cols = {"code_optt": ["code_optt"], "store_price_rub": ["store_price_rub"]}
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'price_exception'
                 sheet_name = "ИсключитьизПрайса"
@@ -1028,14 +1085,16 @@ class CatalogUpdate(QThread):
                 ex_table_name = "ИсключитьизПрайса"
                 cols = {"price_code": ["Код прайса"], "condition": ["Условие"], "find": ["Столбец поиска"],
                         "text": ["Текст"], "deny": ["Куда запрещено"], "extra": ["Примечание"], }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
 
                 # table_name = 'common_word_exclusions'
                 sheet_name = "Исключить массовые наименования"
                 table_class = CommonWordExclusions
                 ex_table_name = "common_word_exclusions"
                 cols = {"name": ["word"], }
-                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name], sheet_name=sheet_name)
+                update_catalog(sess, path_to_file, cols, table_class, skiprows=tables_skip_rows_dict[ex_table_name][0],
+                               nrows=tables_skip_rows_dict[ex_table_name][1], sheet_name=sheet_name)
                 sess.execute(update(CommonWordExclusions).values(name=func.lower(CommonWordExclusions.name)))
 
 
@@ -1087,53 +1146,56 @@ class CatalogUpdate(QThread):
                 ).values(old_price=min_price_q.c.min_price, price_s=min_price_q.c.price_s, price=0,
                          price_code=min_price_q.c._07supplier_code, updated_at=datetime.datetime.now()))
 
-                # Скидки для PriceCompareCatalogClear
-                # Скидки int
-                discount_conditions = [
-                    (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.less_500)),
-                    (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_500)),
-                    (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_1000)),
-                    (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_5000)),
-                    (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_15000)),
-                    (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_30000)),
-                ]
-                sess.execute(
-                    update(PriceCompareCatalogClear).where(
-                        and_(PriceCompareCatalogClear.price == 0,
-                             PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
-                             PriceCompareCatalogClear.suppliers_count == cast(
-                                 PriceCompareDiscount.suppliers_count, Integer))
-                    ).values(price=case(*discount_conditions)))
-                        # price=PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.discount)))
+                # # Скидки для PriceCompareCatalogClear
+                update_price_compare_catalog(sess, PriceCompareCatalogClear)
 
-                # Скидки вида: >15
-                custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
-                    PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
-                # print(custom_suppliers_counts)
-                for csc in custom_suppliers_counts:
-                    csc_conditions = [
-                        (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + csc.less_500)),
-                        (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + csc.more_500)),
-                        (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + csc.more_1000)),
-                        (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + csc.more_5000)),
-                        (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_15000)),
-                        (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_30000)),
-                    ]
-                    if '>' in csc.suppliers_count:
-                        count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                        sess.execute(update(PriceCompareCatalogClear).where(
-                            and_(PriceCompareCatalogClear.price == 0,
-                                 PriceCompareCatalogClear.suppliers_count > count_filter)).values(
-                            price=case(*csc_conditions)))
-                            # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
-                    if '<' in csc.suppliers_count:
-                        count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
-                        sess.execute(update(PriceCompareCatalogClear).where(
-                            and_(PriceCompareCatalogClear.price == 0,
-                                 PriceCompareCatalogClear.suppliers_count < count_filter)).values(
-                            price=case(*csc_conditions)))
-                            # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
 
+                # # Скидки int
+                # discount_conditions = [
+                #     (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.less_500)),
+                #     (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_500)),
+                #     (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_1000)),
+                #     (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_5000)),
+                #     (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_15000)),
+                #     (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.more_30000)),
+                # ]
+                # sess.execute(
+                #     update(PriceCompareCatalogClear).where(
+                #         and_(PriceCompareCatalogClear.price == 0,
+                #              PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
+                #              PriceCompareCatalogClear.suppliers_count == cast(
+                #                  PriceCompareDiscount.suppliers_count, Integer))
+                #     ).values(price=case(*discount_conditions)))
+                #         # price=PriceCompareCatalogClear.old_price * (1 + PriceCompareDiscount.discount)))
+                #
+                # # Скидки вида: >15
+                # custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
+                #     PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars().all()
+                # # print(custom_suppliers_counts)
+                # for csc in custom_suppliers_counts:
+                #     csc_conditions = [
+                #         (PriceCompareCatalogClear.old_price <= 500, PriceCompareCatalogClear.old_price * (1 + csc.less_500)),
+                #         (PriceCompareCatalogClear.old_price <= 1000, PriceCompareCatalogClear.old_price * (1 + csc.more_500)),
+                #         (PriceCompareCatalogClear.old_price <= 5000, PriceCompareCatalogClear.old_price * (1 + csc.more_1000)),
+                #         (PriceCompareCatalogClear.old_price <= 15000, PriceCompareCatalogClear.old_price * (1 + csc.more_5000)),
+                #         (PriceCompareCatalogClear.old_price <= 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_15000)),
+                #         (PriceCompareCatalogClear.old_price > 30000, PriceCompareCatalogClear.old_price * (1 + csc.more_30000)),
+                #     ]
+                #     if '>' in csc.suppliers_count:
+                #         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                #         sess.execute(update(PriceCompareCatalogClear).where(
+                #             and_(PriceCompareCatalogClear.price == 0,
+                #                  PriceCompareCatalogClear.suppliers_count > count_filter)).values(
+                #             price=case(*csc_conditions)))
+                #             # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+                #     if '<' in csc.suppliers_count:
+                #         count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+                #         sess.execute(update(PriceCompareCatalogClear).where(
+                #             and_(PriceCompareCatalogClear.price == 0,
+                #                  PriceCompareCatalogClear.suppliers_count < count_filter)).values(
+                #             price=case(*csc_conditions)))
+                #             # price=(PriceCompareCatalogClear.old_price * (1 + csc.discount))))
+                #
                 prev_del = sess.query(PriceCompareCatalogClear).where(
                     or_(PriceCompareCatalogClear.price_code == 'prev',
                         PriceCompareCatalogClear.price_code == 'prev new')).delete()
@@ -2556,7 +2618,75 @@ def set_lot(self, sess):
 
     return m_count, p_count
 
-def update_catalog(ses, path_to_file, cols, table_class, sheet_name=0, del_table=True, skiprows=0, orders_table=False):
+def update_price_compare_catalog(sess, table):
+    # clear int suppliers_count
+    price_conditions_obj = sess.execute(select(PriceCompareDiscount).where(PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"))).scalars()
+    price_conditions_chars = {'>': lambda obj, v: obj > v,
+                        '>=': lambda obj, v: obj >= v,
+                        '<': lambda obj, v: obj < v,
+                        '<=': lambda obj, v: obj <= v,
+                        }
+    cond_list = []
+    for p_cond in price_conditions_obj:
+        local_cond_list = []
+        conds = re.findall(r"(?:[<>]=?)\s*\d+", p_cond.price_condition)
+        for c in conds:
+            re_res = re.search(r'[<>]=?', c)
+            if re_res:
+                cond_char = re_res.group()
+                val = int(''.join(filter(str.isdigit, c)))
+                # cond_list.append(price_conditions[cond_char](PriceCompareDiscount.price_mult, val))
+                local_cond_list.append(price_conditions_chars[cond_char](table.old_price, val))
+
+        if local_cond_list:
+            cond_list.append((and_(table.suppliers_count==cast(p_cond.suppliers_count, Integer), *local_cond_list),
+                              table.old_price * (1 + p_cond.price_mult)))
+            # print(p_cond.suppliers_count)
+            # print(conds)
+    # print(cond_list)
+    req = update(table).where(and_(table.price == 0,PriceCompareDiscount.suppliers_count.op("~")(r"^\d+$"),
+                                   table.suppliers_count == cast(PriceCompareDiscount.suppliers_count, Integer))
+                                          ).values(price=case(*cond_list))
+    # print(req.compile(compile_kwargs={"literal_binds": True},))
+    sess.execute(req)
+
+    # Скидки вида: >15
+    custom_suppliers_counts = sess.execute(select(PriceCompareDiscount).where(
+        PriceCompareDiscount.suppliers_count.op("~")("^[><]"))).scalars()
+
+    cond_list = []
+    for csc in custom_suppliers_counts:
+        count_filter = int(''.join([i if i.isdigit() else '' for i in csc.suppliers_count]))
+
+        conds = re.findall(r"(?:[<>]=?)\s*\d+", csc.price_condition)
+        local_cond_list = []
+        for c in conds:
+            re_res = re.search(r'[<>]=?', c)
+            if re_res:
+                cond_char = re_res.group()
+                val = int(''.join(filter(str.isdigit, c)))
+                # cond_list.append(price_conditions[cond_char](PriceCompareDiscount.price_mult, val))
+                local_cond_list.append(price_conditions_chars[cond_char](table.old_price, val))
+
+        if local_cond_list:
+            cond_char_c = None
+            if '>' in csc.suppliers_count:
+                cond_char_c = '>'
+            if '<' in csc.suppliers_count:
+                cond_char_c = '<'
+            if not cond_char_c:
+                continue
+
+            cond_list.append((and_(price_conditions_chars[cond_char_c](table.suppliers_count, count_filter), *local_cond_list),
+                     table.old_price * (1 + csc.price_mult)))
+            # print(p_cond.suppliers_count)
+
+    req = update(table).where(table.price == 0).values(price=case(*cond_list))
+    # print(req.compile(compile_kwargs={"literal_binds": True},))
+    sess.execute(req)
+
+
+def update_catalog(ses, path_to_file, cols, table_class, sheet_name=0, del_table=True, skiprows=0, nrows=None, orders_table=False):
     '''for varchar(x), real, numeric, integer'''
     table_name = table_class.__tablename__
     con = ses.connection()
@@ -2578,7 +2708,8 @@ def update_catalog(ses, path_to_file, cols, table_class, sheet_name=0, del_table
         f"and column_name != 'id'")).all()
     pk = [i[0] for i in res]
 
-    df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False, sheet_name=sheet_name, skiprows=skiprows)
+    df = pd.read_excel(path_to_file, usecols=[cols[c][0] for c in cols], na_filter=False, sheet_name=sheet_name,
+                       skiprows=skiprows, nrows=nrows)
     df = df.rename(columns={cols[c][0]: c for c in cols})
 
     for c in cols:
@@ -2637,12 +2768,15 @@ def get_tables_skip_row_dict(path_to_file):
     tables_skip_rows_dict = dict()
     for ws in workbook.worksheets:
         for t in ws.tables:
-            # print(t)
+            # print(f"{t=}")
             table = ws.tables[t]
-            # print(table)
+            # print(f"{table=}")
+            # print(f"{ws.title=}")
             # print(ws.title)
             # print(table.ref)
             skip_r = int(''.join(filter(str.isdigit, (str(table.ref).split(':')[0])))) - 1
-            tables_skip_rows_dict[t] = skip_r
+            nrows = int(''.join(filter(str.isdigit, (str(table.ref).split(':')[1])))) - 1
+            # print(f"{t}, {nrows=}")
+            tables_skip_rows_dict[t] = [skip_r, nrows]
 
     return tables_skip_rows_dict
