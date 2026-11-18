@@ -131,7 +131,7 @@ class Sender(QThread):
                 # Для тестов:
                 # price_name_list = []
                 # if self.therad_id == 0:
-                #     price_name_list = [3]
+                #     price_name_list = [7]
 
 
                 self.cur_file_count = 0
@@ -415,6 +415,8 @@ class Sender(QThread):
             if 'xls' in self.price_settings.file_extension:
                 self.file_name = f"{str(self.price_settings.file_name).replace('.xlsx', '')}.xls"
                 self.create_csv(sess, format='xls')
+
+            self.create_price_for_compare(sess)
 
             self.add_log(self.price_settings.buyer_price_code, f"csv создан", cur_time)
 
@@ -970,24 +972,20 @@ class Sender(QThread):
             main_prices = list(map(str.strip, str(self.price_settings.main_price).split(',')))
             for p in main_prices:
                 base_name = str(p).rstrip('.xlsx')
-                price_path = fr"{settings_data['send_dir']}/{base_name}.csv"
+                price_path = fr"price_for_compare/{base_name}.csv"
                 if os.path.exists(price_path):
                     if self.price_settings.period is None:
                         continue
                     main_price = pd.read_csv(price_path, header=0, sep=';', encoding='windows-1251',
-                                             usecols=["Артикул", "Бренд", "Цена"], encoding_errors='ignore',
-                                             na_filter=False)
-                    main_price = main_price.rename(columns={"Артикул": self.FinalComparePriceTmp._01article.__dict__['name'],
-                                                            "Бренд": self.FinalComparePriceTmp._14brand_filled_in.__dict__['name'],
+                                             usecols=["15КодТутОптТорг", "Цена"], encoding_errors='ignore', na_filter=False)
+                    main_price = main_price.rename(columns={"15КодТутОптТорг": self.FinalComparePriceTmp._15code_optt.__dict__['name'],
                                                             "Цена": self.FinalComparePriceTmp.price.__dict__['name']})
-                    main_price['period'] = self.price_settings.period
                     main_price['price'] = main_price['price'].str.replace(',', '.')
                     main_price.to_sql(name=self.FinalComparePriceTmp.__tablename__, con=sess.connection(), if_exists='append',
                                       index=False)
                     sess.commit()
 
-                    sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._01article == self.FinalComparePriceTmp._01article,
-                                                               self.FinalPriceTmp._14brand_filled_in == self.FinalComparePriceTmp._14brand_filled_in,
+                    sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._15code_optt == self.FinalComparePriceTmp._15code_optt,
                                                                self.FinalPriceTmp.price > self.FinalComparePriceTmp.price)).
                                  values(over_base_price=True))
                     # new_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.over_base_price == True), 'Сравнение цены с осн. прайсом')
@@ -996,6 +994,34 @@ class Sender(QThread):
                         # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.over_base_price == True).delete()
                         self.price_compare_del += new_del
                     sess.query(self.FinalComparePriceTmp).delete()
+
+                # base_name = str(p).rstrip('.xlsx')
+                # price_path = fr"{settings_data['send_dir']}/{base_name}.csv"
+                # if os.path.exists(price_path):
+                #     if self.price_settings.period is None:
+                #         continue
+                #     main_price = pd.read_csv(price_path, header=0, sep=';', encoding='windows-1251',
+                #                              usecols=["Артикул", "Бренд", "Цена"], encoding_errors='ignore',
+                #                              na_filter=False)
+                #     main_price = main_price.rename(columns={"Артикул": self.FinalComparePriceTmp._01article.__dict__['name'],
+                #                                             "Бренд": self.FinalComparePriceTmp._14brand_filled_in.__dict__['name'],
+                #                                             "Цена": self.FinalComparePriceTmp.price.__dict__['name']})
+                #     main_price['period'] = self.price_settings.period
+                #     main_price['price'] = main_price['price'].str.replace(',', '.')
+                #     main_price.to_sql(name=self.FinalComparePriceTmp.__tablename__, con=sess.connection(), if_exists='append',
+                #                       index=False)
+                #     sess.commit()
+                #
+                #     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._01article == self.FinalComparePriceTmp._01article,
+                #                                                self.FinalPriceTmp._14brand_filled_in == self.FinalComparePriceTmp._14brand_filled_in,
+                #                                                self.FinalPriceTmp.price > self.FinalComparePriceTmp.price)).
+                #                  values(over_base_price=True))
+                #     # new_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.over_base_price == True), 'Сравнение цены с осн. прайсом')
+                #     new_del = self.add_dels_in_history(sess, self.FinalPriceTmp.over_base_price == True, 'Сравнение цены с осн. прайсом')
+                #     if new_del:
+                #         # sess.query(self.FinalPriceTmp).where(self.FinalPriceTmp.over_base_price == True).delete()
+                #         self.price_compare_del += new_del
+                #     sess.query(self.FinalComparePriceTmp).delete()
 
             if self.price_compare_del:
                 self.add_log(self.price_settings.buyer_price_code, f"Удалено: {self.price_compare_del} (Сравнение цены с осн. прайсом)")
@@ -1176,6 +1202,32 @@ class Sender(QThread):
                          f"Не удалось сформировать прайс {self.price_settings.buyer_price_code} ({self.cur_file_count + 1}/{self.total_file_count})",
                          f"Не удалось сформировать прайс <span style='background-color:hsl({self.color[0]}, {self.color[1]}%, {self.color[2]}%);'>"
                          f"{self.price_settings.buyer_price_code}</span> ({self.cur_file_count + 1}/{self.total_file_count})")
+
+
+    def create_price_for_compare(self, sess):
+        csv_path = fr"price_for_compare/{str(self.price_settings.file_name).replace('.xlsx', '')}.csv"
+
+        headers = {"15КодТутОптТорг": self.FinalPriceTmp._15code_optt, "Цена": self.FinalPriceTmp.price,}
+
+        df = pd.DataFrame(columns=[*headers.keys()])
+        df.to_csv(csv_path, sep=';', decimal=',', encoding="windows-1251", index=False, errors='ignore')
+
+        limit = CHUNKSIZE
+        loaded = 0
+        while True:
+            req = select(*headers.values()).order_by(self.FinalPriceTmp.price, self.FinalPriceTmp.supplier_customer_sales_share_pct.desc(),
+                                                     self.FinalPriceTmp.art_brand_07).offset(loaded).limit(limit)
+            df = pd.read_sql_query(req, sess.connection(), index_col=None)
+            # df = df.sort_values(self.FinalPriceTmp.price.__dict__['name'], ascending=False)
+
+            df_len = len(df)
+
+            if not df_len:
+                break
+
+            df.to_csv(csv_path, mode='a', sep=';', decimal=',', encoding="windows-1251", index=False, header=False, errors='ignore')
+
+            loaded += df_len
 
 
     def send_mail(self):

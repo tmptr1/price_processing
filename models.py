@@ -1387,35 +1387,40 @@ class FinalPriceHistoryDel(Base):
 
 class FinalComparePrice(Base3):
     __tablename__ = "final_compare_price"
-    __table_args__ = (Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),
+    # Index("final_compare_price_01_14_index", "_01article", "_14brand_filled_in"),
+    __table_args__ = (Index("final_compare_price_15code_optt_index", "_15code_optt",),
                       {"prefixes": ['UNLOGGED'], }, # ["UNLOGGED"],
                       )
 
     id: Mapped[intpk]
     # _01Артикул varchar(256),
-    _01article: Mapped[str_x(256)]
+    # _01article: Mapped[str_x(256)]
     # _14Производитель_заполнен varchar(1000),
-    _14brand_filled_in: Mapped[str_x(256)]
+    # _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     # Срок
-    period: Mapped[intgr]
+    # period: Mapped[intgr]
 
 class FinalComparePrice_1(Base3_1):
     __tablename__ = "final_compare_price_1"
-    __table_args__ = (Index("final_compare_price_01_14_index_1", "_01article", "_14brand_filled_in"),
+    __table_args__ = (Index("final_compare_price_15code_optt_index", "_15code_optt",),
                       {"prefixes": ['UNLOGGED'], }, # ["UNLOGGED"],
                       )
 
     id: Mapped[intpk]
     # _01Артикул varchar(256),
-    _01article: Mapped[str_x(256)]
+    # _01article: Mapped[str_x(256)]
     # _14Производитель_заполнен varchar(1000),
-    _14brand_filled_in: Mapped[str_x(256)]
+    # _14brand_filled_in: Mapped[str_x(256)]
+    # _15КодТутОптТорг varchar(256),
+    _15code_optt: Mapped[str_x(256)]
     # Цена NUMERIC(12,2),
     price: Mapped[numeric]
     # Срок
-    period: Mapped[intgr]
+    # period: Mapped[intgr]
 
 class LastPrice(Base):
     __tablename__ = "last_price"

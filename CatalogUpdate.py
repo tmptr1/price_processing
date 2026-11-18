@@ -2560,7 +2560,7 @@ def update_catalog(ses, path_to_file, cols, table_class, sheet_name=0, del_table
     '''for varchar(x), real, numeric, integer'''
     table_name = table_class.__tablename__
     con = ses.connection()
-    pk = []
+
     # берутся столбцы из таблицы: название столбца, максимальная длина его поля
     if del_table:
         req = delete(table_class)

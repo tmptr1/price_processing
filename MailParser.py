@@ -109,7 +109,7 @@ class MailParserClass(QThread):
             except Exception as ex:
                 ex_text = traceback.format_exc()
                 self.log.error(LOG_ID, "ERROR", ex_text)
-                time.sleep(20)
+                time.sleep(60)
 
             self.UpdateReportSignal.emit(True)
 
