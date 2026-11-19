@@ -773,16 +773,16 @@ class CatalogUpdate(QThread):
             elif c == 'Конкурентов':
                 start_append_flag = True
                 cols.append(c)
-        print(cols)
+        # print(cols)
         new_df = pd.read_excel(path_to_file, usecols=[*cols], na_filter=False, sheet_name='Скидки от цены конкурентов',
                                skiprows=tables_skip_rows_dict['Проценка_изменение_цен2'][0], nrows=tables_skip_rows_dict['Проценка_изменение_цен2'][1])
         # cols.remove('Конкурентов')
         new_df = new_df.reindex(columns=[*cols])
         price_conditions = []
         for row in new_df.values:
-            print(row)
+            # print(row)
             for i, rng in enumerate(row[1:], start=1):
-                print(f"[{row[0]}] ({cols[i]}) : {rng}")
+                # print(f"[{row[0]}] ({cols[i]}) : {rng}")
                 price_conditions.append(PriceCompareDiscount(suppliers_count=str(row[0]), price_condition=str(cols[i]),
                                                              price_mult=float(rng)))
                 # sess.add(PriceCompareDiscount())

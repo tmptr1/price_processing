@@ -986,7 +986,7 @@ class Sender(QThread):
                     sess.commit()
 
                     sess.execute(update(self.FinalPriceTmp).where(and_(self.FinalPriceTmp._15code_optt == self.FinalComparePriceTmp._15code_optt,
-                                                               self.FinalPriceTmp.price > self.FinalComparePriceTmp.price)).
+                                                               self.FinalPriceTmp.price >= self.FinalComparePriceTmp.price)).
                                  values(over_base_price=True))
                     # new_del = self.add_dels_in_history(sess, (self.FinalPriceTmp.over_base_price == True), 'Сравнение цены с осн. прайсом')
                     new_del = self.add_dels_in_history(sess, self.FinalPriceTmp.over_base_price == True, 'Сравнение цены с осн. прайсом')
