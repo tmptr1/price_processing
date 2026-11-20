@@ -767,7 +767,7 @@ class CatalogUpdate(QThread):
                                                              TotalPrice_2._07supplier_code == ColsFix.price_code,
                                                              TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None, TotalPrice_2.currency_s != None,
-                                                             TotalPrice_2.currency_s == ExchangeRate.code)).values(
+                                                             func.upper(TotalPrice_2.currency_s) == ExchangeRate.code)).values(
                     _05price=TotalPrice_2.price_s * ExchangeRate.rate * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))),
                     _05price_plus=None))
 
