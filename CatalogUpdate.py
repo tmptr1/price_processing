@@ -97,8 +97,7 @@ class CatalogUpdate(QThread):
                                                                  TotalPrice_2._07supplier_code == ColsFix.price_code,
                                                                  TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                                  ColsFix.find != None)).values(
-                        _05price=case(*price_conditions, else_=TotalPrice_2.price_s * (
-                                    1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))),
+                        _05price=case(*price_conditions, else_=-1),
                         _05price_plus=None))
                     sess.commit()
                     print('ok')
