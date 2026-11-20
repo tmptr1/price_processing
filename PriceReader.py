@@ -185,7 +185,7 @@ class MainWorker(QThread):
                 # new_files = ['АКД1 price_KRD1.xlsx', '1МТЗ Прайс.xlsx', 'VTTE Электроинструмент.xlsx', '1MTK Остатки оригинал.xlsx',
                 #              '1MKO остатки_ОС.xls', 'MKOZ остатки_ИМ.xls', ]
                 # new_files = ['1LAM Прайс-лист.xls']
-                # new_files = ['1MTK Остатки оригинал.xlsx', '2MTK Остатки не оригинал.xlsx']
+                new_files = ['1MKO остатки_ОС.xls', 'MKOZ остатки_ИМ.xls']
                 # new_files = ['1ГУД Крд прайс PQ.xls']
                 # new_files = ['1IMP IMPEKS_KRD.xlsx', '1LAM Прайс-лист.xls', '1STP KRD.xls', '1АТХ Прайс-лист.xlsx', '1МТЗ Прайс.xlsx',
                 #              '2ETP Прайс ЕТП.csv', '1ГУД Крд прайс PQ.xls']
@@ -1209,7 +1209,7 @@ class MainWorker(QThread):
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.brand != None)).values(_02brand=SupplierGoodsFix.brand))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.name != None)).values(_03name=SupplierGoodsFix.name))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.put_away_count != 0)).values(_04count=SupplierGoodsFix.put_away_count))
-            sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(_05price=SupplierGoodsFix.price_s, clear_price=self.TmpPrice_1.price_s))
+            sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.price_s != 0)).values(price_s=SupplierGoodsFix.price_s, _05price=SupplierGoodsFix.price_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.mult_s != 0)).values(_06mult=SupplierGoodsFix.mult_s))
             sess.execute(update(self.TmpPrice_1).where(and_(compare_vars[sett.compare], SupplierGoodsFix.sales_ban != None)).values(_20exclude=SupplierGoodsFix.sales_ban))
 
