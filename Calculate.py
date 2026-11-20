@@ -117,7 +117,7 @@ class CalculateClass(QThread):
                 #              '1LAM.csv','КОПТ.csv']
                 # new_files = ['АКД1.csv', '1МТЗ.csv', 'VTTE.csv', '1MTK.csv', '1MKO.csv', 'MKOZ.csv', ]
                 # new_files = ['1MKO.csv', 'MKOZ.csv']
-                # new_files = ['1MTK.csv', '2MTK.csv', '3MTK.csv']
+                new_files = ['1MTK.csv',]# '2MTK.csv', '3MTK.csv']
                 # new_files = ['1ГУД.csv',]
                 # new_files = ['1МСК.csv', '1FRA.csv', '1ГУД.csv', '8ГУД.csv', '9ГУД.csv', ]
                 # new_files = ['1IMP.csv', '1LAM.csv', '1STP.csv', '1АТХ.csv', '1МТЗ.csv', '2ETP.csv', '1ГУД.csv']
@@ -526,8 +526,6 @@ class CalculateClass(QThread):
              )
         ]
         sess.execute(update(self.TmpPrice_2).values(_05price_plus=case(*price_plus_cond, else_=self.TmpPrice_2._05price)))
-
-
         # sess.execute(update(self.TmpPrice_2).where(and_(self.TmpPrice_2.markup_holidays > self.TmpPrice_2._05price * self.TmpPrice_2._04count,
         #          self.TmpPrice_2._04count > 0)).values(_05price_plus=self.TmpPrice_2.markup_holidays / self.TmpPrice_2._04count))
         # sess.execute(update(self.TmpPrice_2).where(self.TmpPrice_2._05price_plus == None).values(_05price_plus=self.TmpPrice_2._05price))

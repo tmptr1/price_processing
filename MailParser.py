@@ -53,7 +53,10 @@ class MailParserClass(QThread):
             self.update_orders_table()
 
             start_cycle_time = datetime.datetime.now()
+
+            # if check_box:
             self.check_since = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%d-%b-%Y")
+
             self.now_time = datetime.datetime.now().strftime("%d-%b-%Y")
             try:
                 mail = imaplib.IMAP4_SSL(host='imap.yandex.ru', port=993, timeout=100)
