@@ -336,37 +336,36 @@ class CatalogUpdate(QThread):
                 # currency_s != None
                 sess.execute(update(TotalPrice_1).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(['Производитель поставщика', '14Производитель заполнен']),
                                                              TotalPrice_1._07supplier_code == ColsFix.price_code,
-                                                             TotalPrice_1.currency_s != None,
                                                              TotalPrice_1._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
                     _05price=TotalPrice_1._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))))
                 # {price_cols[dscnt.col_change].__dict__['name']: price_cols[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols[dscnt.col_change]
                 sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(['Производитель поставщика', '14Производитель заполнен']),
                                                              TotalPrice_2._07supplier_code == ColsFix.price_code,
-                                                             TotalPrice_2.currency_s != None,
                                                              TotalPrice_2._14brand_filled_in == ColsFix.find,
                                                              ColsFix.find != None)).values(
                     _05price=TotalPrice_2._05price * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))))
                         # {price_cols2[dscnt.col_change].__dict__['name']: price_cols2[dscnt.col_change] * (1 + float(dscnt.set))})) # price_cols2[dscnt.col_change]
 
                 req = update(TotalPrice_1).where(and_(ColsFix.price_code == TotalPrice_1._07supplier_code, ColsFix.col_find == '15КодТутОптТорг',
-                         ColsFix.col_change == '05Цена', TotalPrice_1.currency_s != None, TotalPrice_1._15code_optt == ColsFix.find)
+                         ColsFix.col_change == '05Цена', TotalPrice_1._15code_optt == ColsFix.find)
                     ).values(_05price=TotalPrice_1._05price * (
                             1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))))
                 sess.execute(req)
 
-                req = update(TotalPrice_2).where(and_(ColsFix.price_code == TotalPrice_2._07supplier_code, ColsFix.col_find == '15КодТутОптТорг',
-                         ColsFix.col_change == 'Цена поставщика', TotalPrice_2.currency_s != None, TotalPrice_2._15code_optt == ColsFix.find)
-                    ).values(price_s=TotalPrice_2.price_s * (
-                            1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))))
-                sess.execute(req)
+                # req = update(TotalPrice_2).where(and_(ColsFix.price_code == TotalPrice_2._07supplier_code, ColsFix.col_find == '15КодТутОптТорг',
+                #          ColsFix.col_change == 'Цена поставщика', TotalPrice_2._15code_optt == ColsFix.find)
+                #     ).values(price_s=TotalPrice_2.price_s * (
+                #             1 + cast(ColsFix.set.regexp_replace(',', '.', 'g'), Numeric(12, 2))))
+                # sess.execute(req)
 
 
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2.currency_s != None).values(_05price_plus=None))
-                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._05price_plus == None, TotalPrice_2._04count > 0,
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2.currency_s != None).values(_05price_plus=None))
+                sess.execute(update(TotalPrice_2).where(and_(TotalPrice_2._04count > 0,
                                                              TotalPrice_2.markup_holidays > TotalPrice_2._05price * TotalPrice_2._04count)).
                              values(_05price_plus=TotalPrice_2.markup_holidays / TotalPrice_2._04count))
-                sess.execute(update(TotalPrice_2).where(TotalPrice_2._05price_plus == None).values(_05price_plus=TotalPrice_2._05price))
+
+                # sess.execute(update(TotalPrice_2).where(TotalPrice_2._05price_plus == None).values(_05price_plus=TotalPrice_2._05price))
                 # для пересчёта прайсов, где указана валюта
                 # prices_with_curr = sess.execute(select(distinct(TotalPrice_1._07supplier_code)).
                 #                                 where(TotalPrice_1.currency_s != None)).scalars().all()
