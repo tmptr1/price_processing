@@ -74,11 +74,11 @@ class CatalogUpdate(QThread):
                 # self.update_DB_4()
                 # self.update_price_compare_catalog()
                 # self.update_price_settings_catalog_3_0()
-                self.update_price_settings_catalog_4_0()
+                # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
                 # path_to_file = fr"{settings_data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
                 # get_tables_skip_row_dict(path_to_file)
-                return
+                # return
 
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
@@ -88,11 +88,24 @@ class CatalogUpdate(QThread):
                 # return
 
 
-                # with session() as sess:
+                with session() as sess:
                     # self.update_price_compare_discount(sess)
-                    # sess.commit()
+                    price_conditions = [(and_(TotalPrice_2.currency_s.isnot(None),
+                                              func.upper(TotalPrice_2.currency_s) == ExchangeRate.code),
+                                         TotalPrice_2.price_s * ExchangeRate.rate *
+                                         (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))), ]
+                    sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(
+                        ['Производитель поставщика', '14Производитель заполнен']),
+                                                                 TotalPrice_2._07supplier_code == ColsFix.price_code,
+                                                                 TotalPrice_2._14brand_filled_in == ColsFix.find,
+                                                                 ColsFix.find != None)).values(
+                        _05price=case(*price_conditions, else_=TotalPrice_2.price_s * (
+                                    1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2)))),
+                        _05price_plus=None))
+                    sess.commit()
+                    print('ok')
                     # update_price_compare_catalog(sess, PriceCompareCatalogClear)
-                    # return
+                    return
                 #     cur_time = datetime.datetime.now()
                 #     self.log.add(LOG_ID, f"Слияние PriceCompareCatalog с PrevDynamicParts ...", )
                 #
