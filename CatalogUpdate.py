@@ -74,11 +74,11 @@ class CatalogUpdate(QThread):
                 # self.update_DB_4()
                 # self.update_price_compare_catalog()
                 # self.update_price_settings_catalog_3_0()
-                self.update_price_settings_catalog_4_0()
+                # self.update_price_settings_catalog_4_0()
                 # self.update_price_settings_catalog_4_0_cond()
                 # path_to_file = fr"{settings_data['catalogs_dir']}\4.0 Настройка прайсов поставщиков.xlsx"
                 # get_tables_skip_row_dict(path_to_file)
-                return
+                # return
 
                 # self.check_prices_update_time()
                 # self.send_tg_notification()
