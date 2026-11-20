@@ -93,7 +93,7 @@ class CatalogUpdate(QThread):
                     price_conditions = [(func.upper(TotalPrice_2.currency_s) == ExchangeRate.code,
                                          TotalPrice_2.price_s * ExchangeRate.rate * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))]
 
-                    price_conditions_2 = [(and_(TotalPrice_2.currency_s != None, TotalPrice_2.currency_s == ExchangeRate.code), -4)]
+                    price_conditions_2 = [(and_(TotalPrice_2.currency_s != None, ExchangeRate.code == TotalPrice_2.currency_s), -4)]
                     sess.execute(update(TotalPrice_2).where(and_(ColsFix.col_change == '05Цена', ColsFix.col_find.in_(
                         ['Производитель поставщика', '14Производитель заполнен']),
                                                                  TotalPrice_2._07supplier_code == ColsFix.price_code,
