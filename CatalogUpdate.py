@@ -782,7 +782,7 @@ class CatalogUpdate(QThread):
             # print(row)
             for i, rng in enumerate(row[1:], start=1):
                 # print(f"[{row[0]}] ({cols[i]}) : {rng}")
-                price_conditions.append(PriceCompareDiscount(suppliers_count=str(row[0]), price_condition=str(cols[i]),
+                price_conditions.append(PriceCompareDiscount(suppliers_count=str(row[0]), price_condition=str(cols[i]).replace('≤', '<=').replace('≥', '>='),
                                                              price_mult=float(rng)))
                 # sess.add(PriceCompareDiscount())
         sess.add_all(price_conditions)
