@@ -89,6 +89,21 @@ class CatalogUpdate(QThread):
 
 
                 with session() as sess:
+                    result = sess.execute(
+                        select(
+                            TotalPrice_2.currency_s,
+                            ExchangeRate.code,
+                            func.upper(TotalPrice_2.currency_s),
+                            func.upper(ExchangeRate.code),
+                            func.upper(TotalPrice_2.currency_s) == ExchangeRate.code
+                        )
+                        .select_from(TotalPrice_2)
+                        .select_from(ExchangeRate)
+                    )
+
+                    for row in result:
+                        print(row)
+                    return
                     # self.update_price_compare_discount(sess)
                     # price_conditions = [(func.upper(TotalPrice_2.currency_s) == ExchangeRate.code,
                     #                      TotalPrice_2.price_s * ExchangeRate.rate * (1 + cast(func.regexp_replace(ColsFix.set, ',', '.'), Numeric(12, 2))))]
